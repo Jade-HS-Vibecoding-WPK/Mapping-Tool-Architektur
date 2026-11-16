@@ -10,7 +10,7 @@
    Eingabe:  { kacheln: [{ id, url }], bbox: [Ost_min, Nord_min, Ost_max, Nord_max] }  (UTM 32, Meter)
    Ausgabe:  { typ: "fortschritt", ... } zwischendurch,
              { typ: "fertig", gebaeude: [...] } am Ende oder { typ: "fehler", text } bei Problemen.
-   Ein Gebäude: { id, dachtyp, funktion, hoehe, trauf, boden, flaechen: [ [ring, ring, ...], ... ] }
+   Ein Gebäude: { id, dachtyp, funktion, hoehe, trauf, boden, flaechen: [ [ring, ring, ...], ... ], waende: [ ... ] }
    Ein Ring ist eine flache Zahlenliste [x, y, z, x, y, z, ...] in Metern (UTM 32, Höhe über NHN).
    ============================================================ */
 
@@ -108,25 +108,30 @@ function verarbeiteBlock(block, bbox) {
   const funktionTreffer = /<bldg:function>([^<]*)<\/bldg:function>/.exec(block);
   const hoeheTreffer = /<bldg:measuredHeight[^>]*>([-\d.]+)<\/bldg:measuredHeight>/.exec(block);
   const merkmal = (name) => {
-    const m = new RegExp('name="' + name + '">\s*<gen:value>([^<]*)</gen:value>').exec(block);
+    const m = new RegExp('name="' + name + '">\\s*<gen:value>([^<]*)</gen:value>').exec(block);
     return m && m[1] !== "" && !Number.isNaN(Number(m[1])) ? Number(m[1]) : null;
   };
 
-  const flaechen = [];
-  let beruehrt = false;
-  for (const dach of block.match(/<bldg:RoofSurface[\s\S]*?<\/bldg:RoofSurface>/g) || []) {
-    for (const polygon of dach.match(/<gml:Polygon[\s\S]*?<\/gml:Polygon>/g) || []) {
-      // Zuerst kommt der Außenring, danach eventuelle Löcher (Innenhöfe)
-      const ringe = [];
-      for (const treffer of polygon.matchAll(/<gml:posList[^>]*>([^<]*)<\/gml:posList>/g)) {
-        const ring = zahlen(treffer[1]);
-        if (ring.length >= 9) ringe.push(ring);
+  // Liest alle Flächen (Polygone) einer Sorte, z. B. Dach oder Wand, aus dem Gebäudetext
+  const leseFlaechen = (sorte) => {
+    const liste = [];
+    for (const teil of block.match(new RegExp("<bldg:" + sorte + "[\\s\\S]*?</bldg:" + sorte + ">", "g")) || []) {
+      for (const polygon of teil.match(/<gml:Polygon[\s\S]*?<\/gml:Polygon>/g) || []) {
+        // Zuerst kommt der Außenring, danach eventuelle Löcher (Innenhöfe)
+        const ringe = [];
+        for (const treffer of polygon.matchAll(/<gml:posList[^>]*>([^<]*)<\/gml:posList>/g)) {
+          const ring = zahlen(treffer[1]);
+          if (ring.length >= 9) ringe.push(ring);
+        }
+        if (ringe.length) liste.push(ringe);
       }
-      if (!ringe.length) continue;
-      flaechen.push(ringe);
-      if (!beruehrt && beruehrtRechteck(ringe[0], bbox)) beruehrt = true;
     }
-  }
+    return liste;
+  };
+  const flaechen = leseFlaechen("RoofSurface");
+  // Wände (und Verschlussflächen zwischen Gebäudeteilen) brauchen wir für das 3D-Modell
+  const waende = [...leseFlaechen("WallSurface"), ...leseFlaechen("ClosureSurface")];
+  const beruehrt = flaechen.some((ringe) => beruehrtRechteck(ringe[0], bbox));
   if (!beruehrt) return null;
   return {
     id: idTreffer ? idTreffer[1] : "",
@@ -135,7 +140,8 @@ function verarbeiteBlock(block, bbox) {
     hoehe: hoeheTreffer ? Number(hoeheTreffer[1]) : null,   // Gebäudehöhe über Gelände (m)
     trauf: merkmal("MittlereTraufHoehe"),                    // Traufhöhe über NHN (m)
     boden: merkmal("AbsoluteHoehe"),                         // Geländehöhe über NHN (m)
-    flaechen
+    flaechen,
+    waende
   };
 }
 

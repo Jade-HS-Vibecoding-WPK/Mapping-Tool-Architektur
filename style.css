@@ -232,6 +232,17 @@ html, body {
 .kz-leer { padding: 32px; border: 1px solid var(--line); max-width: 420px; }
 .kz-knopf { margin-top: 18px; }
 
+/* ---------- 3D ---------- */
+.view3d { background: #f6f5f2; }
+#d3-buehne { position: absolute; inset: 0; }
+#d3-buehne canvas { display: block; }
+#d3-hinweis { top: 58px; transform: translateX(-50%); max-width: 460px; padding: 8px 14px; font-size: 13px; }
+.d3-leiste { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; align-items: center; z-index: 2; flex-wrap: wrap; }
+.d3-leiste .btn { padding: 6px 10px; font-size: 13px; }
+.d3-check { background: var(--paper); border: 1px solid var(--line); padding: 5px 10px; font-size: 13px; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.d3-check input { accent-color: var(--accent); }
+.d3-info { position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 2; font-size: 11px; color: var(--ink-soft); background: rgba(255,255,255,0.85); padding: 3px 8px; pointer-events: none; }
+
 /* Hinweis im Zeichenmodus */
 .map-mode {
   position: absolute;

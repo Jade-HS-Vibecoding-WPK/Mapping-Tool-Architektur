@@ -94,7 +94,18 @@
         </section>
 
         <!-- Platzhalter für die späteren Ansichten -->
-        <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen.</p></div></section>
+        <!-- 3D-Modell: wird von ansicht3d.js gebaut (three.js) -->
+        <section class="view view3d" data-view="3d">
+          <div id="d3-buehne"></div>
+          <div class="d3-leiste">
+            <button class="btn" id="d3-reset" type="button">Ansicht zurücksetzen</button>
+            <button class="btn" id="d3-oben" type="button">Draufsicht</button>
+            <label class="d3-check"><input type="checkbox" id="d3-baeume" checked> Bäume</label>
+            <button class="btn" id="d3-png" type="button">Bild speichern</button>
+          </div>
+          <div class="map-hint" id="d3-hinweis" hidden></div>
+          <div class="d3-info" id="d3-info"></div>
+        </section>
         <!-- Kennzahlen: wird von app.js (Abschnitt 8) befüllt -->
         <section class="view kz" data-view="kennzahlen">
           <div class="kz-inhalt" id="kz-inhalt"></div>
@@ -103,6 +114,10 @@
     </main>
   </div>
 
+  <!-- 3D: three.js (ältere Version ohne Modul-Technik) und Maussteuerung zum Drehen -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
   <script src="app.js"></script>
+  <script src="ansicht3d.js"></script>
 </body>
 </html>

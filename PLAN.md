@@ -645,6 +645,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Größen sind also fast immer geschätzt. Einen offenen Baumkataster für Oldenburg habe ich nicht gefunden.
   **Getestet** (echte Daten): Innenstadt/Schlossteich (172 Bäume, Kronen 3 bis 9,6 m), Wohngebiet mit Baumreihen und Wald (ALKIS: 2 Flächen),
   Reiter Grün, Lageplan, Kennzahlen ohne Fehler. **Nicht geprüft:** echte Kronenform (nur künstlich), Handy, größere Gebiete mit vielen Bäumen (Tempo).
-- [ ] **Nächster Schritt:** 3D mit three.js (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import
+- [x] **3D-Modell** (Branch `feature-osm-2d-plaene`, nur lokal): Neuer Code in `ansicht3d.js` (three.js 0.147 per CDN, Maussteuerung OrbitControls).
+  Gebäude aus LoD2 mit echten Wänden und Dachflächen (das Hintergrundprogramm liest jetzt auch `WallSurface` und `ClosureSurface`,
+  Flächen werden in Dreiecke zerlegt), Gebäude ohne LoD2 als bläuliche Blöcke aus dem OSM-Grundriss (Geschosse mal 3 m; Nebengebäude 3 m),
+  flacher Boden mit dem Lageplan als Bild (amtliche Straßenflächen, Grün, Wasser, Rahmen des Gebiets), Bäume als Stamm plus Kugel-/Kegelkrone
+  (gebündelt). Knöpfe: Ansicht zurücksetzen, Draufsicht (Norden oben), Bäume ein/aus, Bild speichern (PNG mit Quellenangabe).
+  **Getestet** (echte Daten): 19 ha Innenstadt (523 LoD2-Gebäude, 34.000 Dreiecke, Bauzeit ca. 1 s), 91 ha (1.522 Gebäude, 97.000 Dreiecke,
+  Bauzeit ca. 0,2 s, 992 Bäume), Drehen mit der Maus, Draufsicht, Bäume-Schalter, PNG-Erzeugung (Download durch Abfangen geprüft, nicht gespeichert),
+  Gebiet in Hamburg ohne LoD2 (nur Blöcke, Hinweis). **Nicht getestet:** Handy/Touch-Bedienung, andere Browser, Bildwiederholrate auf schwacher
+  Grafik (nur auf Intel Iris gemessen), Lücken oder Überschneidungen bei komplexen Dächern (nur Stichproben angesehen).
+  **Bewusst weggelassen:** Schatten und Sonnenstand, Geländehöhen (Boden flach, Höhe = Median der LoD2-Geländehöhen), Texturen, CAD-Export.
+  **Fehler gefunden und behoben:** Im Hintergrundprogramm war der Ausdruck für Traufhöhe und Geländehöhe falsch geschrieben (nie gefunden).
+  Die Kennzahlen nahmen deshalb vorher die Gebäudehöhe (First) statt der Traufhöhe als Geschosshöhe. Seit der Korrektur: mittlere Geschosszahl im
+  91-ha-Gebiet 3,2 (vorher ca. 3,6 in einem anderen Gebiet), GFZ brutto 1,07. Die früher in diesem Plan genannten Werte (GFZ 1,23 und 2,28)
+  sind damit zu hoch gewesen.
+- [ ] **Nächster Schritt:** topoexport-Import (DXF), dann Feinschliff (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

@@ -217,6 +217,7 @@ function zeigeAnsicht(ziel) {
     wendeAnsichtAn();
   }
   if (ziel === "kennzahlen") aktualisiereKennzahlen();
+  if (ziel === "3d") aktualisiere3D();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -504,6 +505,7 @@ function verwerfeDaten() {
   lod2Quelle = "";
   lod2Mittelpunkte = [];
   lod2Meta = [];
+  lod2Gebaeude = [];
   alkisFlaechen = [];
   baumFeatures = [];
   alkisVorhanden = false;
@@ -523,6 +525,7 @@ function verwerfeDaten() {
 
 // Stellt die Karte passend zum aktuellen Reiter ein
 function wendeAnsichtAn() {
+  if (aktuelleAnsicht === "3d") { aktualisiere3D(); return; }   // 3D neu bauen, wenn neue Daten kamen
   if (aktuelleAnsicht === "kennzahlen") { aktualisiereKennzahlen(); return; }   // Kennzahlen neu rechnen, wenn neue Daten kamen
   if (!kartenBereit) return;
   const einstellung = ANSICHTEN[aktuelleAnsicht];
@@ -811,6 +814,7 @@ function baueDachflaechen(gebaeudeListe) {
 // Wird aufgerufen, sobald beides da ist (egal, was zuerst fertig wurde).
 let lod2Mittelpunkte = [];
 let lod2Meta = [];   // Merkmale der LoD2-Gebäude (Nutzung, Dachform, Höhen) für die Kennzahlen
+let lod2Gebaeude = [];   // die LoD2-Gebäude mit allen Dach- und Wandflächen (für die 3D-Ansicht)
 function markiereOsmGebaeude(mittelpunkte) {
   if (!mittelpunkte.length || !osmFeatures.length) return 0;
   const gebaeude = osmFeatures
@@ -851,6 +855,7 @@ function wendeLod2An(ergebnis) {
   const { features, mittelpunkte, meta } = baueDachflaechen(ergebnis.gebaeude);
   lod2Mittelpunkte = mittelpunkte;
   lod2Meta = meta;
+  lod2Gebaeude = ergebnis.gebaeude;
   const ersetzt = markiereOsmGebaeude(mittelpunkte);
   map.getSource("lod2-dach").setData({ type: "FeatureCollection", features });
   if (osmFeatures.length) map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
@@ -1380,7 +1385,8 @@ function setzeBaeume() {
     const { d, quelle } = kronenGroesse(p, zufall);
     ergebnis.push({ type: "Feature", properties: { form: "krone", nadel: p.nadel ? 1 : 0, d, q: quelle },
       geometry: { type: "Polygon", coordinates: [kronenForm(lon, lat, d, p.nadel, zufall)] } });
-    ergebnis.push({ type: "Feature", properties: { form: "stamm", q: quelle }, geometry: { type: "Point", coordinates: [lon, lat] } });
+    ergebnis.push({ type: "Feature", properties: { form: "stamm", q: quelle, d, hoehe: p.hoehe, nadel: p.nadel ? 1 : 0 },
+      geometry: { type: "Point", coordinates: [lon, lat] } });
   };
   for (const f of osmFeatures) {
     const p = f.properties;

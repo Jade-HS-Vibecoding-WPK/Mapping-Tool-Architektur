@@ -4,7 +4,7 @@
 > Schwarzplan, Straßennetz, Grün/Vegetation, Lageplan und 3D-Modell erzeugt, auswertet und
 > kompakt zusammenfasst.
 
-Stand: **Grundgerüst steht** (siehe Abschnitt 8).
+Stand: **OSM-Daten und 2D-Pläne funktionieren** (siehe Abschnitt 8).
 
 ---
 
@@ -497,7 +497,7 @@ ortsanalyse/
 2. **Grundgerüst und Aussehen** ✅: Seite mit der Karte von Oldenburg, Rechteck aufziehen, Layout im
    Architektur-Look (Platzhalter für Pläne und Kennzahlen).
 3. **Datenquellen prüfen:** topoexport und LoD2 prüfen, Testdateien für Oldenburg herunterladen.
-4. **OSM-Daten und 2D-Pläne:** Schwarzplan, Straßennetz, Grün und Lageplan erscheinen; Kennzahlen
+4. **OSM-Daten und 2D-Pläne** ✅: Schwarzplan, Straßennetz, Grün und Lageplan erscheinen; Kennzahlen
    werden berechnet.
 5. **Datei-Import und Detailstufen-Regel:** zuerst CityGML und DXF, danach DWG.
 6. **3D-Modell mit LoD2.**
@@ -559,6 +559,34 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Rechteck aufziehen (Breite × Höhe und Fläche werden angezeigt, Warnung über 1 km²), Nordpfeil,
   Maßstabsleiste, Quellenangabe, Reiter für alle Ansichten (noch Platzhalter), Knopf „Analysieren“
   (noch ohne Funktion), Ablagefeld für Dateien (noch ohne Funktion). Im Browser getestet, auch in Handybreite.
-- [ ] **Nächster Schritt:** Datenquellen prüfen und OSM-Daten laden (Schritte 3 und 4 in Abschnitt 6)
+- [x] **OSM-Daten und 2D-Pläne fertig** (16.11.2026, Schritt 4 in Abschnitt 6):
+  - Neue Dateien: `osm.js` (Overpass-Abfrage, Umwandlung mit osmtogeojson, Zuschnitt aufs Rechteck,
+    Kategorien), `plaene.js` (die vier Pläne auf weißem Blatt), `kennzahlen.js` (Rechnung und Tafel),
+    `data/beispiel-oldenburg-osm.js` (eingebaute OSM-Daten des Testgebiets, Stand 24.07.2026, 2 MB).
+  - „Analysieren“ fragt Overpass ab (drei Server nacheinander, bis 2,5 Minuten Wartezeit je Server).
+    Ist kein Server erreichbar und liegt das Gebiet im Oldenburger Testgebiet, nimmt das Tool die
+    eingebauten Daten. Der Knopf „Beispiel Oldenburg laden“ wählt das Testgebiet und nutzt sofort die
+    eingebauten Daten.
+  - Pläne: weißes Blatt ohne Hintergrundkarte, Norden immer oben (Drehen abgeschaltet), Nordpfeil,
+    Maßstabsleiste, Legende mit Quellenangabe, roter Rahmen des Gebiets. Nebengebäude grau und per
+    Häkchen ausblendbar. Straßen nach Kategorie über die Linienstärke. Lageplan zeigt den Straßenraum
+    als hellgraues Band in typischer Breite.
+  - Kennzahlen: Gebietsfläche, Bauland netto, Gebäude, bebaute Fläche, GRZ brutto/netto, Nebengebäude,
+    mittlere Geschosszahl (Reihenfolge: OSM-Geschosse, sonst Höhe ÷ 3 m, sonst **2 Geschosse**,
+    Anteil der geschätzten wird angezeigt), Geschossfläche, GFZ brutto/netto, Grünanteil, Einzelbäume,
+    Straßenlängen nach Kategorie, Flächenanteile (als einfache Balken), Gebäude nach Nutzung.
+  - Netto-Flächen: Straßen-, Bahn-, Grün- und Wasserflächen werden auf ein Raster (1 Pixel = 1 m²)
+    gemalt und gezählt, so zählen Überlappungen nicht doppelt. Straßenflächen sind aus den Linien mit
+    typischen Breiten geschätzt (Tabelle `STRASSEN_TYPEN` in `osm.js`).
+  - Gebietsgrenze auf ca. 1,1 km² angehoben, weil der topoexport-Ausschnitt (1012 × 1009 m) knapp über 1 km² liegt.
+  - Testergebnis Beispiel Oldenburg: 1.290 Gebäude, 31 Nebengebäude, GRZ 0,34 brutto / 0,55 netto,
+    GFZ 1,01 / 1,66, Grünanteil 11,1 %, 986 Bäume, 47 km Wege und Straßen. 53 % der Gebäude haben in
+    OSM keine Geschosszahl, 56 % keine Nutzung („unbekannt“): Das verbessern später die LoD2-Daten.
+  - Im Browser getestet: Beispiel, Live-Abfrage (ca. 50 s), alle Reiter, Handybreite 375 px.
+  - Kronenüberdeckung zeigt „folgt“ (braucht die Kronengrößen aus topoexport).
+- [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): zuerst CityGML (ZIP, mehrere
+  Kacheln, Anzeige der benötigten Kacheln) und topoexport-DXF (binär), Verortung von Hand
+- [ ] Offen aus Schritt 3: Datenquellen prüfen (topoexport: Koordinaten des Ausschnitts, UTM-32-Export, Kosten)
+- [ ] Idee: Legende ein- und ausklappbar machen, damit sie auf kleinen Bildschirmen weniger vom Plan verdeckt
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

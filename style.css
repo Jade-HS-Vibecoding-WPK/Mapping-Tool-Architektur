@@ -201,6 +201,130 @@ html, body {
 .placeholder h3 { margin: 0 0 8px; font-size: 18px; }
 .placeholder p { margin: 0; color: var(--ink-soft); }
 
+.hint-klein { font-size: 12px; margin: 8px 0 0; }
+
+/* Platzhalter-Kasten (vor der Analyse) */
+.placeholder-box {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-soft);
+  z-index: 3;
+}
+.placeholder-box > div {
+  max-width: 360px;
+  text-align: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 32px;
+}
+.placeholder-box h3 { margin: 0 0 8px; font-size: 18px; }
+.placeholder-box p { margin: 0; color: var(--ink-soft); }
+
+/* ---------- 2D-Pläne ---------- */
+#plan { position: absolute; inset: 0; background: var(--paper); }
+
+.plan-legende {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid var(--ink);
+  padding: 12px 14px;
+  max-width: 300px;
+  font-size: 12px;
+}
+.plan-legende:empty { display: none; }
+.plan-legende h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 5px;
+}
+.plan-legende ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.plan-legende li { display: flex; align-items: center; gap: 8px; }
+.plan-legende .schalter { margin-left: auto; color: var(--ink-soft); white-space: nowrap; cursor: pointer; }
+.plan-legende .schalter input { accent-color: var(--accent); margin: 0 2px 0 0; vertical-align: -2px; }
+.legende-quelle { margin: 8px 0 0; color: var(--ink-soft); font-size: 10px; }
+
+/* Legenden-Zeichen */
+.lz { flex: 0 0 22px; height: 12px; display: inline-flex; align-items: center; }
+.lz-flaeche { border: 1px solid #bbb; }
+.lz-linie span { display: block; width: 100%; background: var(--ink); }
+.lz-strich { border-top: 2px dashed; height: 0; }
+.lz-kreis { flex-basis: 12px; width: 12px; border: 1px solid; border-radius: 50%; background: rgba(91, 127, 79, 0.25); }
+
+.nordpfeil {
+  position: absolute;
+  top: 16px;
+  right: 56px;
+  width: 30px;
+  height: 42px;
+  z-index: 2;
+  pointer-events: none;
+}
+.nordpfeil text { font: 700 12px var(--font); fill: var(--ink); }
+
+/* ---------- Kennzahlen ---------- */
+.view[data-view="kennzahlen"] { overflow-y: auto; }
+.kennzahlen {
+  position: relative;
+  min-height: 100%;
+  padding: 28px 32px 40px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px 36px;
+  align-content: start;
+}
+.kz-kopf, .kz-breit { grid-column: 1 / -1; }
+.kz-kopf h3 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.kz-kopf p { margin: 4px 0 0; color: var(--ink-soft); font-size: 12px; }
+.kz-block h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--ink);
+  padding-bottom: 5px;
+}
+.kz-block h4 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink-soft); }
+.kz-block dl { margin: 0; }
+.kz-zeile {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  border-bottom: 1px dotted var(--line);
+  padding: 6px 0;
+}
+.kz-zeile dt small { display: block; color: var(--ink-soft); font-size: 11px; margin-top: 1px; }
+.kz-zeile dd { margin: 0; font-family: var(--mono); font-size: 15px; white-space: nowrap; }
+.kz-hinweis { margin: 8px 0 0; color: var(--ink-soft); font-size: 11px; max-width: 70ch; }
+
+/* einfache Balken (die richtigen Diagramme folgen später) */
+.kz-balken { display: grid; gap: 4px; margin-top: 6px; }
+.kz-balken-zeile { display: grid; grid-template-columns: minmax(150px, 230px) 1fr 90px; gap: 12px; align-items: center; }
+.kz-balken-spur { height: 12px; background: var(--paper-soft); }
+.kz-balken-wert { display: block; height: 100%; background: var(--ink); }
+.kz-balken-zahl { font-family: var(--mono); text-align: right; }
+.f-neben { background: #9a9a9a; }
+.f-gruen { background: #a9c29b; }
+.f-wasser { background: #9fb4c1; }
+.f-verkehr { background: #cfcfcc; }
+.f-bahn { background: #8a8a8a; }
+.f-leer { background: #ececea; }
+.f-n-wohnen { background: var(--ink); }
+.f-n-gewerbe { background: var(--accent); }
+.f-n-oeffentlich { background: #555; }
+.f-n-kirche { background: #888; }
+.f-n-sonstige { background: #b5b5b5; }
+.f-n-unbekannt { background: #dcdcdc; }
+
 /* Hinweis im Zeichenmodus */
 .map-mode {
   position: absolute;
@@ -228,4 +352,11 @@ html, body {
   .step-main { margin-top: 0; }
   .main { height: 70vh; }
   .map-mode { white-space: normal; width: calc(100% - 32px); text-align: center; }
+  .plan-legende { top: 8px; left: 8px; max-width: calc(100% - 110px); padding: 8px 10px; font-size: 11px; }
+  .nordpfeil { top: 8px; right: 48px; }
+  .kennzahlen { padding: 20px 16px 32px; grid-template-columns: 1fr; }
+  .kz-balken-zeile { grid-template-columns: 1fr 70px; }
+  .kz-balken-name { grid-column: 1; grid-row: 1; }
+  .kz-balken-zahl { grid-column: 2; grid-row: 1; }
+  .kz-balken-spur { grid-column: 1 / -1; grid-row: 2; }
 }

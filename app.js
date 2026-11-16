@@ -1,11 +1,14 @@
 /* ============================================================
-   Ortsanalyse – Logik (Grundgerüst)
+   Ortsanalyse – Hauptlogik
    1. Karte von Oldenburg anzeigen (schwarz-weiß)
    2. Rechteck aufziehen und Größe anzeigen
    3. Reiter (Tabs) für die Ansichten umschalten
+   4. „Analysieren“: OSM-Daten laden (osm.js), Kennzahlen rechnen
+      (kennzahlen.js) und die 2D-Pläne zeichnen (plaene.js)
    ============================================================ */
 
-const MAX_FLAECHE_M2 = 1_000_000; // höchstens 1 km²
+// höchstens ca. 1 km² (etwas Spielraum, weil der topoexport-Ausschnitt 1012 × 1009 m groß ist)
+const MAX_FLAECHE_M2 = 1_100_000;
 const OLDENBURG = [8.2146, 53.1395]; // Mitte der Innenstadt (Länge, Breite)
 
 // ---------- 1. Karte ----------
@@ -116,7 +119,7 @@ function aktualisiereAngaben(feature) {
   areaWarning.hidden = !zuGross;
   btnClear.disabled = false;
   btnAnalyse.disabled = zuGross;
-  analyseHint.textContent = zuGross ? "Gebiet zu groß (höchstens 1 km²)." : "Bereit. Die Analyse folgt in einem späteren Schritt.";
+  analyseHint.textContent = zuGross ? "Gebiet zu groß (höchstens ca. 1 km²)." : "Bereit. Klicke auf „Analysieren“.";
 }
 
 btnDraw.addEventListener("click", () => zeichenmodus(!zeichnen));
@@ -177,11 +180,93 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------- 3. Reiter (Tabs) ----------
+// Schwarzplan, Straßennetz, Grün und Lageplan teilen sich die Ansicht „plan“.
+const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan"];
+
+function zeigeAnsicht(ziel) {
+  const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === ziel));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.dataset.view === sektion));
+  if (ziel === "karte") map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
+  if (sektion === "plan") {
+    document.getElementById("plan-leer-titel").textContent = PLAN_TITEL[ziel];
+    zeigePlan(ziel);
+  }
+}
+
 document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const ziel = tab.dataset.view;
-    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t === tab));
-    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.dataset.view === ziel));
-    if (ziel === "karte") map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
-  });
+  tab.addEventListener("click", () => zeigeAnsicht(tab.dataset.view));
+});
+
+// ---------- 4. Analysieren ----------
+const btnBeispiel = document.getElementById("btn-beispiel");
+let analyseLaeuft = false;
+
+function datumText(zeitstempel) {
+  if (!zeitstempel) return "unbekannt";
+  return new Date(zeitstempel).toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+}
+
+async function analysiere(nurBeispiel = false) {
+  if (!gebiet || analyseLaeuft) return;
+  analyseLaeuft = true;
+  btnAnalyse.disabled = true;
+  btnBeispiel.disabled = true;
+  btnAnalyse.textContent = "Analysiere …";
+  const bbox = turf.bbox(gebiet);
+  const meldung = (text) => { analyseHint.textContent = text; };
+
+  try {
+    // 1. Daten holen: live von OSM oder aus den eingebauten Beispieldaten
+    let rohdaten, herkunft;
+    if (nurBeispiel) {
+      meldung("Lade eingebaute Beispieldaten …");
+      rohdaten = await ladeBeispielOsm();
+      herkunft = "eingebaute Beispieldaten";
+    } else {
+      try {
+        rohdaten = await ladeOsm(bbox, meldung);
+        herkunft = "live abgefragt";
+      } catch (fehler) {
+        // Ersatz: Liegt das Gebiet im Oldenburger Testgebiet, nehmen wir die eingebauten Daten
+        if (!liegtImBeispielgebiet(bbox)) throw fehler;
+        meldung("OSM-Dienst nicht erreichbar, nehme die eingebauten Oldenburger Daten …");
+        rohdaten = await ladeBeispielOsm();
+        herkunft = "eingebaute Beispieldaten, weil der OSM-Dienst nicht erreichbar war";
+      }
+    }
+
+    // 2. Aufbereiten und rechnen
+    meldung("Bereite Daten auf und berechne Kennzahlen …");
+    await new Promise((r) => setTimeout(r, 30)); // kurz Luft holen, damit die Meldung erscheint
+    const daten = bereiteAuf(rohdaten, bbox);
+    const kennzahlen = berechneKennzahlen(daten, bbox);
+    const quelleText = `Quelle: © OpenStreetMap-Mitwirkende (ODbL), Datenstand ${datumText(daten.datenstand)} (${herkunft})`;
+
+    // 3. Anzeigen: zuerst den Schwarzplan
+    zeigeAnsicht("schwarzplan");
+    await zeichnePlaene(daten, bbox, kennzahlen, quelleText);
+    zeigeKennzahlen(kennzahlen, quelleText);
+    meldung(`Fertig: ${fmt(kennzahlen.gebaeudeAnzahl)} Gebäude, ${fmt(kennzahlen.strassenGesamt / 1000, 1)} km Straßen. Siehe Reiter oben.`);
+  } catch (fehler) {
+    console.error(fehler);
+    meldung(`Die Daten konnten nicht geladen werden (${fehler.message}). Bitte in ein paar Minuten noch einmal versuchen.`);
+  } finally {
+    analyseLaeuft = false;
+    btnAnalyse.textContent = "Analysieren";
+    btnAnalyse.disabled = !gebiet || turf.area(gebiet) > MAX_FLAECHE_M2;
+    btnBeispiel.disabled = false;
+  }
+}
+
+btnAnalyse.addEventListener("click", () => analysiere(false));
+
+// „Beispiel Oldenburg laden“: Testgebiet wählen und mit den eingebauten Daten analysieren
+btnBeispiel.addEventListener("click", () => {
+  if (zeichnen) zeichenmodus(false);
+  gebiet = turf.bboxPolygon(BEISPIEL_GEBIET);
+  const zeige = () => { zeigeRechteck(gebiet); map.fitBounds(BEISPIEL_GEBIET, { padding: 60, duration: 0 }); };
+  map.getSource("gebiet") ? zeige() : map.once("load", zeige); // erst zeichnen, wenn die Karte bereit ist
+  aktualisiereAngaben(gebiet);
+  analysiere(true);
 });

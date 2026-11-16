@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+  <!-- Wandelt OSM-Daten in GeoJSON um (das Format, das Karte und Turf verstehen) -->
+  <script src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -45,7 +47,8 @@
         <div class="dropzone is-disabled" aria-disabled="true">
           Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
         </div>
-        <button class="btn btn-ghost btn-block" disabled>Beispiel Oldenburg laden <small>(folgt)</small></button>
+        <button id="btn-beispiel" class="btn btn-ghost btn-block">Beispiel Oldenburg laden</button>
+        <p class="hint hint-klein">Wählt das Oldenburger Testgebiet und analysiert es mit eingebauten OSM-Daten, auch ohne Internetverbindung zum OSM-Dienst.</p>
       </section>
 
       <!-- Hauptbutton -->
@@ -79,17 +82,33 @@
           <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
         </section>
 
-        <!-- Platzhalter für die späteren Ansichten -->
-        <section class="view placeholder" data-view="schwarzplan"><div><h3>Schwarzplan</h3><p>Gebäude schwarz auf weiß, Nebengebäude grau. Erscheint nach „Analysieren“.</p></div></section>
-        <section class="view placeholder" data-view="strassen"><div><h3>Straßennetz</h3><p>Straßen nach Kategorie, unterschieden über die Linienstärke.</p></div></section>
-        <section class="view placeholder" data-view="gruen"><div><h3>Grün und Vegetation</h3><p>Parks, Wald, Wiesen, Einzelbäume und Wasser.</p></div></section>
-        <section class="view placeholder" data-view="lageplan"><div><h3>Lageplan</h3><p>Alle Ebenen übereinander, mit Nordpfeil und Maßstab.</p></div></section>
-        <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen.</p></div></section>
-        <section class="view placeholder" data-view="kennzahlen"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge, Nutzungen und Diagramme.</p></div></section>
+        <!-- Die vier 2D-Pläne teilen sich ein weißes Blatt. Der Reiter bestimmt, welche Ebenen sichtbar sind. -->
+        <section class="view" data-view="plan">
+          <div id="plan"></div>
+          <div class="plan-legende" id="plan-legende"></div>
+          <!-- Nordpfeil: Der Plan lässt sich nicht drehen, Norden ist immer oben -->
+          <svg class="nordpfeil" viewBox="0 0 40 56" aria-label="Nordpfeil">
+            <text x="20" y="12" text-anchor="middle">N</text>
+            <path d="M20 16 L30 52 L20 44 Z" fill="#111"/>
+            <path d="M20 16 L10 52 L20 44 Z" fill="#fff" stroke="#111" stroke-width="1"/>
+          </svg>
+          <div class="placeholder-box" id="plan-leer">
+            <div><h3 id="plan-leer-titel">Schwarzplan</h3><p>Erscheint nach „Analysieren“. Wähle zuerst ein Gebiet oder lade das Beispiel Oldenburg.</p></div>
+          </div>
+        </section>
+        <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen. Folgt in einem späteren Schritt.</p></div></section>
+        <section class="view" data-view="kennzahlen">
+          <div class="kennzahlen" id="kennzahlen-inhalt">
+            <div class="placeholder-box"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge und Nutzungen. Erscheinen nach „Analysieren“.</p></div></div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
 
+  <script src="osm.js"></script>
+  <script src="kennzahlen.js"></script>
+  <script src="plaene.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

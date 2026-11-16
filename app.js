@@ -223,10 +223,12 @@ document.querySelectorAll(".tab").forEach((tab) => {
 // ---------- 4. Daten von OpenStreetMap laden ----------
 // Overpass ist die kostenlose Abfrage-Schnittstelle von OpenStreetMap. Wir schicken ihr das Rechteck
 // und bekommen alle Gebäude, Straßen, Grünflächen, Gewässer und Bäume darin zurück.
-// Zwei öffentliche Server: Antwortet der erste nicht, versuchen wir den zweiten.
+// Drei öffentliche Server, die wir gleichzeitig fragen. Der schnellste, der Daten liefert, gewinnt,
+// die anderen Abfragen werden abgebrochen. So bremst ein langsamer oder ausgefallener Server nicht.
 const OVERPASS_SERVER = [
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter"
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter"
 ];
 const ABFRAGE_LIMIT_MS = 75_000;
 
@@ -269,13 +271,15 @@ function overpassAbfrage(sued, west, nord, ost) {
   relation["waterway"="riverbank"](${b});
   node["natural"="tree"](${b});
 );
-out geom;`;
+out geom qt;`;
 }
 
-// Fragt einen Server; wirft einen Fehler mit verständlichem Text, wenn es nicht klappt
-async function frageServer(url, abfrage) {
+// Fragt einen Server; wirft einen Fehler, wenn es nicht klappt.
+// "stopp" ist das Signal, mit dem wir die Abfrage abbrechen, sobald ein anderer Server schneller war.
+async function frageServer(url, abfrage, stopp) {
   const abbruch = new AbortController();
   const wecker = setTimeout(() => abbruch.abort(), ABFRAGE_LIMIT_MS);
+  stopp.addEventListener("abort", () => abbruch.abort(), { once: true });
   try {
     const antwort = await fetch(url, { method: "POST", body: new URLSearchParams({ data: abfrage }), signal: abbruch.signal });
     if (!antwort.ok) throw new Error(`Server meldet Fehler ${antwort.status}`);
@@ -292,18 +296,23 @@ async function frageServer(url, abfrage) {
 
 async function holeOsmDaten(sued, west, nord, ost) {
   const abfrage = overpassAbfrage(sued, west, nord, ost);
-  let letzterFehler;
-  for (const url of OVERPASS_SERVER) {
-    try {
-      return await frageServer(url, abfrage);
-    } catch (fehler) {
-      letzterFehler = fehler;
-      console.warn("Overpass-Abfrage fehlgeschlagen:", url, fehler);
-    }
+  const stopp = new AbortController();
+  const fehlerListe = [];
+  const versuche = OVERPASS_SERVER.map((url) =>
+    frageServer(url, abfrage, stopp.signal).catch((fehler) => {
+      fehlerListe.push(fehler);
+      if (!stopp.signal.aborted) console.warn("Overpass-Abfrage fehlgeschlagen:", url, fehler);
+      throw fehler;
+    }));
+  try {
+    return await Promise.any(versuche); // der erste erfolgreiche gewinnt
+  } catch (_) {
+    if (!navigator.onLine) throw new Error("Keine Internetverbindung. Bitte Verbindung prüfen und noch einmal versuchen.");
+    throw new Error("Der Datendienst von OpenStreetMap antwortet gerade nicht (" + (fehlerListe[0]?.message || "unbekannter Fehler") +
+      "). Bitte in einer Minute noch einmal versuchen oder ein kleineres Gebiet wählen.");
+  } finally {
+    stopp.abort(); // die langsameren Abfragen abbrechen
   }
-  if (!navigator.onLine) throw new Error("Keine Internetverbindung. Bitte Verbindung prüfen und noch einmal versuchen.");
-  throw new Error("Der Datendienst von OpenStreetMap antwortet gerade nicht (" + (letzterFehler?.message || "unbekannter Fehler") +
-    "). Bitte in einer Minute noch einmal versuchen oder ein kleineres Gebiet wählen.");
 }
 
 // Sortiert jedes Objekt in eine Kategorie. Gibt null zurück, wenn es uns nicht interessiert.
@@ -338,7 +347,9 @@ function kategorisiere(feature) {
 // ---------- 5. Pläne zeichnen ----------
 const FARBE = {
   gebaeudeSchwarzplan: "#000000",
-  gebaeudeLageplan: "#2e2e2e",
+  gebaeudeLageplan: "#e6e1d9",   // helle Dachfläche; echte Dachformen folgen mit LoD2
+  nebenLageplan: "#cfcfcf",
+  umriss: "#222222",
   nebengebaeude: "#9a9a9a",
   kontext: "#ebebeb",
   gruen: "#cfe0c3",
@@ -366,7 +377,8 @@ const EBENEN = {
   wasser: ["wasser-flaeche", "wasser-linie"],
   strassen: ["strassen-linie"],
   baeume: ["baeume"],
-  gebaeude: ["gebaeude-flaeche"]
+  gebaeude: ["gebaeude-flaeche"],
+  umriss: ["gebaeude-umriss"]
 };
 
 // Was zeigt welcher Reiter?
@@ -378,8 +390,8 @@ const ANSICHTEN = {
                  text: "Straßennetz: Linienstärke nach Straßenart." },
   gruen:       { basiskarte: false, ebenen: ["kontext", "gruen", "wasser", "baeume"],
                  text: "Grün und Wasser: Parks, Wiesen, Wald, Bäume, Gewässer." },
-  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude"],
-                 gebaeude: FARBE.gebaeudeLageplan, strasse: FARBE.strasseLageplan,
+  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude", "umriss"],
+                 gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Lageplan: alle Ebenen übereinander." }
 };
 
@@ -408,6 +420,9 @@ function legePlanEbenenAn() {
   map.addLayer({ id: "gebaeude-flaeche", type: "fill", source: quelle, layout: unsichtbar,
     filter: istKat("gebaeude", "nebengebaeude"),
     paint: { "fill-color": ["match", ["get", "kat"], "nebengebaeude", FARBE.nebengebaeude, FARBE.gebaeudeSchwarzplan] } });
+  // Feiner Umriss um die Gebäude (nur im Lageplan sichtbar)
+  map.addLayer({ id: "gebaeude-umriss", type: "line", source: quelle, layout: unsichtbar,
+    filter: istKat("gebaeude", "nebengebaeude"), paint: { "line-color": FARBE.umriss, "line-width": 0.8 } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
   map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
     paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
@@ -451,7 +466,7 @@ function wendeAnsichtAn() {
   // Farben je nach Plan
   map.setPaintProperty("strassen-linie", "line-color", einstellung.strasse || FARBE.strasseSchwarz);
   map.setPaintProperty("gebaeude-flaeche", "fill-color",
-    ["match", ["get", "kat"], "nebengebaeude", FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
+    ["match", ["get", "kat"], "nebengebaeude", einstellung.neben || FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
 
   // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
   map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : 0.08);

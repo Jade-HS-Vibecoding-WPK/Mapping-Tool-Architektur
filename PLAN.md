@@ -572,6 +572,21 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Beobachtung:** Der Overpass-Server war langsam (ca. 60 s für das Testgebiet). Darum Zeitlimit 75 s.
   Der Knopf „Beispiel Oldenburg laden“ (Demo-Daten fest eingebaut) wäre dafür die Absicherung.
   **Offen in diesem Schritt:** Fußgängerzonen sind nur dünne Linien (Straßentyp „fuss“); Kennzahlen folgen separat.
-- [ ] **Nächster Schritt:** Datenquellen prüfen (Schritt 3 in Abschnitt 6), dann Kennzahlen und Datei-Import
+- [x] **Tempo und Datenprüfung** (Branch `feature-osm-2d-plaene`, nur lokal):
+  Das Tool fragt jetzt drei Overpass-Server gleichzeitig, der erste mit Daten gewinnt, die anderen werden
+  abgebrochen. Im Lageplan sind Gebäude jetzt hell mit feinem Umriss statt schwarz (Platzhalter, bis LoD2-Dachformen da sind).
+  **Getestet** mit echten Daten (gleiches Gebiet wie oben): Antwort nach ca. 43 s, Server 1 gewann, Server 2 und 3
+  antworteten in dieser Zeit nicht (einer meldete 502). **Das Laden ist damit kaum schneller geworden**,
+  weil der Haupt-Server selbst langsam ist. Nur ein fest eingebautes Oldenburg-Beispiel oder ein Zwischenspeicher
+  würde das Warten ersetzen (bisher nicht gewählt).
+  **Prüfung Zusatzdaten (nur Recherche, nicht belegt):**
+  - topoexport ist eine Web-Oberfläche mit Handauswahl, eine Abruf-Schnittstelle (API) wurde nicht gefunden: Datei-Import bleibt der Weg.
+  - LGLN-LoD2 (CityGML) ist frei (CC BY 4.0 laut LGLN-Präsentation, Quellenvermerk „© GeoBasis-DE/LGLN Jahr“).
+    Der Download läuft über ein Web-Portal (ArcGIS Hub / Experience). Eine feste Download-Adresse pro Kachel
+    habe ich **nicht gefunden**, geratene Adressen lieferten 404. Ob ein Browser die ca. 57-MB-Kacheln direkt laden darf (CORS), ist **ungeprüft**.
+  - Offen: ALKIS-Gebäude per WFS und Luftbild (Lizenz) nicht geprüft.
+  - Frage ans Team: Woher stammen die Kacheln `LoD2_32_447_5888_1_ni` (Download-Link)?
+- [ ] **Nächster Schritt:** Datei-Import (LoD2 CityGML, topoexport DXF) mit Beispieldateien, danach Dachformen im Lageplan
+  und mehr Details; dann Kennzahlen
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

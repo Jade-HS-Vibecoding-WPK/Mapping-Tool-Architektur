@@ -280,6 +280,32 @@ html, body {
 .legende-hilfe { margin: 8px 0 6px; color: var(--ink-soft); font-size: 11px; }
 .btn-klein { padding: 4px 8px; font-size: 11px; }
 
+/* Steckbrief eines Flurstücks */
+.flurstueck-info {
+  position: absolute;
+  top: 16px;
+  right: 56px;
+  z-index: 3;
+  width: 320px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-top: 3px solid var(--accent);
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.flurstueck-info header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.flurstueck-info h3 { margin: 0; font-size: 16px; }
+.steckbrief-unter { margin: 2px 0 8px; color: var(--ink-soft); }
+.flurstueck-info h4 {
+  margin: 10px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--ink); padding-bottom: 3px;
+}
+.flurstueck-info dl { margin: 0; }
+.flurstueck-info .kz-zeile { padding: 4px 0; }
+.flurstueck-info .kz-zeile dd { font-size: 13px; white-space: normal; text-align: right; }
+
 /* Beschriftung der Bodenrichtwerte */
 .brw-etikett {
   font: 600 11px var(--mono);
@@ -397,6 +423,7 @@ html, body {
   .map-mode { white-space: normal; width: calc(100% - 32px); text-align: center; }
   .plan-legende { top: 8px; left: 8px; max-width: calc(100% - 110px); padding: 8px 10px; font-size: 11px; }
   .nordpfeil { top: 8px; right: 48px; }
+  .flurstueck-info { top: auto; bottom: 8px; left: 8px; right: 8px; width: auto; max-height: 55%; }
   .kennzahlen { padding: 20px 16px 32px; grid-template-columns: 1fr; }
   .kz-balken-zeile { grid-template-columns: 1fr 70px; }
   .kz-balken-name { grid-column: 1; grid-row: 1; }

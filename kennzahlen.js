@@ -157,7 +157,8 @@ function berechneKennzahlen(daten, bbox) {
     nutzungen,
     strassenAmtlich: !!daten.strassenAmtlich,
     nutzungAlkis: !!(daten.kataster && daten.kataster.nutzung.features.length),
-    ...katasterKennzahlen(daten.kataster)
+    ...katasterKennzahlen(daten.kataster),
+    ...mietKennzahlen(daten.miete)
   };
 }
 
@@ -284,6 +285,17 @@ function zeigeKennzahlen(k, quelle) {
         ${zeile("Mittlerer Bodenrichtwert", k.brwMittel ? `${fmt(k.brwMittel)} €/m²` : "–", "nach Fläche gewichtet, baureifes Land")}
         ${zeile("Spanne", k.brwMin != null ? `${fmt(k.brwMin)}–${fmt(k.brwMax)} €/m²` : "–", `${fmt(k.brwZonen)} Zonen im Gebiet`)}
         ${zeile("Stichtag", k.brwStichtag ? new Date(k.brwStichtag).toLocaleDateString("de-DE") : "–")}
+      </dl>
+    </section>` : ""}
+
+    ${k.mieteZellen ? `
+    <section class="kz-block">
+      <h4>Mieten (Zensus 2022)</h4>
+      <dl>
+        ${zeile("Mittlere Nettokaltmiete", `${fmt(k.mieteMittel, 2)} €/m²`, "Durchschnitt der 100-m-Rasterzellen, Bestandsmieten am 15.05.2022")}
+        ${zeile("Typische Nettokaltmiete", `${fmt(k.mieteMedian, 2)} €/m²`, "Median der Rasterzellen")}
+        ${zeile("Spanne", `${fmt(k.mieteMin, 2)}–${fmt(k.mieteMax, 2)} €/m²`,
+          `${fmt(k.mieteZellen)} Zellen${k.mieteUnsicher ? `, davon ${fmt(k.mieteUnsicher)} mit unsicherem Wert (wenige Wohnungen)` : ""}`)}
       </dl>
     </section>` : ""}
 

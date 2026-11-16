@@ -685,6 +685,18 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   - Test Oldenburg: 1.483 Flurstücke (typisch 350 m²), 684 Nutzungsflächen (= 104 ha lückenlos), 69 Bodenrichtwertzonen
     125–2.350 €/m², Mittel 582 €/m², Stichtag 1.1.2026. Netto-Bauland 64,3 ha, GFZ netto 2,40 (der Gutachterausschuss
     nennt für die Innenstadt-Zone eine wertrelevante GFZ von 2,4).
+- [x] **Mieten, Reiter „Flurstücke“, Steckbrief** (16.11.2026):
+  - Ein amtlicher Mietspiegel für Oldenburg liegt nicht als Daten vor (Portale wie miet-check sind kommerzielle
+    Angebotsmieten). Stattdessen **Zensus-2022-Mietkarte**: durchschnittliche Nettokaltmiete je m² im 100-m-Gitter
+    (Bestandsmieten, Stichtag 15.05.2022, dl-de/by-2-0). Beispiel Oldenburg eingebaut (`data/beispiel-oldenburg-miete.js`,
+    erzeugt mit `werkzeuge/zensus_miete_beispiel.py`), sonst ZIP `Zensus2022_Durchschn_Nettokaltmiete.zip`
+    (8,9 MB, destatis, kein CORS) ins Ablagefeld → Worker liest 1,29 Mio. Zellen in ca. 1,5 s. EPSG:3035 über proj4.
+    Neuer Reiter **„Mieten“** (5 Quantil-Stufen) und Kennzahlen (Mittel 8,37 €/m², Median 8,18, Spanne 5,29–18,37 in Oldenburg).
+  - Neuer Reiter **„Flurstücke“**: Dachaufsichten (LoD2) mit genauer Flurstückseinteilung (Grenzen über den Dächern).
+  - **Steckbrief per Klick** auf ein Flurstück (`steckbrief.js`): Flurstücksnummer, Gemarkung, Flur, amtliche Fläche,
+    tatsächliche Nutzung (Anteile), Gebäude, Grundfläche, GRZ und GFZ des Flurstücks (nur der Gebäudeteil auf dem
+    Flurstück zählt), Geschosse, LoD2-Höhe, Dachform, Gebäudefunktion, Bodenrichtwert (Nutzungsart, wertrelevante GFZ,
+    Stichtag), grob geschätzter Bodenwert (nur bei Bauland, Richtwert × Fläche), Miete der Zensus-Zelle.
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

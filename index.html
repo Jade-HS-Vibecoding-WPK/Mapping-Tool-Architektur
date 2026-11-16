@@ -54,9 +54,9 @@
         <h2><span class="num">02</span> Daten</h2>
         <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
         <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Dateien importieren">
-          Dateien hier ablegen oder klicken<br><small>CityGML-Kacheln (LoD2) · Gelände (GeoTIFF) · topoexport (DXF) · auch als ZIP</small>
+          Dateien hier ablegen oder klicken<br><small>CityGML-Kacheln (LoD2) · Gelände (GeoTIFF) · topoexport (DXF) · Zensus-Mietkarte · auch als ZIP</small>
         </div>
-        <input type="file" id="datei-wahl" multiple accept=".gml,.xml,.dxf,.zip,.tif,.tiff" hidden>
+        <input type="file" id="datei-wahl" multiple accept=".gml,.xml,.dxf,.zip,.tif,.tiff,.csv" hidden>
         <p class="hint hint-klein import-status" id="import-status" hidden></p>
         <ul class="import-liste" id="import-liste" hidden></ul>
         <button class="btn btn-klein btn-ghost" id="verortung-oeffnen" hidden>topoexport neu verorten</button>
@@ -102,7 +102,9 @@
         <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
         <button class="tab" data-view="gruen" role="tab">Grün</button>
         <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="boden" role="tab">Bodenrichtwerte</button>
+        <button class="tab" data-view="mieten" role="tab">Mieten</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
@@ -118,6 +120,8 @@
         <section class="view" data-view="plan">
           <div id="plan"></div>
           <div class="plan-legende" id="plan-legende"></div>
+          <!-- Steckbrief eines angeklickten Flurstücks (Reiter „Flurstücke“) -->
+          <aside class="flurstueck-info" id="flurstueck-info" hidden></aside>
           <!-- Nordpfeil: Der Plan lässt sich nicht drehen, Norden ist immer oben -->
           <svg class="nordpfeil" viewBox="0 0 40 56" aria-label="Nordpfeil">
             <text x="20" y="12" text-anchor="middle">N</text>
@@ -147,8 +151,10 @@
   <script src="osm.js"></script>
   <script src="kennzahlen.js"></script>
   <script src="plaene.js"></script>
+  <script src="steckbrief.js"></script>
   <script src="lod2.js"></script>
   <script src="kataster.js"></script>
+  <script src="miete.js"></script>
   <script src="dreid.js"></script>
   <script src="app.js"></script>
   <script src="import.js"></script>

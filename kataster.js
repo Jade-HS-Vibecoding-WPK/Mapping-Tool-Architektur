@@ -77,14 +77,19 @@ async function ladeKataster(bbox) {
     return teil;
   };
 
-  // Flurstücke: nur Grenze und amtliche Fläche (keine Lagebezeichnung)
-  const flurstuecke = flst.map((m) => {
+  // Flurstücke: Grenze, Kennzeichen (Gemarkung, Flur, Nummer) und amtliche Fläche – keine Lagebezeichnung
+  const flurstuecke = flst.map((m, i) => {
     const geo = gmlFlaeche(m);
     const flaeche = parseFloat(gmlWert(m, "flaeche")) || 0;
     if (!geo) return null;
     const mitte = turf.pointOnFeature({ type: "Feature", geometry: geo }).geometry.coordinates;
     const imGebiet = mitte[0] >= w && mitte[0] <= o && mitte[1] >= s && mitte[1] <= n;
-    return zuschneiden(geo, { flaeche, imGebiet });
+    const nenner = gmlWert(m, "flstnrnen");
+    return zuschneiden(geo, {
+      id: gmlWert(m, "idflurst") || `f${i}`, flaeche, imGebiet, mitte,
+      gemarkung: gmlWert(m, "gemarkung"), flur: String(parseInt(gmlWert(m, "flur"), 10) || ""),
+      nummer: `${parseInt(gmlWert(m, "flstnrzae"), 10) || ""}${nenner ? `/${parseInt(nenner, 10)}` : ""}`
+    });
   });
 
   // Tatsächliche Nutzung (lückenlos, ohne Überlappung)

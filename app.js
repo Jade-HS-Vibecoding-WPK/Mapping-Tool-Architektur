@@ -191,7 +191,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- 3. Reiter (Tabs) ----------
 // Schwarzplan, Straßennetz, Grün und Lageplan teilen sich die Ansicht „plan“.
-const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "boden"];
+const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "mieten"];
 
 function zeigeAnsicht(ziel) {
   const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
@@ -217,6 +217,7 @@ document.addEventListener("click", (e) => {
 // ---------- 4. Analysieren ----------
 const btnBeispiel = document.getElementById("btn-beispiel");
 let analyseLaeuft = false;
+let analyseErgebnis = null; // Daten der letzten Analyse (für den Steckbrief beim Klick auf ein Flurstück)
 
 function datumText(zeitstempel) {
   if (!zeitstempel) return "unbekannt";
@@ -281,10 +282,15 @@ async function analysiere(nurBeispiel = false) {
     } catch (fehler) {
       console.warn("Katasterdaten nicht verfügbar:", fehler);
     }
+    // Mietkarte (Zensus 2022): Import oder eingebautes Beispiel
+    try { daten.miete = await mietzellen(bbox); } catch (fehler) { console.warn("Mietdaten nicht verfügbar:", fehler); }
     const kennzahlen = berechneKennzahlen(daten, bbox);
+    // Für den Flurstücks-Steckbrief merken
+    analyseErgebnis = { daten, lod2: lod2 || [], bbox };
     const lgln = ((lod2 && lod2.length) || daten.strassenAmtlich
       ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "")
-      + (daten.kataster ? ` · ${daten.kataster.quelle}` : "");
+      + (daten.kataster ? ` · ${daten.kataster.quelle}` : "")
+      + (daten.miete ? " · Mieten: Zensus 2022, Statistische Ämter des Bundes und der Länder (dl-de/by-2-0)" : "");
 
     // 3. Anzeigen: zuerst den Schwarzplan
     // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)

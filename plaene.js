@@ -38,7 +38,9 @@ const PLAN_EBENEN = {
     "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume", "parzellen",
     "aussparung-flaeche", "aussparung-grundriss", "aussparung-dach", "gebaeude-lage", "gebaeude-neben-hell",
     "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"],
-  boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"]
+  boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"],
+  flurstuecke: ["flst-flaeche", "daecher", "daecher-linien", "flst-linie", "flst-auswahl", "rahmen"],
+  mieten: ["miete-flaeche", "miete-rand", "gebaeude-kontur", "rahmen"]
 };
 
 const PLAN_TITEL = {
@@ -46,7 +48,9 @@ const PLAN_TITEL = {
   strassen: "Straßennetz",
   gruen: "Grün und Vegetation",
   lageplan: "Lageplan",
-  boden: "Bodenrichtwerte"
+  boden: "Bodenrichtwerte",
+  flurstuecke: "Flurstücke und Dachaufsichten",
+  mieten: "Mieten (Zensus 2022)"
 };
 
 let planKarte = null;
@@ -58,6 +62,7 @@ let parzellenSichtbar = true;   // Flurstücksgrenzen im Lageplan
 let mitParzellen = false;       // liegen Flurstücke vor?
 let brwMarker = [];             // Beschriftungen der Bodenrichtwerte
 let brwDaten = null;
+let mietDaten = null;           // Farbklassen der Mietkarte
 let planLegenden = {};
 
 // Linienbreite, die beim Zoomen mitwächst (Wert in Pixeln bei Zoomstufe 16)
@@ -96,7 +101,7 @@ function erstellePlanKarte(bbox) {
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
 const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
-  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "rahmen"];
+  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "miete", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -108,6 +113,7 @@ function ebenenAnlegen(breitengrad) {
     if (name === "strassenAmtlich") optionen.attribution = "Straßenflächen: LGLN, DLM (CC BY 4.0) über topoexport";
     if (name === "parzellen") optionen.attribution = `Flurstücke: LGLN (${new Date().getFullYear()}), CC BY 4.0`;
     if (name === "brw") optionen.attribution = "Bodenrichtwerte: BORIS-NI (dl-de/by-2-0)";
+    if (name === "miete") optionen.attribution = "Mieten: Zensus 2022 (dl-de/by-2-0)";
     k.addSource(name, optionen);
   }
   const filterKat = (kat) => ["==", ["get", "kategorie"], kat];
@@ -174,6 +180,8 @@ function ebenenAnlegen(breitengrad) {
       paint: { "line-color": "#9c9c9a", "line-width": inMetern(["+", ["*", ["get", "breite"], LAGEPLAN_FAKTOR], 0.6], breitengrad) } },
     { id: "lage-flaeche", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
       paint: { "line-color": PLAN_FARBEN.strasseLage, "line-width": inMetern(["*", ["get", "breite"], LAGEPLAN_FAKTOR], breitengrad) } },
+    // Reiter „Flurstücke“: Flächen zum Anklicken (unter den Dächern)
+    { id: "flst-flaeche", type: "fill", source: "parzellen", paint: { "fill-color": "#ffffff" } },
     // Flurstücksgrenzen (fein, unter den Gebäuden)
     { id: "parzellen", type: "line", source: "parzellen", paint: { "line-color": "#8c8c8a", "line-width": mitZoom(0.45) } },
     // Aussparung: Gebäude (Grundriss und Dachaufsicht) mit schmalem weißen Saum über die Straßen legen,
@@ -187,6 +195,13 @@ function ebenenAnlegen(breitengrad) {
     // Dachkanten (First, Grate, Traufen) fein nachgezeichnet
     { id: "daecher-linien", type: "line", source: "daecher", layout: { "line-join": "round" },
       paint: { "line-color": "#5f5f5d", "line-width": mitZoom(0.45), "line-opacity": 0.85 } },
+    // Reiter „Flurstücke“: Grenzen über den Dächern, ausgewähltes Flurstück in der Akzentfarbe
+    { id: "flst-linie", type: "line", source: "parzellen", paint: { "line-color": "#2b2b2b", "line-width": mitZoom(0.9) } },
+    { id: "flst-auswahl", type: "line", source: "parzellen", filter: ["==", ["get", "id"], ""],
+      paint: { "line-color": PLAN_FARBEN.akzent, "line-width": mitZoom(2.6) } },
+    // Mietkarte: 100-m-Zellen nach Miete abgestuft
+    { id: "miete-flaeche", type: "fill", source: "miete", paint: { "fill-color": "#f3d6cd" } },
+    { id: "miete-rand", type: "line", source: "miete", paint: { "line-color": "#ffffff", "line-width": 1 } },
     // Bodenrichtwerte: Zonen nach Wert abgestuft (Farbskala wird beim Zeichnen an die Werte angepasst)
     { id: "brw-flaeche", type: "fill", source: "brw", paint: { "fill-color": "#f3d6cd" } },
     { id: "brw-rand", type: "line", source: "brw", paint: { "line-color": "#ffffff", "line-width": 1.5 } },
@@ -196,6 +211,7 @@ function ebenenAnlegen(breitengrad) {
     { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } }
   ];
   for (const e of ebenen) k.addLayer({ ...e, layout: { ...(e.layout || {}), visibility: "none" } });
+  steckbriefAnmelden(); // Klick auf Flurstücke (steckbrief.js)
 }
 
 // Legenden-Einträge pro Plan: [Art des Zeichens, Farbe/Stärke, Text, Schalter?]
@@ -246,6 +262,18 @@ function legendeFuer(plan, k, amtlich) {
       ["linie", 0.5, "Flurstücksgrenze, Gebäudeumriss"],
       ["text", "", `Stichtag ${brwDaten.stichtag ? new Date(brwDaten.stichtag).toLocaleDateString("de-DE") : "–"} · Werte in €/m², Zahlen in den Zonen`]
     ] : [["text", "", "Keine Bodenrichtwerte für dieses Gebiet (bisher nur Niedersachsen, BORIS-NI)."]];
+    case "flurstuecke": return mitParzellen ? [
+      mitDaechern ? ["flaeche", "linear-gradient(135deg,#f6f6f4 0 50%,#9a9a98 50%)", "Gebäude, Dachaufsicht (LoD2)"]
+        : ["flaeche", PLAN_FARBEN.gebaeudeLage, "Gebäude (Grundriss, ohne LoD2-Daten)"],
+      ["linie", 1, `Flurstücksgrenze (ALKIS, ${fmt(k.parzellenAnzahl || 0)} Flurstücke)`],
+      ["flaeche", PLAN_FARBEN.akzent, "ausgewähltes Flurstück"],
+      ["text", "", "Klicke auf ein Flurstück, um seine Kennzahlen zu sehen."]
+    ] : [["text", "", "Keine Flurstücke für dieses Gebiet (bisher nur Niedersachsen, ALKIS)."]];
+    case "mieten": return mietDaten ? [
+      ...mietDaten.klassen.map(([farbe, text]) => ["flaeche", farbe, `${text} €/m² Nettokaltmiete`]),
+      ["linie", 0.5, "Gebäude (Umriss)"],
+      ["text", "", "Durchschnitt je 100-m-Zelle, Bestandsmieten am 15.05.2022. Zellen mit wenigen Wohnungen fehlen oder sind unsicher."]
+    ] : [["text", "", "Keine Mietdaten für dieses Gebiet. Lege die Zensus-ZIP „Zensus2022_Durchschn_Nettokaltmiete“ ins Ablagefeld."]];
   }
   return [];
 }
@@ -290,6 +318,9 @@ function zeigePlan(plan) {
   // Lageplan mit LoD2: nur die Dachaufsichten, die OSM-Grundrisse darunter nur auf Wunsch
   if (mitDaechern && !grundrisseSichtbar) ["gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss"].forEach((e) => sichtbar.delete(e));
   if (!parzellenSichtbar) sichtbar.delete("parzellen");
+  // Reiter „Flurstücke“ ohne LoD2-Daten: Grundrisse statt Dachaufsichten
+  if (plan === "flurstuecke" && !mitDaechern) ["gebaeude-lage", "gebaeude-umriss"].forEach((e) => sichtbar.add(e));
+  if (plan !== "flurstuecke") schliesseSteckbrief();
   // Beschriftung der Bodenrichtwerte nur im Plan „Bodenrichtwerte“
   brwMarker.forEach((m) => m.remove());
   brwMarker = [];
@@ -359,6 +390,26 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
       stichtag: zonen.features.map((f) => f.properties.stichtag).sort().pop() };
   } else brwDaten = null;
   planKarte.getSource("brw").setData(zonen || leereSammlung);
+
+  // Mietkarte: fünf Stufen mit etwa gleich vielen Zellen
+  if (daten.miete && daten.miete.features.length) {
+    const werte = daten.miete.features.map((f) => f.properties.wert).sort((a, b) => a - b);
+    const grenzen = [];
+    for (let i = 1; i < BRW_FARBEN.length; i++) {
+      const g = werte[Math.floor(werte.length * i / BRW_FARBEN.length)];
+      if (!grenzen.length || g > grenzen[grenzen.length - 1]) grenzen.push(g);
+    }
+    const farben = BRW_FARBEN.slice(BRW_FARBEN.length - grenzen.length - 1);
+    planKarte.setPaintProperty("miete-flaeche", "fill-color", ["step", ["get", "wert"], farben[0], ...grenzen.flatMap((g, i) => [g, farben[i + 1]])]);
+    const zahl2 = (v) => fmt(v, 2);
+    mietDaten = { klassen: farben.map((farbe, i) => [farbe,
+      i === 0 ? `unter ${zahl2(grenzen[0])}` : i === grenzen.length ? `ab ${zahl2(grenzen[i - 1])}` : `${zahl2(grenzen[i - 1])} bis unter ${zahl2(grenzen[i])}`]) };
+    planKarte.getSource("miete").setData(daten.miete);
+  } else {
+    mietDaten = null;
+    planKarte.getSource("miete").setData(leereSammlung);
+  }
+  schliesseSteckbrief();
 
   mitDaechern = !!(daecher && daecher.features.length);
   const amtlich = !!(daten.strassenAmtlich && daten.strassenAmtlich.features.length);

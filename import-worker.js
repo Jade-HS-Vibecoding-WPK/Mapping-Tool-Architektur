@@ -14,12 +14,32 @@ self.onmessage = (e) => {
   const { nr, art, name, daten } = e.data;
   try {
     const melde = (text) => self.postMessage({ nr, fortschritt: text });
-    const ergebnis = art === "citygml" ? leseCityGML(daten, name, melde) : leseDXF(daten, name, melde);
-    self.postMessage({ nr, ok: true, ergebnis });
+    const ergebnis = art === "citygml" ? leseCityGML(daten, name, melde) : art === "zensus" ? leseZensus(daten, melde) : leseDXF(daten, name, melde);
+    const uebergabe = art === "zensus" ? [ergebnis.x.buffer, ergebnis.y.buffer, ergebnis.wert.buffer, ergebnis.unsicher.buffer] : [];
+    self.postMessage({ nr, ok: true, ergebnis }, uebergabe);
   } catch (fehler) {
     self.postMessage({ nr, ok: false, fehler: fehler.message || String(fehler) });
   }
 };
+
+// =============================================================
+// Zensus 2022: Nettokaltmiete im 100-m-Gitter (CSV mit „;“, Komma als Dezimalzeichen, EPSG:3035)
+// GITTER_ID_100m;x_mp_100m;y_mp_100m;durchschnMieteQM;werterlaeuternde_Zeichen
+// =============================================================
+function leseZensus(puffer, melde) {
+  melde("Lese die Zensus-Mietkarte …");
+  const zeilen = new TextDecoder("latin1").decode(puffer).split("\n");
+  const n = zeilen.length;
+  const x = new Int32Array(n), y = new Int32Array(n), wert = new Float32Array(n), unsicher = new Uint8Array(n);
+  let k = 0;
+  for (let i = 1; i < n; i++) {
+    const t = zeilen[i].split(";");
+    if (t.length < 4 || !t[3]) continue;
+    x[k] = +t[1]; y[k] = +t[2]; wert[k] = parseFloat(t[3].replace(",", ".")); unsicher[k] = t[4] && t[4].trim() ? 1 : 0;
+    k++;
+  }
+  return { typ: "zensus-miete", anzahl: k, x: x.slice(0, k), y: y.slice(0, k), wert: wert.slice(0, k), unsicher: unsicher.slice(0, k) };
+}
 
 // =============================================================
 // CityGML

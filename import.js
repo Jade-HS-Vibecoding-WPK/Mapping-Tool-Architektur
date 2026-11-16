@@ -13,6 +13,7 @@ const importDaten = {
   citygml: [],      // je Kachel: { name, kachel, gebaeude }
   topo2d: null,     // { rahmen, grundrisse, strassen }
   topo3d: null,     // { rahmen, gelaende, gebaeude }
+  dgm: [],          // Geländemodell-Kacheln: { name, jahr, rechteck [O0,N0,O1,N1], nx, ny, werte (Zeile 0 = Norden) }
   verortung: null,  // [Ost, Nord] des topoexport-Nullpunkts in UTM 32
   kombi: null,      // zusammengefasste LoD2-Daten (Format wie data/beispiel-oldenburg-lod2.js, Einheit 1 m)
   strassen: null,   // amtliche Straßenflächen (Format wie data/beispiel-oldenburg-strassen.js)
@@ -77,6 +78,9 @@ async function dateienAnnehmen(dateien) {
         if (erg.typ === "topoexport-2d") importDaten.topo2d = erg;
         else if (erg.typ === "topoexport-3d") importDaten.topo3d = erg;
         else hinweise.push(`${name}: keine topoexport-Datei (Layer ${erg.layer.join(", ")}). Allgemeine DXF folgen später.`);
+      } else if (n.endsWith(".tif") || n.endsWith(".tiff")) {
+        meldeImport(`Lese Geländemodell ${name} …`);
+        await dgmEinlesen(await holen(), name);
       } else if (n.endsWith(".rar")) hinweise.push(`${name}: RAR wird noch nicht unterstützt. Bitte als ZIP packen.`);
       else if (n.endsWith(".dwg")) hinweise.push(`${name}: DWG folgt später. Bitte im CAD-Programm als DXF speichern.`);
       else if (!n.endsWith(".txt") && !n.endsWith(".pdf")) hinweise.push(`${name}: Format nicht erkannt.`);
@@ -100,14 +104,61 @@ dropzone.addEventListener("click", () => dateiWahl.click());
 dropzone.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); dateiWahl.click(); } });
 dateiWahl.addEventListener("change", () => { dateienAnnehmen([...dateiWahl.files]); dateiWahl.value = ""; });
 
+// ---------- Geländemodell (GeoTIFF, z. B. DGM1 der Länder) ----------
+// Wird auf ein 2-m-Raster verkleinert (für das 3D-Modell genau genug, viermal weniger Daten)
+const DGM_RASTER = 2;
+async function dgmEinlesen(puffer, name) {
+  const tiff = await GeoTIFF.fromArrayBuffer(puffer);
+  const bild = await tiff.getImage();
+  const rechteck = bild.getBoundingBox(); // in UTM 32 (Meter)
+  const nx = Math.max(2, Math.round((rechteck[2] - rechteck[0]) / DGM_RASTER));
+  const ny = Math.max(2, Math.round((rechteck[3] - rechteck[1]) / DGM_RASTER));
+  const [werte] = await bild.readRasters({ width: nx, height: ny, resampleMethod: "bilinear" });
+  const keinWert = bild.getGDALNoData();
+  const m = name.match(/(\d{3})_(\d{4})/), jahr = (name.match(/_(\d{4})\.tiff?$/i) || [])[1] || "";
+  const kachel = m ? `${m[1]}_${m[2]}` : name;
+  if (rechteck[0] < 100000 || rechteck[0] > 900000) throw new Error("Das Geländemodell liegt nicht in UTM 32");
+  importDaten.dgm = importDaten.dgm.filter((d) => d.name !== kachel);
+  importDaten.dgm.push({ name: kachel, jahr, rechteck, nx, ny, werte: Float32Array.from(werte, (z) => (z === keinWert || z < -1000 ? NaN : z)) });
+}
+
+// Alle DGM-Kacheln zu einem Raster zusammensetzen (Höhen in dm, Zeilen von Süd nach Nord)
+function dgmMosaik(e0, n0) {
+  const d = importDaten.dgm;
+  const a = Math.min(...d.map((k) => k.rechteck[0])), b = Math.min(...d.map((k) => k.rechteck[1]));
+  const c = Math.max(...d.map((k) => k.rechteck[2])), e = Math.max(...d.map((k) => k.rechteck[3]));
+  const nx = Math.round((c - a) / DGM_RASTER), ny = Math.round((e - b) / DGM_RASTER);
+  const z = new Int16Array(nx * ny);
+  let letzter = 0;
+  for (let j = 0; j < ny; j++) {
+    const y = b + (j + 0.5) * DGM_RASTER;
+    for (let i = 0; i < nx; i++) {
+      const x = a + (i + 0.5) * DGM_RASTER;
+      let wert = NaN;
+      for (const k of d) {
+        const [x0, y0, x1, y1] = k.rechteck;
+        if (x < x0 || x >= x1 || y < y0 || y >= y1) continue;
+        const spalte = Math.min(k.nx - 1, Math.floor((x - x0) / (x1 - x0) * k.nx));
+        const zeile = Math.min(k.ny - 1, Math.floor((y1 - y) / (y1 - y0) * k.ny));
+        wert = k.werte[zeile * k.nx + spalte];
+        break;
+      }
+      if (!isNaN(wert)) letzter = Math.round(wert * 10);
+      z[j * nx + i] = letzter; // Lücken mit dem letzten Wert füllen
+    }
+  }
+  return { x0: a - e0 + DGM_RASTER / 2, y0: b - n0 + DGM_RASTER / 2, dx: DGM_RASTER, dy: DGM_RASTER, nx, ny, z };
+}
+
 // ---------- Zusammenfassen (wie die Beispieldaten) ----------
 function kombiniere() {
-  const cg = importDaten.citygml, t3 = importDaten.topo3d, t2 = importDaten.topo2d, v = importDaten.verortung;
+  const cg = importDaten.citygml, t3 = importDaten.topo3d, t2 = importDaten.topo2d, v = importDaten.verortung, dgm = importDaten.dgm;
   importDaten.kombi = null; importDaten.strassen = null; importDaten.ausdehnung = null;
   const topoDa = (t2 || t3) && v;
-  if (!cg.length && !topoDa) { zeigeTopoRahmen(); return; }
+  if (!cg.length && !topoDa && !dgm.length) { zeigeTopoRahmen(); return; }
 
-  const nullpunkt = topoDa ? v : [cg[0].kachel ? cg[0].kachel.rechteck[0] : 0, cg[0].kachel ? cg[0].kachel.rechteck[1] : 0];
+  const nullpunkt = topoDa ? v : cg.length && cg[0].kachel ? cg[0].kachel.rechteck.slice(0, 2)
+    : dgm.length ? dgm[0].rechteck.slice(0, 2) : [0, 0];
   const [e0, n0] = nullpunkt;
   const kacheln = cg.filter((c) => c.kachel).map((c) => { const [a, b, x, y] = c.kachel.rechteck; return [a - e0, b - n0, x - e0, y - n0]; });
   const gebaeude = [], ids = new Set(), grundrisse = [];
@@ -151,11 +202,13 @@ function kombiniere() {
         flaechen: t2.strassen.map((poly) => poly.map((ring) => ring.flatMap((p) => [p[0] + tx, p[1] + ty]))) };
     }
   }
+  // Gelände: DGM1 (genauer, 2 m) vor topoexport (ca. 20 m)
+  if (dgm.length) gelaende = dgmMosaik(e0, n0);
   importDaten.kombi = { nullpunkt, epsg: 25832, einheit: 1, kacheln, gebaeude,
     topoexport: rahmen ? { rahmen } : undefined, gelaende: gelaende || undefined };
 
   // Ausdehnung in Grad (für „berührt das Gebiet die Importe?“)
-  const rechtecke = kacheln.concat(rahmen ? [rahmen] : []);
+  const rechtecke = kacheln.concat(rahmen ? [rahmen] : [], dgm.map((k) => [k.rechteck[0] - e0, k.rechteck[1] - n0, k.rechteck[2] - e0, k.rechteck[3] - n0]));
   const ecken = rechtecke.flatMap(([a, b, c, d]) => [[a, b], [c, b], [c, d], [a, d]]).map(([x, y]) => utmZuGrad(e0 + x, n0 + y));
   if (ecken.length) importDaten.ausdehnung = [Math.min(...ecken.map((p) => p[0])), Math.min(...ecken.map((p) => p[1])),
     Math.max(...ecken.map((p) => p[0])), Math.max(...ecken.map((p) => p[1]))];
@@ -226,6 +279,8 @@ function zeigeDatenliste() {
     () => { importDaten.topo2d = null; }]);
   if (importDaten.topo3d) eintraege.push(["topoexport 3D", `${fmt(importDaten.topo3d.gebaeude.length)} Gebäudeteile${importDaten.topo3d.gelaende ? ", Gelände" : ""}`,
     () => { importDaten.topo3d = null; }]);
+  if (importDaten.dgm.length) eintraege.push(["Gelände DGM1", `${importDaten.dgm.length} Kachel(n), 2-m-Raster${importDaten.dgm[0].jahr ? `, Stand ${[...new Set(importDaten.dgm.map((d) => d.jahr))].join("/")}` : ""}`,
+    () => { importDaten.dgm = []; }]);
   if (!importDaten.topo2d && !importDaten.topo3d) importDaten.verortung = null;
   importListe.innerHTML = eintraege.map(([titel, info], i) =>
     `<li><span><strong>${titel}</strong><small>${info}</small></span><button class="btn btn-klein btn-ghost" data-nr="${i}" title="Entfernen">✕</button></li>`).join("");
@@ -255,21 +310,25 @@ function zeigeKachelStatus() {
   if (!gebiet) { kachelBox.hidden = true; return; }
   const noetig = benoetigteKacheln();
   const geladen = importDaten.citygml.filter((c) => c.kachel).map((c) => c.kachel.name);
+  const gelaende = importDaten.dgm.map((d) => d.name);
   const fehlend = noetig.filter((k) => !geladen.includes(k));
+  const fehlendDgm = noetig.filter((k) => !gelaende.includes(k));
   const unnoetig = geladen.filter((k) => !noetig.includes(k));
+  const zeichen = (ok) => (ok ? "✓" : "–");
   kachelBox.innerHTML = `
-    <p><strong>LoD2-Kacheln für dieses Gebiet</strong> (amtliche 3D-Gebäude, 1 × 1 km):</p>
-    <ul>${noetig.map((k) => `<li class="${geladen.includes(k) ? "ok" : "fehlt"}">${geladen.includes(k) ? "✓" : "–"} LoD2_32_${k}</li>`).join("")}</ul>
-    ${fehlend.length ? `<p class="kachel-hinweis">${fehlend.length === noetig.length && !geladen.length ? "Noch keine geladen." : `Es fehlen ${fehlend.length}.`}
-      ${importDaten.topo3d ? "Bis dahin nimmt das Tool die Gebäude aus topoexport 3D." : ""}</p>
-      <button class="btn btn-klein" id="kacheln-laden">Fehlende Kacheln laden</button>
-      <p class="kachel-hinweis">Automatisch aus Niedersachsen (LGLN) und NRW (Geobasis NRW), je Kachel bis ca. 60 MB.
+    <p><strong>Kacheln für dieses Gebiet</strong> (1 × 1 km): 3D-Gebäude LoD2 · Gelände DGM1</p>
+    <ul>${noetig.map((k) => `<li class="${geladen.includes(k) && gelaende.includes(k) ? "ok" : "fehlt"}">${k} &nbsp;
+      LoD2 ${zeichen(geladen.includes(k))} · Gelände ${zeichen(gelaende.includes(k))}</li>`).join("")}</ul>
+    ${fehlend.length || fehlendDgm.length ? `<p class="kachel-hinweis">${fehlend.length ? `Es fehlen ${fehlend.length} LoD2-Kachel(n). ` : ""}${fehlendDgm.length ? `Es fehlen ${fehlendDgm.length} Gelände-Kachel(n).` : ""}
+      ${importDaten.topo3d && fehlend.length ? "Bis dahin nimmt das Tool die Gebäude aus topoexport 3D." : ""}</p>
+      <button class="btn btn-klein" id="kacheln-laden">Fehlende Daten laden</button>
+      <p class="kachel-hinweis">Automatisch aus Niedersachsen (LGLN) und NRW (Geobasis NRW). LoD2 bis ca. 60 MB, Gelände ca. 2–4 MB je Kachel.
         Andere Länder: Dateien selbst herunterladen und hier ablegen.</p>`
       : `<p class="kachel-hinweis">Alle benötigten Kacheln sind geladen.</p>`}
-    ${unnoetig.length ? `<p class="kachel-hinweis">Nicht nötig für dieses Gebiet: ${unnoetig.map((k) => `LoD2_32_${k}`).join(", ")}</p>` : ""}`;
+    ${unnoetig.length ? `<p class="kachel-hinweis">LoD2 nicht nötig für dieses Gebiet: ${unnoetig.join(", ")}</p>` : ""}`;
   kachelBox.hidden = false;
   const knopf = document.getElementById("kacheln-laden");
-  if (knopf) knopf.addEventListener("click", () => ladeFehlendeKacheln(fehlend, knopf));
+  if (knopf) knopf.addEventListener("click", () => ladeFehlendeKacheln(fehlend, knopf, fehlendDgm));
 }
 
 // ---------- LoD2-Kacheln selbst abholen (offene Daten der Länder) ----------
@@ -309,6 +368,40 @@ async function sucheKachelLinks(namen) {
   return links;
 }
 
+// Geländemodell DGM1 (GeoTIFF): Niedersachsen (LGLN, tile_id = „32“ + Ost-km + Nord-km), sonst NRW; je Kachel der neueste Jahrgang
+const LGLN_DGM = "https://services-eu1.arcgis.com/4v3xxN52w88W065F/arcgis/rest/services/lgln_opengeodata_dgm1/FeatureServer/0/query";
+const NRW_DGM_ORDNER = "https://www.opengeodata.nrw.de/produkte/geobasis/hm/dgm1_tiff/dgm1_tiff/";
+let nrwDgmVerzeichnis = null;
+
+async function sucheDgmLinks(namen) {
+  const links = new Map();
+  if (!namen.length) return links;
+  try {
+    const ids = namen.map((k) => `32${k.replace("_", "")}`).join(",");
+    const json = await (await fetch(`${LGLN_DGM}?f=json&where=tile_id+IN+(${ids})&outFields=tile_id,dgm1,Aktualitaet&returnGeometry=false`)).json();
+    for (const f of json.features || []) {
+      const id = String(f.attributes.tile_id).slice(2), name = `${id.slice(0, 3)}_${id.slice(3)}`;
+      const alt = links.get(name);
+      if (!alt || f.attributes.Aktualitaet > alt.stand) links.set(name, { url: f.attributes.dgm1, stand: f.attributes.Aktualitaet, land: "Niedersachsen (LGLN, CC BY 4.0)" });
+    }
+  } catch (e) { console.warn("LGLN-DGM-Verzeichnis nicht erreichbar", e); }
+  const rest = namen.filter((k) => !links.has(k));
+  if (rest.length) {
+    try {
+      if (!nrwDgmVerzeichnis) {
+        meldeImport("Lade das Gelände-Verzeichnis NRW …");
+        const json = await (await fetch(`${NRW_DGM_ORDNER}index.json`)).json();
+        nrwDgmVerzeichnis = json.datasets.flatMap((d) => d.files.map((f) => f.name));
+      }
+      for (const k of rest) {
+        const treffer = nrwDgmVerzeichnis.filter((n) => n.startsWith(`dgm1_32_${k}_1_nw`)).sort();
+        if (treffer.length) links.set(k, { url: NRW_DGM_ORDNER + treffer.pop(), land: "NRW (Geobasis NRW, dl-de/zero-2-0)" });
+      }
+    } catch (e) { console.warn("NRW-DGM-Verzeichnis nicht erreichbar", e); }
+  }
+  return links;
+}
+
 // Eine Datei mit Fortschrittsanzeige herunterladen
 async function ladeMitFortschritt(url, text) {
   const antwort = await fetch(url);
@@ -327,23 +420,25 @@ async function ladeMitFortschritt(url, text) {
   return new Blob(teile);
 }
 
-async function ladeFehlendeKacheln(fehlend, knopf) {
+async function ladeFehlendeKacheln(fehlend, knopf, fehlendDgm = []) {
   knopf.disabled = true;
   try {
     meldeImport("Suche die Kacheln bei den Landesämtern …");
-    const links = await sucheKachelLinks(fehlend);
-    const nichtGefunden = fehlend.filter((k) => !links.has(k));
+    const [links, dgmLinks] = await Promise.all([sucheKachelLinks(fehlend), sucheDgmLinks(fehlendDgm)]);
+    const nichtGefunden = fehlend.filter((k) => !links.has(k)).map((k) => `LoD2 ${k}`)
+      .concat(fehlendDgm.filter((k) => !dgmLinks.has(k)).map((k) => `Gelände ${k}`));
     const dateien = [];
+    const alle = [...[...links].map(([n, l]) => ["LoD2", n, l]), ...[...dgmLinks].map(([n, l]) => ["Gelände", n, l])];
     let nr = 0;
-    for (const [name, { url }] of links) {
+    for (const [art, name, { url }] of alle) {
       nr++;
-      const blob = await ladeMitFortschritt(url, `Kachel ${nr} von ${links.size} (${name})`);
+      const blob = await ladeMitFortschritt(url, `${art} ${name} (${nr} von ${alle.length})`);
       dateien.push(new File([blob], url.split("/").pop()));
     }
     if (dateien.length) await dateienAnnehmen(dateien);
-    const laender = [...new Set([...links.values()].map((l) => l.land))];
-    meldeImport((dateien.length ? `${dateien.length} Kachel(n) geladen. Quelle: ${laender.join(", ")}. ` : "") +
-      (nichtGefunden.length ? `Nicht gefunden: ${nichtGefunden.map((k) => `LoD2_32_${k}`).join(", ")} ` +
+    const laender = [...new Set(alle.map(([, , l]) => l.land))];
+    meldeImport((dateien.length ? `${dateien.length} Datei(en) geladen. Quelle: ${laender.join(", ")}. ` : "") +
+      (nichtGefunden.length ? `Nicht gefunden: ${nichtGefunden.join(", ")} ` +
         "(außerhalb von Niedersachsen und NRW – bitte beim jeweiligen Landesamt herunterladen und hier ablegen)." : ""));
   } catch (fehler) {
     console.error(fehler);

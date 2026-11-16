@@ -35,15 +35,18 @@ const PLAN_EBENEN = {
     "strasse-fuss", "rahmen"],
   gruen: ["gebaeude-hell", "gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "baeume", "rahmen"],
   lageplan: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "verkehrsflaechen",
-    "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume",
-    "aussparung-flaeche", "aussparung-grundriss", "aussparung-dach", "gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"]
+    "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume", "parzellen",
+    "aussparung-flaeche", "aussparung-grundriss", "aussparung-dach", "gebaeude-lage", "gebaeude-neben-hell",
+    "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"],
+  boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"]
 };
 
 const PLAN_TITEL = {
   schwarzplan: "Schwarzplan",
   strassen: "Straßennetz",
   gruen: "Grün und Vegetation",
-  lageplan: "Lageplan"
+  lageplan: "Lageplan",
+  boden: "Bodenrichtwerte"
 };
 
 let planKarte = null;
@@ -51,6 +54,10 @@ let aktuellerPlan = "schwarzplan";
 let nebenSichtbar = true;
 let grundrisseSichtbar = false; // OSM-Grundrisse unter den Dachaufsichten im Lageplan
 let mitDaechern = false;        // liegen LoD2-Dachaufsichten vor?
+let parzellenSichtbar = true;   // Flurstücksgrenzen im Lageplan
+let mitParzellen = false;       // liegen Flurstücke vor?
+let brwMarker = [];             // Beschriftungen der Bodenrichtwerte
+let brwDaten = null;
 let planLegenden = {};
 
 // Linienbreite, die beim Zoomen mitwächst (Wert in Pixeln bei Zoomstufe 16)
@@ -89,7 +96,7 @@ function erstellePlanKarte(bbox) {
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
 const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
-  "baeume", "verkehrsflaechen", "daecher", "rahmen"];
+  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -99,6 +106,8 @@ function ebenenAnlegen(breitengrad) {
     if (name === "gebaeude") optionen.attribution = osm; // Quellenangabe unten rechts
     if (name === "daecher") optionen.attribution = "Dächer: LGLN, 3D-Gebäudemodell LoD2 (CC BY 4.0)";
     if (name === "strassenAmtlich") optionen.attribution = "Straßenflächen: LGLN, DLM (CC BY 4.0) über topoexport";
+    if (name === "parzellen") optionen.attribution = `Flurstücke: LGLN (${new Date().getFullYear()}), CC BY 4.0`;
+    if (name === "brw") optionen.attribution = "Bodenrichtwerte: BORIS-NI (dl-de/by-2-0)";
     k.addSource(name, optionen);
   }
   const filterKat = (kat) => ["==", ["get", "kategorie"], kat];
@@ -165,6 +174,8 @@ function ebenenAnlegen(breitengrad) {
       paint: { "line-color": "#9c9c9a", "line-width": inMetern(["+", ["*", ["get", "breite"], LAGEPLAN_FAKTOR], 0.6], breitengrad) } },
     { id: "lage-flaeche", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
       paint: { "line-color": PLAN_FARBEN.strasseLage, "line-width": inMetern(["*", ["get", "breite"], LAGEPLAN_FAKTOR], breitengrad) } },
+    // Flurstücksgrenzen (fein, unter den Gebäuden)
+    { id: "parzellen", type: "line", source: "parzellen", paint: { "line-color": "#8c8c8a", "line-width": mitZoom(0.45) } },
     // Aussparung: Gebäude (Grundriss und Dachaufsicht) mit schmalem weißen Saum über die Straßen legen,
     // damit Straßen die Gebäude nie überdecken
     { id: "aussparung-flaeche", type: "fill", source: "gebaeude", paint: { "fill-color": "#ffffff" } },
@@ -176,6 +187,11 @@ function ebenenAnlegen(breitengrad) {
     // Dachkanten (First, Grate, Traufen) fein nachgezeichnet
     { id: "daecher-linien", type: "line", source: "daecher", layout: { "line-join": "round" },
       paint: { "line-color": "#5f5f5d", "line-width": mitZoom(0.45), "line-opacity": 0.85 } },
+    // Bodenrichtwerte: Zonen nach Wert abgestuft (Farbskala wird beim Zeichnen an die Werte angepasst)
+    { id: "brw-flaeche", type: "fill", source: "brw", paint: { "fill-color": "#f3d6cd" } },
+    { id: "brw-rand", type: "line", source: "brw", paint: { "line-color": "#ffffff", "line-width": 1.5 } },
+    { id: "parzellen-boden", type: "line", source: "parzellen", paint: { "line-color": "#ffffff", "line-width": mitZoom(0.5), "line-opacity": 0.8 } },
+    { id: "gebaeude-kontur", type: "line", source: "gebaeude", paint: { "line-color": "#333333", "line-width": mitZoom(0.5), "line-opacity": 0.7 } },
     // Rahmen des Untersuchungsgebiets
     { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } }
   ];
@@ -221,18 +237,28 @@ function legendeFuer(plan, k, amtlich) {
       ["flaeche", PLAN_FARBEN.wald, "Wald"],
       ["flaeche", PLAN_FARBEN.wiese, "Wiese, Rasen"],
       ["flaeche", PLAN_FARBEN.wasser, "Wasser"],
-      ["kreis", PLAN_FARBEN.baum, "Einzelbaum"]
+      ["kreis", PLAN_FARBEN.baum, "Einzelbaum"],
+      ...(mitParzellen ? [["linie", 0.5, "Flurstücksgrenze (ALKIS)", "parzellen"]] : [])
     ];
+    case "boden": return brwDaten ? [
+      ["flaeche", `linear-gradient(90deg,${BRW_FARBEN.join(",")})`, `Bodenrichtwert ${fmt(brwDaten.min)} bis ${fmt(brwDaten.max)} €/m²`],
+      ["linie", 0.5, "Flurstücksgrenze"],
+      ["linie", 0.5, "Gebäude (Umriss)"],
+      ["text", "", `Stichtag ${brwDaten.stichtag ? new Date(brwDaten.stichtag).toLocaleDateString("de-DE") : "–"} · Werte in €/m², Zahlen in den Zonen`]
+    ] : [["text", "", "Keine Bodenrichtwerte für dieses Gebiet (bisher nur Niedersachsen, BORIS-NI)."]];
   }
   return [];
 }
+
+// Farbskala der Bodenrichtwerte (hell = günstig, dunkel = teuer), mit der Akzentfarbe
+const BRW_FARBEN = ["#fbebe6", "#f2b8a8", "#e2482d", "#8f2615"];
 
 function zeichen([art, wert]) {
   if (art === "flaeche") return `<span class="lz lz-flaeche" style="background:${wert}"></span>`;
   if (art === "linie") return `<span class="lz lz-linie"><span style="height:${Math.max(1, wert * 0.8)}px"></span></span>`;
   if (art === "strich") return `<span class="lz lz-strich" style="border-color:${wert}"></span>`;
   if (art === "kreis") return `<span class="lz lz-kreis" style="border-color:${wert}"></span>`;
-  return "";
+  return ""; // „text“: nur Text, ohne Zeichen
 }
 
 function zeigeLegende() {
@@ -242,9 +268,12 @@ function zeigeLegende() {
     <h3>${PLAN_TITEL[aktuellerPlan]}</h3>
     <ul>${eintraege.map((e) => `<li>${zeichen(e)}<span>${e[2]}</span>${
       e[3] === "neben" ? `<label class="schalter"><input type="checkbox" id="neben-schalter" ${nebenSichtbar ? "checked" : ""}> zeigen</label>` :
-      e[3] === "grundrisse" ? `<label class="schalter"><input type="checkbox" id="grundriss-schalter" ${grundrisseSichtbar ? "checked" : ""}> zeigen</label>` : ""
+      e[3] === "grundrisse" ? `<label class="schalter"><input type="checkbox" id="grundriss-schalter" ${grundrisseSichtbar ? "checked" : ""}> zeigen</label>` :
+      e[3] === "parzellen" ? `<label class="schalter"><input type="checkbox" id="parzellen-schalter" ${parzellenSichtbar ? "checked" : ""}> zeigen</label>` : ""
     }</li>`).join("")}</ul>
     <p class="legende-quelle">${document.getElementById("plan").dataset.quelle || ""}</p>`;
+  const parz = document.getElementById("parzellen-schalter");
+  if (parz) parz.addEventListener("change", () => { parzellenSichtbar = parz.checked; zeigePlan(aktuellerPlan); });
   const schalter = document.getElementById("neben-schalter");
   if (schalter) schalter.addEventListener("change", () => { nebenSichtbar = schalter.checked; zeigePlan(aktuellerPlan); });
   const grundriss = document.getElementById("grundriss-schalter");
@@ -260,6 +289,19 @@ function zeigePlan(plan) {
   if (!nebenSichtbar) { sichtbar.delete("gebaeude-neben"); sichtbar.delete("gebaeude-neben-hell"); }
   // Lageplan mit LoD2: nur die Dachaufsichten, die OSM-Grundrisse darunter nur auf Wunsch
   if (mitDaechern && !grundrisseSichtbar) ["gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss"].forEach((e) => sichtbar.delete(e));
+  if (!parzellenSichtbar) sichtbar.delete("parzellen");
+  // Beschriftung der Bodenrichtwerte nur im Plan „Bodenrichtwerte“
+  brwMarker.forEach((m) => m.remove());
+  brwMarker = [];
+  if (plan === "boden" && brwDaten) {
+    for (const f of brwDaten.zonen.features) {
+      if (turf.area(f) < 1500) continue; // sehr kleine Zonenreste nicht beschriften
+      const el = document.createElement("div");
+      el.className = "brw-etikett";
+      el.textContent = `${fmt(f.properties.wert)} €`;
+      brwMarker.push(new maplibregl.Marker({ element: el }).setLngLat(turf.pointOnFeature(f).geometry.coordinates).addTo(planKarte));
+    }
+  }
   for (const ebene of planKarte.getStyle().layers) {
     if (ebene.id === "papier") continue;
     planKarte.setLayoutProperty(ebene.id, "visibility", sichtbar.has(ebene.id) ? "visible" : "none");
@@ -292,6 +334,20 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   planKarte.getSource("strassenAmtlich").setData(daten.strassenAmtlich || leereSammlung);
   planKarte.getSource("daecher").setData(daecher || leereSammlung);
   planKarte.getSource("rahmen").setData(turf.bboxPolygon(bbox));
+  // Flurstücke und Bodenrichtwerte (nur wenn vorhanden, bisher Niedersachsen)
+  const kat = daten.kataster;
+  planKarte.getSource("parzellen").setData(kat ? kat.flurstuecke : leereSammlung);
+  mitParzellen = !!(kat && kat.flurstuecke.features.length);
+  const zonen = kat ? { type: "FeatureCollection", features: kat.bodenrichtwerte.features.filter((f) => f.properties.wert > 0) } : null;
+  if (zonen && zonen.features.length) {
+    const werte = zonen.features.map((f) => f.properties.wert);
+    const min = Math.min(...werte), max = Math.max(...werte);
+    const stufen = BRW_FARBEN.flatMap((farbe, i) => [min + (max - min || 1) * i / (BRW_FARBEN.length - 1), farbe]);
+    planKarte.setPaintProperty("brw-flaeche", "fill-color", ["interpolate", ["linear"], ["get", "wert"], ...stufen]);
+    brwDaten = { zonen, min, max, stichtag: werte.length ? zonen.features.map((f) => f.properties.stichtag).sort().pop() : null };
+  } else brwDaten = null;
+  planKarte.getSource("brw").setData(zonen || leereSammlung);
+
   mitDaechern = !!(daecher && daecher.features.length);
   const amtlich = !!(daten.strassenAmtlich && daten.strassenAmtlich.features.length);
   for (const plan of Object.keys(PLAN_EBENEN)) planLegenden[plan] = legendeFuer(plan, kennzahlen, amtlich);

@@ -54,6 +54,15 @@ function flaechenAnteile(daten, bbox, gebietM2) {
     }
   }
 
+  if (daten.kataster && daten.kataster.nutzung.features.length) {
+    // Amtliche tatsächliche Nutzung (ALKIS): lückenlos und ohne Überlappung, darum genauer als OSM
+    for (const klasse of ["gruen", "wasser", "verkehr", "bahn"]) {
+      daten.kataster.nutzung.features.filter((f) => f.properties.klasse === klasse).forEach((f) => flaeche(f, klasse));
+    }
+    daten.gebaeude.features.forEach((f) => flaeche(f, f.properties.art === "neben" ? "neben" : "gebaeude"));
+    return zaehle();
+  }
+
   // Reihenfolge: Grün → Wasser → Verkehr → Bahn → Gebäude
   daten.gruen.features.filter((f) => f.properties.kategorie !== "wasser").forEach((f) => flaeche(f, "gruen"));
   daten.gruen.features.filter((f) => f.properties.kategorie === "wasser").forEach((f) => flaeche(f, "wasser"));
@@ -69,24 +78,27 @@ function flaechenAnteile(daten, bbox, gebietM2) {
   }
   daten.bahn.features.forEach((f) => (f.properties.art === "bahnflaeche" ? flaeche(f, "bahn") : linie(f, "bahn", f.properties.breite)));
   daten.gebaeude.features.forEach((f) => flaeche(f, f.properties.art === "neben" ? "neben" : "gebaeude"));
+  return zaehle();
 
   // Pixel zählen
-  const pixel = ctx.getImageData(0, 0, B, H).data;
-  const zaehler = Object.fromEntries(RASTER_KLASSEN.map((k) => [k, 0]));
-  for (let i = 0; i < pixel.length; i += 4) {
-    // Weiß (nichts gemalt) hat einen hohen Grünwert. Alles andere über den Rotwert zuordnen.
-    // Randpixel sind mit Weiß gemischt: Den Weißanteil herausrechnen.
-    const gruenwert = pixel[i + 1];
-    if (gruenwert > 127) { zaehler.leer++; continue; }
-    const rot = gruenwert ? (pixel[i] - gruenwert) / (1 - gruenwert / 255) : pixel[i];
-    const k = Math.min(RASTER_KLASSEN.length - 1, Math.max(1, Math.round(rot / 36)));
-    zaehler[RASTER_KLASSEN[k]]++;
+  function zaehle() {
+    const pixel = ctx.getImageData(0, 0, B, H).data;
+    const zaehler = Object.fromEntries(RASTER_KLASSEN.map((k) => [k, 0]));
+    for (let i = 0; i < pixel.length; i += 4) {
+      // Weiß (nichts gemalt) hat einen hohen Grünwert. Alles andere über den Rotwert zuordnen.
+      // Randpixel sind mit Weiß gemischt: Den Weißanteil herausrechnen.
+      const gruenwert = pixel[i + 1];
+      if (gruenwert > 127) { zaehler.leer++; continue; }
+      const rot = gruenwert ? (pixel[i] - gruenwert) / (1 - gruenwert / 255) : pixel[i];
+      const k = Math.min(RASTER_KLASSEN.length - 1, Math.max(1, Math.round(rot / 36)));
+      zaehler[RASTER_KLASSEN[k]]++;
+    }
+    // Pixel in m² umrechnen (auf die echte Gebietsfläche bezogen)
+    const proPixel = gebietM2 / (B * H);
+    const m2 = {};
+    for (const k of RASTER_KLASSEN) m2[k] = zaehler[k] * proPixel;
+    return m2;
   }
-  // Pixel in m² umrechnen (auf die echte Gebietsfläche bezogen)
-  const proPixel = gebietM2 / (B * H);
-  const m2 = {};
-  for (const k of RASTER_KLASSEN) m2[k] = zaehler[k] * proPixel;
-  return m2;
 }
 
 // ---------- Alle Kennzahlen ----------
@@ -143,7 +155,32 @@ function berechneKennzahlen(daten, bbox) {
     strassenGesamt: Object.values(strassen).reduce((a, b) => a + b, 0),
     anteile,
     nutzungen,
-    strassenAmtlich: !!daten.strassenAmtlich
+    strassenAmtlich: !!daten.strassenAmtlich,
+    nutzungAlkis: !!(daten.kataster && daten.kataster.nutzung.features.length),
+    ...katasterKennzahlen(daten.kataster)
+  };
+}
+
+// Flurstücke („Körnung“) und Bodenrichtwerte
+function katasterKennzahlen(kataster) {
+  if (!kataster) return {};
+  const parzellen = kataster.flurstuecke.features.filter((f) => f.properties.imGebiet && f.properties.flaeche > 0)
+    .map((f) => f.properties.flaeche).sort((a, b) => a - b);
+  const zonen = kataster.bodenrichtwerte.features.filter((f) => f.properties.wert > 0);
+  // Mittlerer Bodenrichtwert: nach Fläche gewichtet, nur baureifes Land (Entwicklungszustand B)
+  const bauland = zonen.filter((f) => f.properties.zustand === "B");
+  const flaechen = bauland.map((f) => turf.area(f));
+  const summe = flaechen.reduce((a, b) => a + b, 0);
+  const werte = bauland.map((f) => f.properties.wert);
+  return {
+    parzellenAnzahl: parzellen.length,
+    parzellenMittel: parzellen.length ? parzellen.reduce((a, b) => a + b, 0) / parzellen.length : null,
+    parzellenMedian: parzellen.length ? parzellen[Math.floor(parzellen.length / 2)] : null,
+    brwZonen: zonen.length,
+    brwMittel: summe ? bauland.reduce((s, f, i) => s + f.properties.wert * flaechen[i], 0) / summe : null,
+    brwMin: werte.length ? Math.min(...werte) : null,
+    brwMax: werte.length ? Math.max(...werte) : null,
+    brwStichtag: zonen.length ? zonen.map((f) => f.properties.stichtag).sort().pop() : null
   };
 }
 
@@ -175,7 +212,7 @@ function zeigeKennzahlen(k, quelle) {
     ["Nebengebäude", a.neben, "f-neben"],
     ["Grün", a.gruen, "f-gruen"],
     ["Wasser", a.wasser, "f-wasser"],
-    ["Verkehr (geschätzt)", a.verkehr, "f-verkehr"],
+    [k.nutzungAlkis ? "Verkehr" : "Verkehr (geschätzt)", a.verkehr, "f-verkehr"],
     ["Bahn", a.bahn, "f-bahn"],
     ["Sonstige Freifläche", sonstige, "f-leer"]
   ];
@@ -230,6 +267,26 @@ function zeigeKennzahlen(k, quelle) {
       </dl>
     </section>
 
+    ${k.parzellenAnzahl ? `
+    <section class="kz-block">
+      <h4>Parzellen (ALKIS)</h4>
+      <dl>
+        ${zeile("Flurstücke", fmt(k.parzellenAnzahl), "mit Mittelpunkt im Gebiet")}
+        ${zeile("Mittlere Flurstücksgröße", `${fmt(k.parzellenMittel)} m²`, "Durchschnitt aller Flurstücke („Körnung“)")}
+        ${zeile("Typische Flurstücksgröße", `${fmt(k.parzellenMedian)} m²`, "Median: die Hälfte ist kleiner, die Hälfte größer")}
+      </dl>
+    </section>` : ""}
+
+    ${k.brwZonen ? `
+    <section class="kz-block">
+      <h4>Bodenrichtwerte (BORIS-NI)</h4>
+      <dl>
+        ${zeile("Mittlerer Bodenrichtwert", k.brwMittel ? `${fmt(k.brwMittel)} €/m²` : "–", "nach Fläche gewichtet, baureifes Land")}
+        ${zeile("Spanne", k.brwMin != null ? `${fmt(k.brwMin)}–${fmt(k.brwMax)} €/m²` : "–", `${fmt(k.brwZonen)} Zonen im Gebiet`)}
+        ${zeile("Stichtag", k.brwStichtag ? new Date(k.brwStichtag).toLocaleDateString("de-DE") : "–")}
+      </dl>
+    </section>` : ""}
+
     <section class="kz-block">
       <h4>Straßennetz</h4>
       <dl>
@@ -241,8 +298,10 @@ function zeigeKennzahlen(k, quelle) {
     <section class="kz-block kz-breit">
       <h4>Flächenanteile</h4>
       ${balken(fa, k.gebietM2, (w) => prozent(w / k.gebietM2))}
-      <p class="kz-hinweis">${k.strassenAmtlich
-        ? "Straßenflächen stammen aus den amtlichen Daten (LGLN, über topoexport), schmale Wege und Bereiche außerhalb sind aus OSM geschätzt."
+      <p class="kz-hinweis">${k.nutzungAlkis
+        ? "Grün-, Wasser-, Verkehrs- und Bahnflächen stammen aus der amtlichen tatsächlichen Nutzung (ALKIS, LGLN)."
+        : k.strassenAmtlich
+        ?"Straßenflächen stammen aus den amtlichen Daten (LGLN, über topoexport), schmale Wege und Bereiche außerhalb sind aus OSM geschätzt."
         : "Straßenflächen sind aus den OSM-Straßenlinien mit typischen Breiten geschätzt (z. B. Hauptstraße 16–18 m, Wohnstraße 10 m, Fußweg 2,5 m)."}
         „Sonstige Freifläche“ sind Höfe, Gärten und Plätze ohne eigene Kategorie.</p>
     </section>

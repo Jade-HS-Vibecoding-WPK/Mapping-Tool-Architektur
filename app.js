@@ -191,7 +191,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- 3. Reiter (Tabs) ----------
 // Schwarzplan, Straßennetz, Grün und Lageplan teilen sich die Ansicht „plan“.
-const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan"];
+const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "boden"];
 
 function zeigeAnsicht(ziel) {
   const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
@@ -274,9 +274,17 @@ async function analysiere(nurBeispiel = false) {
       // OSM-Straßen nur dort als Fläche, wo keine amtliche Straßenfläche liegt (für die Netto-Rechnung)
       daten.strassenAussen = strassenAusserhalb(daten.strassen, daten.strassenAmtlich);
     }
+    // Flurstücke, tatsächliche Nutzung und Bodenrichtwerte (offene LGLN-Dienste, Niedersachsen)
+    meldung("Lade Flurstücke, Nutzung und Bodenrichtwerte (LGLN) …");
+    try {
+      daten.kataster = await ladeKataster(bbox);
+    } catch (fehler) {
+      console.warn("Katasterdaten nicht verfügbar:", fehler);
+    }
     const kennzahlen = berechneKennzahlen(daten, bbox);
-    const lgln = (lod2 && lod2.length) || daten.strassenAmtlich
-      ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "";
+    const lgln = ((lod2 && lod2.length) || daten.strassenAmtlich
+      ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "")
+      + (daten.kataster ? ` · ${daten.kataster.quelle}` : "");
 
     // 3. Anzeigen: zuerst den Schwarzplan
     // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)

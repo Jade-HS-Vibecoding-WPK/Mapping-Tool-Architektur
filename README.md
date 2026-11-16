@@ -19,7 +19,10 @@ Diagramme und Export folgen.
 **Quellen:** Kartendaten © OpenStreetMap-Mitwirkende, Lizenz ODbL
 (https://www.openstreetmap.org/copyright), abgefragt über die Overpass-API.
 3D-Gebäude: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN),
-3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip.
+3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Gelände DGM1, Flurstücke und tatsächliche Nutzung (ALKIS):
+LGLN, CC BY 4.0 bzw. Geobasis NRW (dl-de/zero-2-0). Bodenrichtwerte: Gutachterausschüsse für
+Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0).
+Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)
 - [`UEBERGABE.md`](UEBERGABE.md): Zusammenfassung der bisherigen Sitzung für die Weiterarbeit in einem neuen Chat

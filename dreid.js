@@ -166,11 +166,15 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
 
   // Gelände (wenn vorhanden): Höhe an jedem Punkt, bezogen auf den tiefsten Geländepunkt (z0)
   const gelaende = lod2Daten && lod2Daten.gelaende;
-  let hoehe = () => 0, z0 = 0;
+  let hoehe = () => 0, z0 = 0, gelaendeSpanne = null;
   if (gelaende) {
     const [vx, vy] = lokal(lod2Daten.nullpunkt[0], lod2Daten.nullpunkt[1]);
     const g = gelaende;
-    z0 = Math.min(...g.z) / 10;
+    // tiefster und höchster Punkt (Schleife statt Math.min(...), weil das Raster sehr groß sein kann)
+    let zMin = Infinity, zMax = -Infinity;
+    for (const z of g.z) { if (z < zMin) zMin = z; if (z > zMax) zMax = z; }
+    z0 = zMin / 10;
+    gelaendeSpanne = [zMin / 10, zMax / 10];
     const zelle = (i, j) => g.z[Math.min(g.ny - 1, Math.max(0, j)) * g.nx + Math.min(g.nx - 1, Math.max(0, i))] / 10;
     hoehe = (x, y) => { // bilineare Interpolation im Raster
       const gx = Math.min(g.nx - 1.001, Math.max(0, (x - vx - g.x0) / g.dx));
@@ -309,7 +313,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
       ${ersatzAnzahl ? `<li><span class="lz lz-flaeche" style="background:#eac3b9"></span><span>Ersatz aus OSM, Geschosse × 3 m (${fmt(ersatzAnzahl)})</span></li>` : ""}
       ${plan ? `<li><span class="lz lz-flaeche" style="background:linear-gradient(90deg,#c9d9bd 0 50%,#d4d4d0 50%)"></span><span>Grün, Wasser, Straßen und Plätze auf dem Boden</span></li>` : ""}
       ${liste.length ? `<li><span class="lz lz-kreis"></span><span>Einzelbaum, Höhe geschätzt (${fmt(liste.length)})</span></li>` : ""}
-      ${gelaende ? `<li><span class="lz lz-flaeche" style="background:#ecebe6"></span><span>Gelände (LGLN über topoexport), ${fmt(z0, 1)} bis ${fmt(z0 + Math.max(...gelaende.z) / 10 - Math.min(...gelaende.z) / 10, 1)} m ü. NHN, nicht überhöht</span></li>`
+      ${gelaende ? `<li><span class="lz lz-flaeche" style="background:#ecebe6"></span><span>Gelände (${gelaende.dx < 5 ? "DGM1, LGLN bzw. Geobasis NRW" : "LGLN über topoexport"}), ${fmt(gelaendeSpanne[0], 1)} bis ${fmt(gelaendeSpanne[1], 1)} m ü. NHN, nicht überhöht</span></li>`
         : `<li><span class="lz lz-flaeche" style="background:#f4f4f2"></span><span>Boden flach (keine Geländedaten)</span></li>`}
     </ul>
     <p class="legende-hilfe">Ziehen: drehen · Rechte Maustaste: verschieben · Rad: zoomen</p>

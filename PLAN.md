@@ -667,6 +667,24 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   - **Import und Beispiel werden zusammengeführt** (`zusammenfuehren` in import.js): importierte Kacheln
     ersetzen dort die Beispieldaten, sonst gilt das Beispiel. Oldenburg mit den neuen Westrand-Kacheln:
     1.705 CityGML-Gebäude, keine Ersatz-Klötze mehr.
+- [x] **Gelände, Flurstücke, Nutzung, Bodenrichtwerte** (16.11.2026):
+  - **Geländemodell DGM1** über den Knopf „Fehlende Daten laden“ (zusammen mit LoD2): Niedersachsen
+    (`lgln_opengeodata_dgm1/FeatureServer`, GeoTIFF, neuester Jahrgang) und NRW (`hm/dgm1_tiff/dgm1_tiff/index.json`).
+    GeoTIFF auch per Ablagefeld. Lesen mit geotiff.js, verkleinert auf 2-m-Raster, Kacheln zu einem Raster
+    zusammengesetzt. DGM1 geht vor das 20-m-Gelände aus topoexport. Test Oldenburg: 4 Kacheln in 4 s, −1,1 bis 11,0 m NHN.
+  - **Daten aus dem Grundsteuer-Umfeld** (offene LGLN-Dienste, nur Niedersachsen, `kataster.js`, beim Analysieren):
+    - Flurstücke (WFS ALKIS vereinfacht, `ave:Flurstueck`): Ebene „Flurstücksgrenze“ im Lageplan (ein-/ausblendbar),
+      Kennzahlen Anzahl, mittlere und typische (Median) Flurstücksgröße. Lagebezeichnungen werden bewusst nicht übernommen.
+    - Tatsächliche Nutzung (`ave:Nutzung`): ersetzt die OSM-Schätzung für Grün, Wasser, Verkehr, Bahn bei
+      Brutto/Netto und Flächenanteilen (lückenlos, ohne Überlappung).
+    - Bodenrichtwerte (WFS BORIS-NI, `boris:BR_BodenrichtwertZonal`, je Zone neuester Stichtag): neuer Reiter
+      **„Bodenrichtwerte“** (Zonen in Rot-Abstufung, Werte als Beschriftung, Flurstücke, Gebäudeumrisse) und
+      Kennzahlen (flächengewichteter Mittelwert für baureifes Land, Spanne, Stichtag).
+    - Lizenzen: ALKIS „LGLN (Jahr), CC BY 4.0“; BORIS-NI dl-de/by-2-0.
+    - Der Lagefaktor der Grundsteuer ist nicht nachgebildet (der Gemeinde-Durchschnittswert fehlt als offener Dienst).
+  - Test Oldenburg: 1.483 Flurstücke (typisch 350 m²), 684 Nutzungsflächen (= 104 ha lückenlos), 69 Bodenrichtwertzonen
+    125–2.350 €/m², Mittel 582 €/m², Stichtag 1.1.2026. Netto-Bauland 64,3 ha, GFZ netto 2,40 (der Gutachterausschuss
+    nennt für die Innenstadt-Zone eine wertrelevante GFZ von 2,4).
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

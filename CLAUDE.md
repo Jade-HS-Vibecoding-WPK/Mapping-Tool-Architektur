@@ -27,7 +27,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Datei-Import: `import.js` (Ablagefeld, Datenliste, Kachel-Anzeige, Verortung, Zusammenfassen im Format der
   Beispieldaten mit Einheit 1 m) und `import-worker.js` (Web Worker: CityGML per Textsuche, DXF binär/Text,
   topoexport-Auswertung). JSZip für ZIP. Importe gehen vor die Beispieldaten (`amtlicheDaten` in import.js).
-  Testdateien lokal in `_testdaten/` (in .gitignore).
+  Testdateien lokal in `_testdaten/` (in .gitignore). DGM1 (GeoTIFF, geotiff.js) über den Knopf „Fehlende Daten
+  laden“. `kataster.js`: Flurstücke, tatsächliche Nutzung (WFS ALKIS vereinfacht) und Bodenrichtwerte (WFS BORIS-NI)
+  beim Analysieren, nur Niedersachsen. Keine Lagebezeichnungen/Adressen übernehmen.
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).
 - topoexport-DXF: binär, AC1024, Meter, LOKALE Koordinaten (Nullpunkt unten links, keine Georeferenz),

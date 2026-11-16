@@ -20,6 +20,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   (https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wfs_sf). Fahrbahn und Gehweg sind dort getrennt.
 - Flurstücke (ALKIS AX_Flurstueck, gleicher WFS) und Bodenrichtwerte (BORIS, https://opendata.lgln.niedersachsen.de/doorman/noauth/boris_wfs,
   BR_BodenrichtwertZonal) kommen automatisch vom LGLN (Reiter „Flurstücke“, `flurstuecke.js`). Quellenvermerk „LGLN“. Kein Bebauungsplan eingebunden.
+- Mietpreise (Reiter „Mietpreise“, `mieten.js`): Zensus 2022, Nettokaltmiete je m² im 100-m-Raster, Bestandsmieten (keine Angebotsmieten), abgefragt über den
+  offenen Esri-Dienst `Zensus2022_grid_final` (Kopie, kein amtlicher Dienst). Quellenvermerk „© Statistische Ämter des Bundes und der Länder, Zensus 2022
+  (dl-de/by-2-0), Daten geändert“.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km².

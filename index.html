@@ -68,6 +68,7 @@
         <p class="hint" id="alkis-status" hidden></p>
         <p class="hint" id="lod2-status" hidden></p>
         <p class="hint" id="flst-status" hidden></p>
+        <p class="hint" id="miet-status" hidden></p>
         <p class="warning" id="analyse-fehler" role="alert" hidden></p>
       </section>
 
@@ -89,12 +90,13 @@
         <button class="tab" data-view="gruen" role="tab">Grün</button>
         <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
+        <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für sechs Reiter: Karte, Schwarzplan, Straßennetz, Grün, Lageplan und Flurstücke.
+        <!-- Eine Karte für sieben Reiter: Karte, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke und Mietpreise.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -109,6 +111,8 @@
             <button type="button" data-modus="gfz">GFZ Bestand</button>
           </div>
           <div class="flst-info" id="flst-info" hidden></div>
+          <!-- Nur im Reiter "Mietpreise": Infofeld zur gewählten Rasterzelle (siehe mieten.js) -->
+          <div class="flst-info" id="miet-info" hidden></div>
           <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
@@ -146,6 +150,7 @@
   <script src="ladeleiste.js"></script>
   <script src="gelaende.js"></script>
   <script src="flurstuecke.js"></script>
+  <script src="mieten.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

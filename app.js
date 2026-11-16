@@ -196,7 +196,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -402,6 +402,8 @@ const FARBE = {
     gfz: ["#f1eef6", "#b8a3d0", "#5c3f87"],
     keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#e2482d"
   },
+  // Mietpreise (Zensus-Raster): Farblauf hell, mittel, dunkel
+  miet: { rampe: ["#cfeadb", "#73bda1", "#1b6a58"], keine: "#e6e4df", auswahl: "#e2482d", linie: "#5f8a7d" },
   // 3D-Modell
   d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#8a8887", ersatzWand: "#cfdcea", ersatzDach: "#9db3cb", stamm: "#6b5a46" }
 };
@@ -428,7 +430,8 @@ const EBENEN = {
   umriss: ["gebaeude-umriss"],
   dach: ["dach-flaeche", "dach-umriss"],   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
   alkis: ["alkis-strasse", "alkis-weg", "alkis-platz", "alkis-kante"],   // amtliche Flächen (nur wenn geladen)
-  flurstuecke: ["flst-flaeche", "flst-linie", "flst-auswahl"]            // Flurstücke (nur wenn geladen), siehe flurstuecke.js
+  flurstuecke: ["flst-flaeche", "flst-linie", "flst-auswahl"],           // Flurstücke (nur wenn geladen), siehe flurstuecke.js
+  mieten: ["miet-flaeche", "miet-linie", "miet-auswahl"]                 // Mietraster (nur wenn geladen), siehe mieten.js
 };
 
 // Was zeigt welcher Reiter?
@@ -446,7 +449,9 @@ const ANSICHTEN = {
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Lageplan: alle Ebenen übereinander." },
   flurstuecke: { basiskarte: false, ebenen: ["kontext", "flurstuecke"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
-                 text: "Flurstücke mit Bodenrichtwert und Bestand." }
+                 text: "Flurstücke mit Bodenrichtwert und Bestand." },
+  mieten:      { basiskarte: false, ebenen: ["kontext", "mieten"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
+                 text: "Mietpreise aus dem Zensus-Raster." }
 };
 
 let datenVorhanden = false;
@@ -468,6 +473,10 @@ function legePlanEbenenAn() {
   map.addSource("flurstuecke", { type: "geojson", data: leer });
   map.addLayer({ id: "flst-flaeche", type: "fill", source: "flurstuecke", layout: unsichtbar,
     paint: { "fill-color": FARBE.flst.keine, "fill-opacity": 0.92 } });
+  // Mietraster (Zensus 2022): ebenfalls unter den Gebäuden
+  map.addSource("mieten", { type: "geojson", data: leer });
+  map.addLayer({ id: "miet-flaeche", type: "fill", source: "mieten", layout: unsichtbar,
+    paint: { "fill-color": FARBE.miet.keine, "fill-opacity": 0.92 } });
   map.addLayer({ id: "kontext-gebaeude", type: "fill", source: quelle, layout: unsichtbar,
     filter: istKat("gebaeude", "nebengebaeude"), paint: { "fill-color": FARBE.kontext } });
   map.addLayer({ id: "gruen-flaeche", type: "fill", source: quelle, layout: unsichtbar,
@@ -518,6 +527,10 @@ function legePlanEbenenAn() {
     paint: { "line-color": FARBE.flst.linie, "line-width": 0.8 } });
   map.addLayer({ id: "flst-auswahl", type: "line", source: "flurstuecke", layout: { visibility: "none", "line-join": "round" },
     filter: ["==", ["get", "id"], -1], paint: { "line-color": FARBE.flst.auswahl, "line-width": 3 } });
+  map.addLayer({ id: "miet-linie", type: "line", source: "mieten", layout: unsichtbar,
+    paint: { "line-color": FARBE.miet.linie, "line-width": 0.7 } });
+  map.addLayer({ id: "miet-auswahl", type: "line", source: "mieten", layout: { visibility: "none", "line-join": "round" },
+    filter: ["==", ["get", "id"], -1], paint: { "line-color": FARBE.miet.auswahl, "line-width": 3 } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
   map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
     paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
@@ -550,6 +563,7 @@ function verwerfeDaten() {
   gelaendeQuelle = "";
   osmFeatures = [];
   verwerfeFlurstuecke();
+  verwerfeMieten();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -579,6 +593,7 @@ function wendeAnsichtAn() {
     let an = datenVorhanden && einstellung.ebenen.includes(gruppe);
     if (gruppe === "strassen" && alkisVorhanden) an = false; // wo amtliche Flächen da sind, brauchen wir die dünnen Linien nicht
     if (gruppe === "flurstuecke" && !flurstueckeVorhanden) an = false;
+    if (gruppe === "mieten" && !mietVorhanden) an = false;
     ids.forEach((id) => map.setLayoutProperty(id, "visibility", sichtbar(an)));
   }
   map.setLayoutProperty("maske", "visibility", sichtbar(imPlan && datenVorhanden));
@@ -622,9 +637,11 @@ function wendeAnsichtAn() {
   hinweis.hidden = !(imPlan && !datenVorhanden);
   const quellen = document.getElementById("map-source");
   quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "") +
-    (aktuelleAnsicht === "flurstuecke" && flurstueckeVorhanden ? " · " + flurstueckeQuelle : "");
+    (aktuelleAnsicht === "flurstuecke" && flurstueckeVorhanden ? " · " + flurstueckeQuelle : "") +
+    (aktuelleAnsicht === "mieten" && mietVorhanden ? " · " + mietQuelle : "");
   quellen.hidden = !(imPlan && datenVorhanden);
   aktualisiereFlurstuecke();   // rechnet und zeichnet nur im Reiter "Flurstücke"
+  aktualisiereMieten();        // dito für "Mietpreise"
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
@@ -661,6 +678,7 @@ btnAnalyse.addEventListener("click", async () => {
   zeigeAlkisStatus("");
   zeigeGelaendeStatus("");
   zeigeFlstStatus("");
+  zeigeMietStatus("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
@@ -676,6 +694,12 @@ btnAnalyse.addEventListener("click", async () => {
     if (!aktuell()) return;
     if (ergebnis.flurstuecke) zeigePlaene(rahmen, "lageplan");
     wendeFlurstueckeAn(ergebnis);
+  });
+  // Mietraster (Zensus 2022) für den Reiter "Mietpreise"
+  starteMieten(rahmen, meineNummer).then((ergebnis) => {
+    if (!aktuell()) return;
+    if (ergebnis.zellen) zeigePlaene(rahmen, "lageplan");
+    wendeMietenAn(ergebnis);
   });
   // Amtliche Straßenflächen und LoD2-Dächer laden gleichzeitig mit OpenStreetMap.
   // Jede Quelle zeigt ihr Ergebnis, sobald sie fertig ist, ohne auf die anderen zu warten.

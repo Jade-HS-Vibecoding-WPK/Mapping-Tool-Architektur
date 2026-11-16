@@ -17,7 +17,8 @@ const LADE_QUELLEN = {
   lod2:  { name: "LoD2-Gebäude (LGLN)", gewicht: 40 },
   alkis: { name: "Amtliche Straßenflächen (LGLN)", gewicht: 10 },
   dgm:   { name: "Gelände (LGLN)", gewicht: 10 },
-  flst:  { name: "Flurstücke und Bodenrichtwerte (LGLN)", gewicht: 10 }
+  flst:  { name: "Flurstücke und Bodenrichtwerte (LGLN)", gewicht: 10 },
+  mieten: { name: "Mieten (Zensus 2022)", gewicht: 5 }
 };
 const ladeFeld = document.getElementById("ladeleiste");
 const ladeListe = document.getElementById("lade-liste");

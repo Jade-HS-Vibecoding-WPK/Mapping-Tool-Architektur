@@ -725,6 +725,26 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Nicht getestet:** GFZ-Einfärbung am Bildschirm, Gebiete außerhalb von Oldenburg und Gemeinden mit anderen Zonenarten (Nutzungsschlüssel wie WA, MI, GE sind
   nicht gegen die offizielle Liste geprüft), Gebiet mit 5.000 und mehr Flurstücken (Obergrenze, nur Hinweis im Code), Handy (Legende, Infofeld und Umschalter
   überlagern sich), andere Browser, Richtigkeit der Bodenrichtwerte (kommen 1:1 vom LGLN, Zonenwahl bei Überlagerung ist unsere Regel).
+- [x] **Reiter „Mietpreise“ (Zensus-Raster) und Mietschätzung je Flurstück** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Neue Datei `mieten.js`.
+  **Datenlage (geprüft):** Offene Mietdaten gibt es nur aus dem **Zensus 2022**: durchschnittliche Nettokaltmiete je m² im **100-m-Raster** (Lizenz
+  Datenlizenz Deutschland Namensnennung 2.0). Wir fragen sie über einen offenen Kartendienst von **Esri Deutschland** ab
+  (`services2.arcgis.com/.../Zensus2022_grid_final/FeatureServer/0`, Feld `durchschnMieteQM`, Browser-Zugriff erlaubt). Das ist eine Kopie der amtlichen Daten,
+  **kein amtlicher Dienst**; verschwindet der Dienst, bleibt der Reiter leer (Hinweis). Die amtliche Alternative (CSV-Download von zensus2022.de, ca. 16 MB ZIP)
+  ist für eine reine Browser-Seite unpraktisch. **Nicht gefunden:** Angebotsmieten, Mieten je Flurstück oder Gebäude, ein maschinenlesbarer Oldenburger Mietspiegel
+  (nur PDF und Tabellen, Wohnlagen nach Straßen in 7 Zonen).
+  **Aussage der Zahlen:** Bestandsmieten (alle bestehenden Mietverhältnisse, Stichtag 15.05.2022), keine Neuvertragsmieten; Zellen mit sehr wenigen Wohnungen
+  haben keinen Wert (Grund Datenschutz: Vermutung, nicht belegt).
+  **Reiter:** Rasterzellen nach €/m² eingefärbt (Skala 5. bis 95. Perzentil), Klick zeigt Miete, Abstand zum Gebietsdurchschnitt, Ø Wohnungsgröße,
+  Monatsmiete der Ø-Wohnung, Einwohner, Eigentümer- und Leerstandsquote, Ø Alter. Legende mit Eckdaten, Quellenvermerk „© Statistische Ämter des Bundes und
+  der Länder, Zensus 2022 (dl-de/by-2-0), Daten geändert“. Ladestand um „Mieten (Zensus 2022)“ ergänzt.
+  **Flurstücke-Infofeld:** zusätzlich „Miete (grobe Schätzung)“: Miete des Rasters flächengewichtet auf das Flurstück übertragen; Wohnfläche = 75 % der
+  Geschossfläche (Annahme); Spanne: untere Zahl nur Gebäude, die laut LoD2-Code oder OSM Wohnen sind, obere Zahl plus Gebäude ohne Nutzungsangabe (Gewerbe zählt
+  nicht); Jahresmiete = Wohnfläche mal Miete mal 12. Das ist eine Überschlagsrechnung, kein Ertragswert.
+  **Getestet** (echte Daten, Oldenburg Innenstadt 79 ha, mit LoD2): 79 Zellen, 67 mit Miete (5,29 bis 18,37 €/m², Ø 8,35 nach Einwohnern), Laden, Einfärben,
+  Mausklick auf Zelle, Infofeld, Legende, Fehlerfall (Dienst 503: Reiter leer mit Hinweis, Flurstücke unberührt), Zurücksetzen, Mietschätzung im
+  Flurstücke-Infofeld (944 Flurstücke mit Miete, 65 ohne), alle neun Reiter ohne Fehlermeldung.
+  **Nicht getestet:** Gebiete außerhalb Oldenburgs, Handy, andere Browser, Richtigkeit der Schätzwerte (kein Vergleich mit Mietspiegel oder Marktdaten),
+  ob der Esri-Dienst dauerhaft erreichbar bleibt, Gebiete ganz ohne Mietwerte (nur Code).
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

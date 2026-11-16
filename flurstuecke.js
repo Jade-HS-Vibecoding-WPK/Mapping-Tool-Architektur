@@ -198,7 +198,8 @@ function baueFlurstueck(roh, id) {
   return {
     id, f, bbox: turf.bbox(f),
     nr: roh.nr, flur: roh.flur, kennzeichen: roh.kennzeichen, gemarkungNr: roh.gemarkungNr, abweichend: roh.abweichend,
-    flaeche: roh.flaeche || turf.area(f), flaecheAmtlich: !!roh.flaeche,
+    flaeche: roh.flaeche || turf.area(f), flaecheAmtlich: !!roh.flaeche, geomFlaeche: turf.area(f),
+    miete: null, mieteAnteil: 0, gfWohnen: 0, gfUnbekannt: 0,
     zone: null, zoneAnteil: 0, zoneKandidaten: 0,
     // Bestand (wird in berechneBestand gefüllt)
     verkehr: false, rand: false, nHaupt: 0, nNeben: 0, fHaupt: 0, fNeben: 0, gf: 0, ersatz: 0, geschosseSumme: 0
@@ -247,7 +248,7 @@ function berechneBestand() {
   // Verkehrsflächen: liegt ein Punkt des Flurstücks in einer amtlichen Straßen-, Weg- oder Platzfläche?
   const verkehr = alkisFlaechen.filter((f) => ["strasse", "weg", "platz"].includes(f.properties.kat)).map((f) => ({ f, b: turf.bbox(f) }));
   for (const p of flurstuecke) {
-    p.nHaupt = p.nNeben = p.fHaupt = p.fNeben = p.gf = p.ersatz = p.geschosseSumme = 0;
+    p.nHaupt = p.nNeben = p.fHaupt = p.fNeben = p.gf = p.ersatz = p.geschosseSumme = p.gfWohnen = p.gfUnbekannt = 0;
     p.rand = p.bbox[0] < west || p.bbox[2] > ost || p.bbox[1] < sued || p.bbox[3] > nord;
     if (verkehr.length) {
       const pt = turf.pointOnFeature(p.f).geometry.coordinates;
@@ -261,13 +262,19 @@ function berechneBestand() {
     if (!neben && g.properties.kat !== "gebaeude") continue;
     const gb = turf.bbox(g);
     const gesch = geschosseVon(g.properties);
+    // Nutzung (LoD2-Code, sonst OSM-Gebäudeart) für die Mietschätzung: nur Wohnen zählt sicher, "unbekannt" getrennt
+    const nutzung = neben ? "" : ((g.properties.funktion && nutzungAusCode(g.properties.funktion)) || nutzungAusOsm(g.properties.bau));
     let bestes = null, besteFlaeche = 0;
     for (const p of flurstuecke) {
       if (!bboxUeberlappt(p.bbox, gb)) continue;
       const a = flaecheSchnitt(g, p.f);
       if (a < 0.05) continue;
       if (neben) p.fNeben += a;
-      else { p.fHaupt += a; p.gf += a * gesch.n; }
+      else {
+        p.fHaupt += a; p.gf += a * gesch.n;
+        if (nutzung === "Wohnen") p.gfWohnen += a * gesch.n;
+        else if (nutzung === "Unbekannt") p.gfUnbekannt += a * gesch.n;
+      }
       if (a > besteFlaeche) { besteFlaeche = a; bestes = p; }
     }
     if (!bestes) continue;
@@ -278,6 +285,9 @@ function berechneBestand() {
       if (gesch.quelle === "ersatz") bestes.ersatz++;
     }
   }
+
+  // Miete des Zensus-Rasters je Flurstück (nur wenn Mietdaten geladen sind, siehe mieten.js)
+  for (const p of flurstuecke) { if (p.verkehr) { p.miete = null; p.mieteAnteil = 0; } else mieteFuerFlurstueck(p); }
 
   // Zusammenfassung (netto: ohne Verkehrsflächen und ohne Randflurstücke)
   const s = { anzahl: flurstuecke.length, verkehr: 0, rand: 0, hatGebaeude, mitZone: 0, brwMin: Infinity, brwMax: -Infinity, brwSumme: 0, flaecheBrw: 0, flaecheNetto: 0, fHaupt: 0, gf: 0, grzMax: 0 };
@@ -342,7 +352,7 @@ function aktualisiereFlurstuecke() {
   flstInfoFeld.hidden = !aktiv;
   if (!aktiv) return;
   if (flurstueckeVorhanden) {
-    const stand = [turf.bbox(gebiet).join(","), flurstuecke.length, richtwertZonen.length, osmFeatures.length, alkisFlaechen.length, lod2Meta.length].join("|");
+    const stand = [turf.bbox(gebiet).join(","), flurstuecke.length, richtwertZonen.length, osmFeatures.length, alkisFlaechen.length, lod2Meta.length, mietZellen.length].join("|");
     if (stand !== flstStand) {
       flstStand = stand;
       const t0 = performance.now();
@@ -419,6 +429,22 @@ function zeichneFlstInfo() {
     if (p.rand) html += `<p class="flst-hinweis flst-warn">Randflurstück: Es reicht über dein Rechteck hinaus. Gebäude außerhalb fehlen, die Werte sind unvollständig. Zieh das Rechteck größer, damit das Flurstück ganz drin liegt.</p>`;
     if (grz > 1) html += `<p class="flst-hinweis flst-warn">GRZ über 1 ist rechnerisch nicht möglich: Gebäude (OpenStreetMap) und Flurstück passen geometrisch nicht ganz zusammen. Gemeint ist: fast vollständig überbaut.</p>`;
     if (!p.nHaupt && !p.fNeben) html += `<p class="flst-hinweis">Auf diesem Flurstück liegt in den geladenen Daten kein Gebäude.</p>`;
+  }
+  // Miete (Schätzung aus dem Zensus-Raster, siehe mieten.js)
+  if (mietVorhanden && !p.verkehr) {
+    html += `<h4>Miete (grobe Schätzung)</h4>`;
+    if (p.miete == null) {
+      html += `<p class="flst-hinweis">Im Zensus-Raster gibt es für dieses Flurstück keinen Mietwert.</p>`;
+    } else {
+      const wohnNur = p.gfWohnen * WOHNFLAECHE_FAKTOR, wohnMax = (p.gfWohnen + p.gfUnbekannt) * WOHNFLAECHE_FAKTOR;
+      const jahr = (wfl) => wfl * p.miete * 12;
+      html += `<dl>${zeile("Miete im Raster", `<strong>${zahl(p.miete, 2)} €/m²</strong>`)}` +
+        zeile("Wohnfläche (geschätzt)", wohnMax > wohnNur ? `${zahl(wohnNur)} bis ${zahl(wohnMax)} m²` : `${zahl(wohnNur)} m²`) +
+        zeile("Jahresmiete (geschätzt)", wohnMax > wohnNur ? `${euro(jahr(wohnNur))} bis ${euro(jahr(wohnMax))}` : euro(jahr(wohnNur))) + `</dl>` +
+        `<p class="flst-hinweis">Wohnfläche = ${zahl(WOHNFLAECHE_FAKTOR * 100)} % der Geschossfläche. Untere Zahl: nur Gebäude, die laut LoD2 oder OSM Wohngebäude sind. ` +
+        `Obere Zahl: dazu Gebäude ohne Nutzungsangabe. Gewerbe zählt nicht.` +
+        `${p.mieteAnteil < 0.5 ? " Das Raster hat für dieses Flurstück nur teilweise Werte." : ""} Bestandsmiete 2022, keine Angebotsmiete.</p>`;
+    }
   }
   if (p.abweichend) html += `<p class="flst-hinweis">Für dieses Flurstück gilt ein abweichender Rechtszustand (laut Kataster).</p>`;
 

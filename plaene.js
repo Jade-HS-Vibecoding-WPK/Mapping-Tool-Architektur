@@ -190,7 +190,7 @@ function ebenenAnlegen(breitengrad) {
     // Bodenrichtwerte: Zonen nach Wert abgestuft (Farbskala wird beim Zeichnen an die Werte angepasst)
     { id: "brw-flaeche", type: "fill", source: "brw", paint: { "fill-color": "#f3d6cd" } },
     { id: "brw-rand", type: "line", source: "brw", paint: { "line-color": "#ffffff", "line-width": 1.5 } },
-    { id: "parzellen-boden", type: "line", source: "parzellen", paint: { "line-color": "#ffffff", "line-width": mitZoom(0.5), "line-opacity": 0.8 } },
+    { id: "parzellen-boden", type: "line", source: "parzellen", paint: { "line-color": "#3a3a3a", "line-width": mitZoom(0.35), "line-opacity": 0.35 } },
     { id: "gebaeude-kontur", type: "line", source: "gebaeude", paint: { "line-color": "#333333", "line-width": mitZoom(0.5), "line-opacity": 0.7 } },
     // Rahmen des Untersuchungsgebiets
     { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } }
@@ -241,9 +241,9 @@ function legendeFuer(plan, k, amtlich) {
       ...(mitParzellen ? [["linie", 0.5, "Flurstücksgrenze (ALKIS)", "parzellen"]] : [])
     ];
     case "boden": return brwDaten ? [
-      ["flaeche", `linear-gradient(90deg,${BRW_FARBEN.join(",")})`, `Bodenrichtwert ${fmt(brwDaten.min)} bis ${fmt(brwDaten.max)} €/m²`],
-      ["linie", 0.5, "Flurstücksgrenze"],
-      ["linie", 0.5, "Gebäude (Umriss)"],
+      ...brwDaten.klassen.map(([farbe, text]) => ["flaeche", farbe, `${text} €/m² (baureifes Land)`]),
+      ["flaeche", "#e6e6e3", "übrige Flächen (Acker, Grünland u. a., meist unter 10 €/m²)"],
+      ["linie", 0.5, "Flurstücksgrenze, Gebäudeumriss"],
       ["text", "", `Stichtag ${brwDaten.stichtag ? new Date(brwDaten.stichtag).toLocaleDateString("de-DE") : "–"} · Werte in €/m², Zahlen in den Zonen`]
     ] : [["text", "", "Keine Bodenrichtwerte für dieses Gebiet (bisher nur Niedersachsen, BORIS-NI)."]];
   }
@@ -251,7 +251,7 @@ function legendeFuer(plan, k, amtlich) {
 }
 
 // Farbskala der Bodenrichtwerte (hell = günstig, dunkel = teuer), mit der Akzentfarbe
-const BRW_FARBEN = ["#fbebe6", "#f2b8a8", "#e2482d", "#8f2615"];
+const BRW_FARBEN = ["#fbebe6", "#f5c4b6", "#ec8a72", "#e2482d", "#8f2615"];
 
 function zeichen([art, wert]) {
   if (art === "flaeche") return `<span class="lz lz-flaeche" style="background:${wert}"></span>`;
@@ -295,7 +295,7 @@ function zeigePlan(plan) {
   brwMarker = [];
   if (plan === "boden" && brwDaten) {
     for (const f of brwDaten.zonen.features) {
-      if (turf.area(f) < 1500) continue; // sehr kleine Zonenreste nicht beschriften
+      if (f.properties.zustand !== "B" || turf.area(f) < 1500) continue; // nur Bauland, keine kleinen Zonenreste
       const el = document.createElement("div");
       el.className = "brw-etikett";
       el.textContent = `${fmt(f.properties.wert)} €`;
@@ -338,13 +338,25 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   const kat = daten.kataster;
   planKarte.getSource("parzellen").setData(kat ? kat.flurstuecke : leereSammlung);
   mitParzellen = !!(kat && kat.flurstuecke.features.length);
-  const zonen = kat ? { type: "FeatureCollection", features: kat.bodenrichtwerte.features.filter((f) => f.properties.wert > 0) } : null;
-  if (zonen && zonen.features.length) {
-    const werte = zonen.features.map((f) => f.properties.wert);
-    const min = Math.min(...werte), max = Math.max(...werte);
-    const stufen = BRW_FARBEN.flatMap((farbe, i) => [min + (max - min || 1) * i / (BRW_FARBEN.length - 1), farbe]);
-    planKarte.setPaintProperty("brw-flaeche", "fill-color", ["interpolate", ["linear"], ["get", "wert"], ...stufen]);
-    brwDaten = { zonen, min, max, stichtag: werte.length ? zonen.features.map((f) => f.properties.stichtag).sort().pop() : null };
+  // Zonen ohne Bauland (z. B. Acker, Grünland) decken oft das ganze Gebiet ab: zuerst (= unten) zeichnen
+  const istBau = (f) => (f.properties.zustand === "B" ? 1 : 0);
+  const zonen = kat ? { type: "FeatureCollection", features: kat.bodenrichtwerte.features
+    .filter((f) => f.properties.wert > 0).sort((a, b) => istBau(a) - istBau(b)) } : null;
+  const bauland = zonen ? zonen.features.filter((f) => f.properties.zustand === "B").map((f) => f.properties.wert).sort((a, b) => a - b) : [];
+  if (bauland.length) {
+    // Fünf Stufen mit etwa gleich vielen Zonen (Quantile), nur für baureifes Land; andere Zonen grau
+    const grenzen = [];
+    for (let i = 1; i < BRW_FARBEN.length; i++) {
+      const g = bauland[Math.floor(bauland.length * i / BRW_FARBEN.length)];
+      if (!grenzen.length || g > grenzen[grenzen.length - 1]) grenzen.push(g);
+    }
+    const farben = BRW_FARBEN.slice(BRW_FARBEN.length - grenzen.length - 1);
+    const stufe = ["step", ["get", "wert"], farben[0], ...grenzen.flatMap((g, i) => [g, farben[i + 1]])];
+    planKarte.setPaintProperty("brw-flaeche", "fill-color", ["case", ["==", ["get", "zustand"], "B"], stufe, "#e6e6e3"]);
+    const klassen = farben.map((farbe, i) => [farbe,
+      i === 0 ? `unter ${fmt(grenzen[0])}` : i === grenzen.length ? `ab ${fmt(grenzen[i - 1])}` : `${fmt(grenzen[i - 1])} bis unter ${fmt(grenzen[i])}`]);
+    brwDaten = { zonen, klassen, min: bauland[0], max: bauland[bauland.length - 1],
+      stichtag: zonen.features.map((f) => f.properties.stichtag).sort().pop() };
   } else brwDaten = null;
   planKarte.getSource("brw").setData(zonen || leereSammlung);
 

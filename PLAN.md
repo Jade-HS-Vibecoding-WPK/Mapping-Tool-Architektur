@@ -636,7 +636,15 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Tempo-Fund:** Der Overpass-Server `overpass.openstreetmap.fr` lieferte im Test das Testgebiet in ca. 4 s (der Haupt-Server brauchte
   40 bis 60 s oder fiel aus). Er steht jetzt vorn in der Serverliste. Das Gesamtladen (OSM + ALKIS + LoD2) für ca. 1 km² dauerte ca. 29 s.
   **Start der Seite:** nur über einen Webserver, per `Start.bat` (Doppelklick) oder Vorschau-Eintrag `.claude/launch.json` (beide noch nicht committet).
-- [ ] **Nächster Schritt:** Bäume genauer (OSM mit Kronengröße, Gehölzflächen aus ALKIS, Kronenüberdeckung), danach 3D mit three.js
-  (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import
+- [x] **Bäume als Kronen** (Branch `feature-osm-2d-plaene`, nur lokal): Statt gleicher Kreise zeichnet das Tool je Baum eine leicht
+  unregelmäßige Krone (Größe und Form fest pro Baum, Zufall aus der OSM-Nummer) mit Stammpunkt, im Reiter Grün und im Lageplan
+  (über den Dächern, durchscheinend); Nadelbäume als gezackte Form. Größe: 1. OSM-Kronendurchmesser, 2. OSM-Höhe (Krone ca. halbe Höhe),
+  3. Standardwert mit Streuung (Annahme, keine Messung). Neu: OSM-Baumreihen (`natural=tree_row`) als Bäume alle ca. 9 m;
+  amtliche Gehölz- und Waldflächen (ALKIS `AX_Gehoelz`, `AX_Wald`) als Grünflächen; Kennzahl „Kronenüberdeckung“.
+  **Datenlage (gemessen):** Im Testgebiet (185 OSM-Bäume) hatte kein Baum einen Kronendurchmesser, 80 eine Höhe, 158 den Blatttyp;
+  Größen sind also fast immer geschätzt. Einen offenen Baumkataster für Oldenburg habe ich nicht gefunden.
+  **Getestet** (echte Daten): Innenstadt/Schlossteich (172 Bäume, Kronen 3 bis 9,6 m), Wohngebiet mit Baumreihen und Wald (ALKIS: 2 Flächen),
+  Reiter Grün, Lageplan, Kennzahlen ohne Fehler. **Nicht geprüft:** echte Kronenform (nur künstlich), Handy, größere Gebiete mit vielen Bäumen (Tempo).
+- [ ] **Nächster Schritt:** 3D mit three.js (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

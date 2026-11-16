@@ -274,6 +274,7 @@ function overpassAbfrage(sued, west, nord, ost) {
   way${waterway}(${b});
   relation["waterway"="riverbank"](${b});
   node["natural"="tree"](${b});
+  way["natural"="tree_row"](${b});
 );
 out geom qt;`;
 }
@@ -328,7 +329,14 @@ function kategorisiere(feature) {
   const flaeche = geo === "Polygon" || geo === "MultiPolygon";
   const linie = geo === "LineString" || geo === "MultiLineString";
 
-  if (geo === "Point") return t.natural === "tree" ? { kat: "baum" } : null;
+  // Bäume: Höhe und Kronendurchmesser, wenn in OSM eingetragen (selten), sonst schätzen wir später
+  const zahlOderNichts = (v) => { const x = parseFloat(v); return Number.isFinite(x) ? x : undefined; };
+  const baumMerkmale = () => ({
+    hoehe: zahlOderNichts(t.height), krone: zahlOderNichts(t.diameter_crown),
+    nadel: t.leaf_type === "needleleaved" ? 1 : 0, nr: String(feature.id || "")
+  });
+  if (geo === "Point") return t.natural === "tree" ? { kat: "baum", ...baumMerkmale() } : null;
+  if (linie && t.natural === "tree_row") return { kat: "baumreihe", ...baumMerkmale() };
 
   if (flaeche && t.building && t.building !== "no") {
     const stockwerke = parseInt(t["building:levels"], 10);
@@ -364,6 +372,10 @@ const FARBE = {
   kontext: "#ebebeb",
   gruen: "#cfe0c3",
   baum: "#7fa874",
+  krone: "#9cc08b",
+  kroneNadel: "#7aa58a",
+  kroneRand: "#5f8a55",
+  stamm: "#3f4b38",
   wasser: "#bcd5e6",
   strasseSchwarz: "#000000",
   strasseLageplan: "#555555"
@@ -383,10 +395,10 @@ const istKat = (...namen) => ["in", ["get", "kat"], ["literal", namen]];
 // Gruppen von Ebenen, die ein Reiter ein- oder ausschaltet
 const EBENEN = {
   kontext: ["kontext-gebaeude"],
-  gruen: ["gruen-flaeche"],
+  gruen: ["gruen-flaeche", "alkis-gruen"],
   wasser: ["wasser-flaeche", "wasser-linie"],
   strassen: ["strassen-linie"],
-  baeume: ["baeume"],
+  baeume: ["baum-krone", "baum-krone-rand", "baum-stamm"],
   gebaeude: ["gebaeude-flaeche"],
   umriss: ["gebaeude-umriss"],
   dach: ["dach-flaeche", "dach-umriss"],   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
@@ -415,6 +427,7 @@ let osmFeatures = [];        // die einsortierten OSM-Objekte des aktuellen Gebi
 let lod2Quelle = "";         // Quellenvermerk für die geladenen LoD2-Daten
 let alkisVorhanden = false;  // sind amtliche Straßenflächen geladen?
 let alkisFlaechen = [];      // die geladenen amtlichen Flächen (für die Kennzahlen)
+let baumFeatures = [];       // Baumkronen (Flächen) und Stämme (Punkte) des aktuellen Gebiets
 let alkisQuelle = "";        // Quellenvermerk dafür
 
 function legePlanEbenenAn() {
@@ -434,17 +447,18 @@ function legePlanEbenenAn() {
     filter: istKat("wasserlinie"), paint: { "line-color": FARBE.wasser, "line-width": inMetern(WASSERLINIE_M) } });
   // Amtliche Straßen-, Weg- und Platzflächen (ALKIS). Reihenfolge: Straße unten, dann Weg (Gehweg), dann Platz.
   map.addSource("alkis-flaechen", { type: "geojson", data: leer });
+  map.addLayer({ id: "alkis-gruen", type: "fill", source: "alkis-flaechen", layout: unsichtbar,
+    filter: ["in", ["get", "kat"], ["literal", ["gehoelz", "wald"]]], paint: { "fill-color": FARBE.gruen } });
   for (const art of ["strasse", "weg", "platz"]) {
     map.addLayer({ id: `alkis-${art}`, type: "fill", source: "alkis-flaechen", layout: unsichtbar,
       filter: ["==", ["get", "kat"], art], paint: { "fill-color": "#cccccc" } });
   }
   map.addLayer({ id: "alkis-kante", type: "line", source: "alkis-flaechen", layout: unsichtbar,
+    filter: ["in", ["get", "kat"], ["literal", ["strasse", "weg", "platz"]]],
     paint: { "line-color": "#8a8a8a", "line-width": 0.4 } });
   map.addLayer({ id: "strassen-linie", type: "line", source: quelle,
     layout: { visibility: "none", "line-join": "round", "line-cap": "butt" },
     filter: istKat("strasse"), paint: { "line-color": FARBE.strasseSchwarz, "line-width": inMetern(STRASSENBREITE_M) } });
-  map.addLayer({ id: "baeume", type: "circle", source: quelle, layout: unsichtbar,
-    filter: istKat("baum"), paint: { "circle-color": FARBE.baum, "circle-opacity": 0.8, "circle-radius": inMetern(2.5) } });
   map.addLayer({ id: "gebaeude-flaeche", type: "fill", source: quelle, layout: unsichtbar,
     filter: istKat("gebaeude", "nebengebaeude"),
     paint: { "fill-color": ["match", ["get", "kat"], "nebengebaeude", FARBE.nebengebaeude, FARBE.gebaeudeSchwarzplan] } });
@@ -457,6 +471,16 @@ function legePlanEbenenAn() {
     paint: { "fill-color": ["get", "farbe"] } });
   map.addLayer({ id: "dach-umriss", type: "line", source: "lod2-dach", layout: unsichtbar,
     paint: { "line-color": FARBE.dachKante, "line-width": 0.5 } });
+  // Bäume: jede Krone ist eine eigene, leicht unregelmäßige Form in ihrer Größe, darüber ein Punkt für den Stamm.
+  // Die Kronen liegen über den Dächern (wie im Lageplan üblich) und sind durchscheinend.
+  map.addSource("baum-kronen", { type: "geojson", data: leer });
+  map.addLayer({ id: "baum-krone", type: "fill", source: "baum-kronen", layout: unsichtbar,
+    filter: ["==", ["get", "form"], "krone"],
+    paint: { "fill-color": ["case", ["==", ["get", "nadel"], 1], FARBE.kroneNadel, FARBE.krone], "fill-opacity": 0.72 } });
+  map.addLayer({ id: "baum-krone-rand", type: "line", source: "baum-kronen", layout: unsichtbar,
+    filter: ["==", ["get", "form"], "krone"], paint: { "line-color": FARBE.kroneRand, "line-width": 0.5, "line-opacity": 0.8 } });
+  map.addLayer({ id: "baum-stamm", type: "circle", source: "baum-kronen", layout: unsichtbar,
+    filter: ["==", ["get", "form"], "stamm"], paint: { "circle-color": FARBE.stamm, "circle-radius": inMetern(0.35) } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
   map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
     paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
@@ -481,6 +505,7 @@ function verwerfeDaten() {
   lod2Mittelpunkte = [];
   lod2Meta = [];
   alkisFlaechen = [];
+  baumFeatures = [];
   alkisVorhanden = false;
   alkisQuelle = "";
   osmFeatures = [];
@@ -488,6 +513,7 @@ function verwerfeDaten() {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
     map.getSource("alkis-flaechen").setData(leer);
+    map.getSource("baum-kronen").setData(leer);
     map.getSource("maske").setData(leer);
   }
   zeigeFehler("");
@@ -607,7 +633,7 @@ btnAnalyse.addEventListener("click", async () => {
     if (!aktuell()) return; // inzwischen anderes Gebiet gewählt oder gelöscht
 
     const umgewandelt = osmtogeojson(roh);
-    const zaehler = { gebaeude: 0, nebengebaeude: 0, strasse: 0, gruen: 0, wasser: 0, wasserlinie: 0, baum: 0 };
+    const zaehler = { gebaeude: 0, nebengebaeude: 0, strasse: 0, gruen: 0, wasser: 0, wasserlinie: 0, baum: 0, baumreihe: 0 };
     const features = [];
     for (const f of umgewandelt.features) {
       const k = kategorisiere(f);
@@ -622,6 +648,7 @@ btnAnalyse.addEventListener("click", async () => {
     }
 
     osmFeatures = features;
+    setzeBaeume();
     markiereOsmGebaeude(lod2Mittelpunkte); // falls LoD2 schon da war
     map.getSource("osm-daten").setData({ type: "FeatureCollection", features });
     analyseHint.textContent =
@@ -842,7 +869,7 @@ function wendeLod2An(ergebnis) {
 //   AX_Strassenverkehr = Straßenraum (Fahrbahn), AX_Weg = Wege (auch Gehwege), AX_Platz = Plätze.
 // Der Dienst liefert GML (XML) in UTM-Koordinaten; wir wandeln es in Karten-Flächen um.
 const ALKIS_WFS = "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wfs_sf";
-const ALKIS_ARTEN = { AX_Strassenverkehr: "strasse", AX_Weg: "weg", AX_Platz: "platz" };
+const ALKIS_ARTEN = { AX_Strassenverkehr: "strasse", AX_Weg: "weg", AX_Platz: "platz", AX_Gehoelz: "gehoelz", AX_Wald: "wald" };
 const ALKIS_MAX = 3000;               // höchstens so viele Flächen je Art pro Abfrage
 const alkisStatusFeld = document.getElementById("alkis-status");
 
@@ -930,10 +957,10 @@ function wendeAlkisAn(ergebnis) {
   alkisFlaechen = ergebnis.features;
   alkisVorhanden = true;
   alkisQuelle = `Straßenflächen: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
-  const zaehler = { strasse: 0, weg: 0, platz: 0 };
+  const zaehler = { strasse: 0, weg: 0, platz: 0, gehoelz: 0, wald: 0 };
   ergebnis.features.forEach((f) => zaehler[f.properties.kat]++);
   zeigeAlkisStatus(
-    `Amtliche Straßenflächen geladen: ${zahl(zaehler.strasse)} Straßenflächen, ${zahl(zaehler.weg)} Wege, ${zahl(zaehler.platz)} Plätze` +
+    `Amtliche Straßenflächen geladen: ${zahl(zaehler.strasse)} Straßenflächen, ${zahl(zaehler.weg)} Wege, ${zahl(zaehler.platz)} Plätze, ${zahl(zaehler.gehoelz + zaehler.wald)} Gehölz- und Waldflächen` +
     (ergebnis.abgeschnitten ? " (Achtung: Obergrenze erreicht, nicht alle Flächen geladen)" : "") +
     `. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
   wendeAnsichtAn();
@@ -1078,9 +1105,10 @@ function berechneKennzahlen() {
   // Verkehrsflächen: amtliche Flächen, sonst Straßenlinien mal geschätzte Breite
   let verkehr = null;
   if (alkisVorhanden) {
-    verkehr = malRaster(bbox, w, h, (ctx, pt) => alkisFlaechen.forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
+    const verkehrsFlaechen = alkisFlaechen.filter((f) => ["strasse", "weg", "platz"].includes(f.properties.kat));
+    verkehr = malRaster(bbox, w, h, (ctx, pt) => verkehrsFlaechen.forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
     k.alkisTeile = { strasse: 0, weg: 0, platz: 0 };
-    alkisFlaechen.forEach((f) => { k.alkisTeile[f.properties.kat] += flaecheImRechteck(f, bbox); });
+    verkehrsFlaechen.forEach((f) => { k.alkisTeile[f.properties.kat] += flaecheImRechteck(f, bbox); });
   } else if (hatOsm) {
     verkehr = malRaster(bbox, w, h, (ctx, pt) => osm("strasse").forEach((f) => {
       ctx.lineWidth = (STRASSENBREITE_SCHAETZUNG[f.properties.typ] || 4) * pxProM;
@@ -1101,7 +1129,9 @@ function berechneKennzahlen() {
   // Grün und Wasser (aus OSM)
   let gruen = null, wasser = null;
   if (hatOsm) {
-    gruen = malRaster(bbox, w, h, (ctx, pt) => osm("gruen").forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
+    // Grün: OSM-Flächen plus amtliche Gehölz- und Waldflächen
+    const amtlichGruen = alkisFlaechen.filter((f) => f.properties.kat === "gehoelz" || f.properties.kat === "wald");
+    gruen = malRaster(bbox, w, h, (ctx, pt) => { osm("gruen").concat(amtlichGruen).forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)); });
     wasser = malRaster(bbox, w, h, (ctx, pt) => {
       osm("wasser").forEach((f) => zeichneFlaeche(ctx, pt, f.geometry));
       osm("wasserlinie").forEach((f) => {
@@ -1112,10 +1142,13 @@ function berechneKennzahlen() {
     k.gruenFlaeche = zaehlePixel(gruen) * m2JePixel;
     k.wasserFlaeche = zaehlePixel(wasser) * m2JePixel;
     k.gruenWasserFlaeche = zaehlePixel(vereine([gruen, wasser])) * m2JePixel;
-    k.baeume = osm("baum").filter((f) => {
-      const [x, y] = f.geometry.coordinates;
-      return x >= west && x <= ost && y >= sued && y <= nord;
-    }).length;
+    // Bäume: Stämme im Rechteck zählen; Kronenüberdeckung aus den Kronenformen
+    const imRechteckPunkt = ([x, y]) => x >= west && x <= ost && y >= sued && y <= nord;
+    const stamm = baumFeatures.filter((f) => f.properties.form === "stamm" && imRechteckPunkt(f.geometry.coordinates));
+    k.baeume = stamm.length;
+    k.baeumeGeschaetzt = stamm.filter((f) => f.properties.q !== "osm").length;
+    const kronen = malRaster(bbox, w, h, (ctx, pt) => baumFeatures.filter((f) => f.properties.form === "krone").forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
+    k.kronenFlaeche = zaehlePixel(kronen) * m2JePixel;
   }
 
   // Bauland (netto): Gebiet ohne Verkehr, Grün und Wasser
@@ -1216,11 +1249,12 @@ function baueAbschnitte(k) {
   if (verkehr.zeilen.length) abschnitte.push(verkehr);
 
   if (k.hatOsm) {
-    abschnitte.push({ titel: "Grün und Wasser", intro: "Aus OpenStreetMap. Überlappende Flächen sind nicht doppelt gezählt.", zeilen: [
+    abschnitte.push({ titel: "Grün und Wasser", intro: "Aus OpenStreetMap und, wo vorhanden, den amtlichen Gehölz- und Waldflächen. Überlappende Flächen sind nicht doppelt gezählt.", zeilen: [
       ["Grünfläche", `${fm2(k.gruenFlaeche)} · ${prozent(k.gruenFlaeche / A)}`, "Parks, Wiesen, Wald, Gärten, Spielplätze …"],
       ["Wasserfläche", `${fm2(k.wasserFlaeche)} · ${prozent(k.wasserFlaeche / A)}`, "Gewässerflächen und Flüsse (Linien mit geschätzter Breite)"],
       ["Grün + Wasser", prozent(k.gruenWasserFlaeche / A), "Anteil am Gebiet"],
-      ["Einzelbäume", zahl(k.baeume), "In OpenStreetMap eingetragene Bäume (die Datenlage ist lückenhaft)"]
+      ["Einzelbäume", zahl(k.baeume), "OpenStreetMap-Bäume und Baumreihen (die Datenlage ist lückenhaft)"],
+      ["Kronenüberdeckung", `${fm2(k.kronenFlaeche)} · ${prozent(k.kronenFlaeche / A)}`, `Fläche unter den Baumkronen. Größe aus OSM-Daten, bei ${zahl(k.baeumeGeschaetzt)} von ${zahl(k.baeume)} Bäumen geschätzt`]
     ] });
 
     abschnitte.push({ titel: "Flächenanteile", intro: "Anteil am Gebiet. Die Werte können sich minimal überschneiden.", balken: [
@@ -1292,4 +1326,80 @@ function aktualisiereKennzahlen() {
       kzFeld.innerHTML = `<div class="kz-leer"><h3>Kennzahlen nicht berechenbar</h3><p>${fehler.message}</p></div>`;
     }
   }, 30);
+}
+
+// ---------- 9. Bäume als Kronen ----------
+// OpenStreetMap kennt die Bäume meist nur als Punkt. Damit der Plan nicht aus gleichen Kreisen besteht, zeichnen wir je Baum
+// eine leicht unregelmäßige Krone. Die Größe kommt, in dieser Reihenfolge, aus: 1. dem Kronendurchmesser in OSM,
+// 2. der Baumhöhe in OSM (Krone ca. halbe Höhe), 3. einem Standardwert mit etwas Streuung. Das Ergebnis ist eine Annahme,
+// keine Messung. Form und Größe bleiben für denselben Baum immer gleich (Zufall aus der OSM-Nummer).
+function hashWert(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function zufallsfolge(startwert) {
+  let a = startwert >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function kronenGroesse(p, zufall) {
+  if (p.krone >= 1 && p.krone <= 30) return { d: p.krone, quelle: "osm" };
+  if (p.hoehe >= 3 && p.hoehe <= 45) return { d: Math.min(14, Math.max(3, p.hoehe * 0.5 * (0.85 + 0.3 * zufall()))), quelle: "hoehe" };
+  return { d: (p.nadel ? 5 : 7) * (0.75 + 0.5 * zufall()), quelle: "standard" };
+}
+// Eine Krone als Vieleck: ein Kreis, dessen Radius sich sanft ändert; Nadelbäume als gezackte Form
+function kronenForm(lon, lat, d, nadel, zufall) {
+  const radius = d / 2;
+  const punkte = nadel ? 16 : 28;
+  const proM_Breite = 1 / 111320;
+  const proM_Laenge = 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+  const phase = [zufall() * 6.283, zufall() * 6.283, zufall() * 6.283];
+  const stärke = nadel ? [0.05, 0.04, 0.03] : [0.03 + 0.08 * zufall(), 0.02 + 0.06 * zufall(), 0.01 + 0.05 * zufall()];
+  const versatz = [(zufall() - 0.5) * 0.15 * radius, (zufall() - 0.5) * 0.15 * radius];   // Krone sitzt nicht genau über dem Stamm
+  const ring = [];
+  for (let i = 0; i < punkte; i++) {
+    const winkel = (i / punkte) * 2 * Math.PI;
+    let r = radius * (1 + stärke[0] * Math.sin(winkel + phase[0]) + stärke[1] * Math.sin(2 * winkel + phase[1]) + stärke[2] * Math.sin(3 * winkel + phase[2]));
+    if (nadel && i % 2) r *= 0.62;
+    ring.push([lon + (versatz[0] + r * Math.cos(winkel)) * proM_Laenge, lat + (versatz[1] + r * Math.sin(winkel)) * proM_Breite]);
+  }
+  ring.push(ring[0]);
+  return ring;
+}
+
+function setzeBaeume() {
+  const ergebnis = [];
+  const eintragen = (lon, lat, p, schluessel) => {
+    const zufall = zufallsfolge(hashWert(schluessel));
+    const { d, quelle } = kronenGroesse(p, zufall);
+    ergebnis.push({ type: "Feature", properties: { form: "krone", nadel: p.nadel ? 1 : 0, d, q: quelle },
+      geometry: { type: "Polygon", coordinates: [kronenForm(lon, lat, d, p.nadel, zufall)] } });
+    ergebnis.push({ type: "Feature", properties: { form: "stamm", q: quelle }, geometry: { type: "Point", coordinates: [lon, lat] } });
+  };
+  for (const f of osmFeatures) {
+    const p = f.properties;
+    if (p.kat === "baum") {
+      const [lon, lat] = f.geometry.coordinates;
+      eintragen(lon, lat, p, p.nr || `${lon},${lat}`);
+    } else if (p.kat === "baumreihe") {
+      // Baumreihe: alle ca. 9 m ein Baum entlang der Linie
+      const linien = f.geometry.type === "MultiLineString" ? f.geometry.coordinates : [f.geometry.coordinates];
+      linien.forEach((koordinaten, nummer) => {
+        const linie = turf.lineString(koordinaten);
+        const laenge = turf.length(linie, { units: "meters" });
+        for (let strecke = 4.5, i = 0; strecke < laenge; strecke += 9, i++) {
+          const [lon, lat] = turf.along(linie, strecke / 1000, { units: "kilometers" }).geometry.coordinates;
+          eintragen(lon, lat, p, `${p.nr}-${nummer}-${i}`);
+        }
+      });
+    }
+  }
+  baumFeatures = ergebnis;
+  map.getSource("baum-kronen").setData({ type: "FeatureCollection", features: ergebnis });
 }

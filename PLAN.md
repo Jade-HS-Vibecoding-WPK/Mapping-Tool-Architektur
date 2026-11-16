@@ -614,6 +614,14 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     aus OSM (Abschnitte, die in einer amtlichen Fläche liegen, entfallen). Gilt für Pläne und Netto-Rechnung.
   - Straßennetz-Plan: Straßenflächen hell mit Rand, darauf die **Achsen nach Kategorie** (Linienstärke).
   - Kennzahlen Beispiel: Verkehrsfläche jetzt 21 % (vorher 26 % rein aus OSM geschätzt).
+- [x] **Korrekturen Runde 2** (16.11.2026):
+  - Straßennetz-Plan wieder mit **breiten Flächen nach Kategorie** (volle Straßenraumbreite, Hauptstraße
+    dunkelgrau, Nebenstraße mittelgrau, Wohnstraße hellgrau, schwarzer Rand), keine Achsen mehr.
+    Im Straßennetz zählt die Kategorie, darum dort OSM-Flächen; die amtlichen Flächen bleiben im Lageplan.
+  - Lageplan zeigt nur die **Dachaufsichten aus dem 3D-Modell**; die OSM-Grundrisse darunter sind
+    standardmäßig ausgeblendet und per Häkchen in der Legende einblendbar (ohne LoD2-Daten immer sichtbar).
+  - **Dachkanten fein nachgezeichnet** (First, Grate, Traufen). Dafür fasst `topoexport_beispiel.py` die
+    Dach-Dreiecke im Westrand zu ganzen Dachflächen zusammen (1.968 Flächen), damit keine Dreieckskanten erscheinen.
 - [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): CityGML (ZIP, mehrere Kacheln,
   Anzeige der benötigten Kacheln) und topoexport-DXF im Browser (binär), Verortung von Hand.
   Idee: die topoexport-Bäume (2756–4401, mit Kronengröße) statt der OSM-Bäume für Grün und 3D nutzen.

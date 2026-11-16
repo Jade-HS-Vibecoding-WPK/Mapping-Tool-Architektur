@@ -53,6 +53,10 @@
         <div class="dropzone is-disabled" aria-disabled="true">
           Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
         </div>
+        <div class="ladeleiste" id="ladeleiste" hidden>
+          <h3 class="lade-titel">Ladestand: was gerade geholt wird</h3>
+          <ul class="lade-liste" id="lade-liste"></ul>
+        </div>
         <button class="btn btn-ghost btn-block" disabled>Beispiel Oldenburg laden <small>(folgt)</small></button>
       </section>
 
@@ -74,6 +78,9 @@
 
     <!-- ===== Hauptbereich rechts: Ansichten ===== -->
     <main class="main">
+      <div class="lade-streifen" id="lade-streifen" role="progressbar" aria-label="Daten werden geladen" aria-valuemin="0" aria-valuemax="100" hidden>
+        <div id="lade-streifen-balken"></div>
+      </div>
       <nav class="tabs" role="tablist" aria-label="Ansichten">
         <button class="tab is-active" data-view="karte" role="tab">Karte</button>
         <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
@@ -126,6 +133,7 @@
   <!-- Liest die Höhenmodell-Dateien des LGLN (GeoTIFF), nur das benötigte Stück -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
   <script src="app.js"></script>
+  <script src="ladeleiste.js"></script>
   <script src="gelaende.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>

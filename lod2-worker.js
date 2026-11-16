@@ -33,11 +33,12 @@ self.onmessage = async (ereignis) => {
       letzteMeldung = jetzt;
       let g = 0, s = 0;
       for (const p of fortschritt.values()) { g += p.geladen; s += p.gesamt; }
-      self.postMessage({ typ: "fortschritt", geladen: g, gesamt: s, kacheln: kacheln.length, gebaeude: gefunden });
+      const kachelStand = [...fortschritt.entries()].map(([id, p]) => ({ id, geladen: p.geladen, gesamt: p.gesamt }));
+      self.postMessage({ typ: "fortschritt", geladen: g, gesamt: s, kacheln: kacheln.length, gemeldet: fortschritt.size, gebaeude: gefunden, kachelStand });
     };
 
     const alle = await Promise.all(kacheln.map(async (kachel) => {
-      const liste = await leseKachel(kachel, bbox, melde, () => { gefunden++; });
+      const liste = await leseKachelMitWiederholung(kachel, bbox, melde, (delta) => { gefunden += delta; });
       return liste;
     }));
 
@@ -57,37 +58,69 @@ self.onmessage = async (ereignis) => {
   }
 };
 
-// Lädt eine Kachel als Datenstrom und zerlegt sie in Gebäude-Blöcke
-async function leseKachel(kachel, bbox, melde, zaehleGebaeude) {
-  const antwort = await fetch(kachel.url);
-  if (!antwort.ok) throw new Error(`Kachel ${kachel.id}: Server meldet Fehler ${antwort.status}`);
-  const gesamt = Number(antwort.headers.get("content-length")) || 0;
-  const leser = antwort.body.getReader();
-  const dekoder = new TextDecoder("utf-8");
-  const ergebnis = [];
-  let puffer = "";
-  let geladen = 0;
-
-  for (;;) {
-    const { done, value } = await leser.read();
-    if (done) {
-      puffer += dekoder.decode();
-    } else {
-      geladen += value.byteLength;
-      puffer += dekoder.decode(value, { stream: true });
+// Lädt eine Kachel; bis zu drei Versuche, falls die Verbindung abbricht oder stehen bleibt
+async function leseKachelMitWiederholung(kachel, bbox, melde, zaehleGebaeude) {
+  let letzterFehler;
+  for (let versuch = 1; versuch <= 3; versuch++) {
+    let gezaehlt = 0;
+    try {
+      return await leseKachel(kachel, bbox, melde, () => { gezaehlt++; zaehleGebaeude(1); });
+    } catch (fehler) {
+      letzterFehler = fehler;
+      zaehleGebaeude(-gezaehlt);   // Treffer dieses Versuchs wieder abziehen, beim nächsten Versuch zählen wir neu
+      melde(kachel.id, 0, 0, true);
+      if (versuch < 3) self.postMessage({ typ: "hinweis", text: `Verbindung hing (${fehler.message}), neuer Versuch ${versuch + 1} von 3 …` });
+      await new Promise((ok) => setTimeout(ok, 1500 * versuch));
     }
-    // Alle vollständigen Gebäude-Blöcke im Puffer abarbeiten, den Rest für den nächsten Brocken behalten
-    let ende;
-    while ((ende = puffer.indexOf(BLOCK_ENDE)) !== -1) {
-      const block = puffer.slice(0, ende + BLOCK_ENDE.length);
-      puffer = puffer.slice(ende + BLOCK_ENDE.length);
-      const gebaeude = verarbeiteBlock(block, bbox);
-      if (gebaeude) { ergebnis.push(gebaeude); zaehleGebaeude(); }
-    }
-    melde(kachel.id, geladen, gesamt || geladen, done);
-    if (done) break;
   }
-  return ergebnis;
+  throw letzterFehler;
+}
+
+// Lädt eine Kachel als Datenstrom und zerlegt sie in Gebäude-Blöcke.
+// Kommt 15 Sekunden lang kein neues Datenstück an, brechen wir ab (der Aufrufer versucht es dann erneut).
+const STILLSTAND_MS = 15_000;
+async function leseKachel(kachel, bbox, melde, zaehleGebaeude) {
+  const abbruch = new AbortController();
+  let wecker = null;
+  const stelleWecker = () => { clearTimeout(wecker); wecker = setTimeout(() => abbruch.abort(), STILLSTAND_MS); };
+  try {
+    stelleWecker();
+    const antwort = await fetch(kachel.url, { signal: abbruch.signal });
+    if (!antwort.ok) throw new Error(`Kachel ${kachel.id}: Server meldet Fehler ${antwort.status}`);
+    const gesamt = Number(antwort.headers.get("content-length")) || 0;
+    const leser = antwort.body.getReader();
+    const dekoder = new TextDecoder("utf-8");
+    const ergebnis = [];
+    let puffer = "";
+    let geladen = 0;
+
+    for (;;) {
+      const { done, value } = await leser.read();
+      stelleWecker();
+      if (done) {
+        puffer += dekoder.decode();
+      } else {
+        geladen += value.byteLength;
+        puffer += dekoder.decode(value, { stream: true });
+      }
+      // Alle vollständigen Gebäude-Blöcke im Puffer abarbeiten, den Rest für den nächsten Brocken behalten
+      let ende;
+      while ((ende = puffer.indexOf(BLOCK_ENDE)) !== -1) {
+        const block = puffer.slice(0, ende + BLOCK_ENDE.length);
+        puffer = puffer.slice(ende + BLOCK_ENDE.length);
+        const gebaeude = verarbeiteBlock(block, bbox);
+        if (gebaeude) { ergebnis.push(gebaeude); zaehleGebaeude(); }
+      }
+      melde(kachel.id, geladen, gesamt || geladen, done);
+      if (done) break;
+    }
+    return ergebnis;
+  } catch (fehler) {
+    if (fehler && fehler.name === "AbortError") throw new Error(`Kachel ${kachel.id}: Zeitüberschreitung (keine Daten seit ${STILLSTAND_MS / 1000} s)`);
+    throw fehler;
+  } finally {
+    clearTimeout(wecker);
+  }
 }
 
 const zahlen = (text) => text.trim().split(/\s+/).map(Number);

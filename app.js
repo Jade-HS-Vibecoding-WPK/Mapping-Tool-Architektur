@@ -305,12 +305,18 @@ async function holeOsmDaten(sued, west, nord, ost) {
   const abfrage = overpassAbfrage(sued, west, nord, ost);
   const stopp = new AbortController();
   const fehlerListe = [];
-  const versuche = OVERPASS_SERVER.map((url) =>
-    frageServer(url, abfrage, stopp.signal).catch((fehler) => {
-      fehlerListe.push(fehler);
-      if (!stopp.signal.aborted) console.warn("Overpass-Abfrage fehlgeschlagen:", url, fehler);
-      throw fehler;
-    }));
+  const versuche = OVERPASS_SERVER.map((url) => {
+    const host = new URL(url).host;
+    ladeUnter("osm", host, host, "laedt", null, "fragt …");
+    return frageServer(url, abfrage, stopp.signal)
+      .then((daten) => { ladeUnter("osm", host, host, "fertig", 1, "Antwort erhalten"); return daten; })
+      .catch((fehler) => {
+        fehlerListe.push(fehler);
+        if (stopp.signal.aborted) ladeUnter("osm", host, host, "abgebrochen", 1, "nicht mehr nötig");
+        else { console.warn("Overpass-Abfrage fehlgeschlagen:", url, fehler); ladeUnter("osm", host, host, "fehler", 1, String(fehler.message).slice(0, 30)); }
+        throw fehler;
+      });
+  });
   try {
     return await Promise.any(versuche); // der erste erfolgreiche gewinnt
   } catch (_) {
@@ -535,6 +541,7 @@ function verwerfeDaten() {
   zeigeLod2Status("");
   zeigeAlkisStatus("");
   zeigeGelaendeStatus("");
+  if (typeof ladeLeeren === "function") ladeLeeren();
 }
 
 // Stellt die Karte passend zum aktuellen Reiter ein
@@ -631,6 +638,7 @@ btnAnalyse.addEventListener("click", async () => {
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
+  ladeStart(chkLod2.checked);
 
   // Das Gelände (Höhenmodell) laden wir ebenfalls gleich mit; es wird nur für das 3D-Modell gebraucht.
   starteGelaende(rahmen, meineNummer).then((ergebnis) => {
@@ -668,6 +676,7 @@ btnAnalyse.addEventListener("click", async () => {
     if (!features.length) {
       analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
       zeigeFehler("In diesem Gebiet gibt es in OpenStreetMap keine passenden Daten.");
+      ladeSetze("osm", "keine", 1, "keine Daten im Gebiet");
       return;
     }
 
@@ -680,6 +689,7 @@ btnAnalyse.addEventListener("click", async () => {
       `${zahl(zaehler.strasse)} Straßenabschnitte, ${zahl(zaehler.gruen)} Grünflächen, ` +
       `${zahl(zaehler.wasser + zaehler.wasserlinie)} Gewässer, ${zahl(zaehler.baum)} Einzelbäume. ` +
       "Zählung inklusive Objekten, die über den Rand hinausragen.";
+    ladeSetze("osm", "fertig", 1, `${zahl(features.length)} Objekte`);
     zeigePlaene(rahmen, "schwarzplan");
   } catch (fehler) {
     if (!aktuell()) return;
@@ -687,6 +697,7 @@ btnAnalyse.addEventListener("click", async () => {
       ? "OpenStreetMap fehlt (Schwarzplan, Grün und Bäume bleiben leer). Die amtlichen Daten sind geladen."
       : "Bereit. Klicke auf „Analysieren“.";
     zeigeFehler(fehler.message);
+    ladeSetze("osm", "fehler", 1, "nicht erreichbar, bitte nochmal „Analysieren“ drücken");
   } finally {
     if (aktuell()) {
       btnAnalyse.textContent = "Analysieren";
@@ -718,9 +729,19 @@ function stoppeLod2() {
 
 async function sucheLod2Kacheln([west, sued, ost, nord]) {
   const bbox = [west, sued, ost, nord].map((z) => z.toFixed(6)).join(",");
-  const antwort = await fetch(`${STAC_SUCHE}?collections=lod2&limit=20&bbox=${bbox}`);
-  if (!antwort.ok) throw new Error(`Die Suche beim LGLN meldet Fehler ${antwort.status}`);
-  const daten = await antwort.json();
+  // Bis zu drei Versuche: eine kurze Störung soll nicht gleich bedeuten, dass LoD2 fehlt
+  let daten = null, letzterFehler = null;
+  for (let versuch = 1; versuch <= 3 && !daten; versuch++) {
+    try {
+      const antwort = await fetch(`${STAC_SUCHE}?collections=lod2&limit=20&bbox=${bbox}`);
+      if (!antwort.ok) throw new Error(`Die Suche beim LGLN meldet Fehler ${antwort.status}`);
+      daten = await antwort.json();
+    } catch (fehler) {
+      letzterFehler = fehler;
+      await new Promise((ok) => setTimeout(ok, 1000 * versuch));
+    }
+  }
+  if (!daten) throw letzterFehler;
   return (daten.features || [])
     .map((f) => ({
       id: f.id,
@@ -738,6 +759,7 @@ function leseLod2(kacheln, utmBox, bericht) {
     worker.onmessage = (e) => {
       const d = e.data;
       if (d.typ === "fortschritt") bericht(d);
+      else if (d.typ === "hinweis") bericht({ hinweis: d.text });
       else if (d.typ === "fertig") { worker.terminate(); if (lod2Worker === worker) lod2Worker = null; fertig(d.gebaeude); }
       else if (d.typ === "fehler") { worker.terminate(); if (lod2Worker === worker) lod2Worker = null; fehler(new Error(d.text)); }
     };
@@ -750,10 +772,12 @@ function leseLod2(kacheln, utmBox, bericht) {
 async function starteLod2(rahmen, nummer) {
   try {
     zeigeLod2Status("LoD2: Suche passende Kacheln beim LGLN …");
+    ladeSetze("lod2", "laedt", null, "Kacheln werden gesucht …");
     const [west, sued, ost, nord] = turf.bbox(rahmen);
     const kacheln = await sucheLod2Kacheln([west, sued, ost, nord]);
     if (nummer !== ladeNummer) return { abgebrochen: true };
     if (!kacheln.length) return { keine: true };
+    kacheln.forEach((k) => ladeUnter("lod2", k.id, kachelName(k.id), "laedt", null, "wartet …"));
 
     const ecken = [[west, sued], [west, nord], [ost, sued], [ost, nord]].map((e) => utmWandler.forward(e));
     const xs = ecken.map((e) => e[0]), ys = ecken.map((e) => e[1]);
@@ -761,14 +785,46 @@ async function starteLod2(rahmen, nummer) {
 
     const gebaeude = await leseLod2(kacheln, utmBox, (p) => {
       if (nummer !== ladeNummer) return;
-      const prozent = p.gesamt ? Math.round((p.geladen / p.gesamt) * 100) : 0;
-      zeigeLod2Status(`LoD2: ${prozent} % von ${p.kacheln} Kachel${p.kacheln > 1 ? "n" : ""} geladen (${zahl(p.geladen / 1e6, 0)} MB), ${zahl(p.gebaeude)} Gebäude im Gebiet gefunden …`);
+      if (p.hinweis) {   // z. B. "Verbindung hing, neuer Versuch"
+        zeigeLod2Status("LoD2: " + p.hinweis);
+        ladeSetze("lod2", "laedt", null, p.hinweis);
+        return;
+      }
+      // Noch nicht alle Kacheln haben ihre Größe gemeldet: für die fehlenden rechnen wir mit ca. 55 MB
+      const gesamtSchaetzung = p.gesamt + Math.max(0, p.kacheln - p.gemeldet) * 55e6;
+      const anteil = gesamtSchaetzung ? Math.min(0.99, p.geladen / gesamtSchaetzung) : 0;
+      zeigeLod2Status(`LoD2: ${Math.round(anteil * 100)} % von ${p.kacheln} Kachel${p.kacheln > 1 ? "n" : ""} geladen (${zahl(p.geladen / 1e6, 0)} MB), ${zahl(p.gebaeude)} Gebäude im Gebiet gefunden …`);
+      ladeSetze("lod2", "laedt", anteil, `${Math.round(anteil * 100)} % · ${zahl(p.geladen / 1e6, 0)} MB · ${zahl(p.gebaeude)} Gebäude gefunden`);
+      // Stand je Kachel
+      (p.kachelStand || []).forEach((s) => {
+        const fertig = s.gesamt > 0 && s.geladen >= s.gesamt;
+        ladeUnter("lod2", s.id, kachelName(s.id), fertig ? "fertig" : "laedt", fertig ? 1 : (s.gesamt ? s.geladen / s.gesamt : null),
+          s.gesamt ? `${zahl(s.geladen / 1e6, 0)} / ${zahl(s.gesamt / 1e6, 0)} MB` : "neuer Versuch …");
+      });
     });
+    kacheln.forEach((k) => ladeUnter("lod2", k.id, kachelName(k.id), "fertig", 1, "gelesen"));
     const jahre = kacheln.map((k) => k.jahr).filter(Boolean).sort();
     return { gebaeude, jahr: jahre[jahre.length - 1] || "", kacheln: kacheln.length };
   } catch (fehler) {
+    // Kacheln, die nicht fertig wurden, als fehlgeschlagen zeigen
+    const unter = ladeZustand.lod2 && ladeZustand.lod2.unter;
+    if (unter) unter.forEach((u, id) => { if (u.z === "laedt") ladeUnter("lod2", id, u.label, "fehler", 1, "nicht geladen"); });
     return { fehler: fehler.message };
   }
+}
+
+// Nur LoD2 noch einmal laden (z. B. nach einem Verbindungsfehler), ohne OpenStreetMap neu zu fragen
+async function wiederholeLod2() {
+  if (!gebiet) return;
+  const nummer = ladeNummer;
+  const rahmen = gebiet;
+  stoppeLod2();
+  zeigeLod2Status("");
+  ladeSetze("lod2", "laedt", null, "neuer Versuch …");
+  const ergebnis = await starteLod2(rahmen, nummer);
+  if (nummer !== ladeNummer) return;
+  if (ergebnis.gebaeude && ergebnis.gebaeude.length) zeigePlaene(rahmen, "lageplan");
+  wendeLod2An(ergebnis);
 }
 
 // ----- Dachflächen aufbereiten -----
@@ -863,14 +919,17 @@ function wendeLod2An(ergebnis) {
   if (ergebnis.abgebrochen) return;
   if (ergebnis.fehler) {
     zeigeLod2Status(`LoD2 konnte nicht geladen werden (${ergebnis.fehler}). Der Lageplan nutzt die OpenStreetMap-Gebäude.`);
+    ladeSetze("lod2", "fehler", 1, "nicht geladen, Lageplan nutzt OpenStreetMap");
     return;
   }
   if (ergebnis.keine) {
     zeigeLod2Status("LoD2: Für dieses Gebiet gibt es keine amtlichen Daten (nur Niedersachsen). Es bleibt bei OpenStreetMap.");
+    ladeSetze("lod2", "keine", 1, "keine Daten (nur Niedersachsen)");
     return;
   }
   if (!ergebnis.gebaeude.length) {
     zeigeLod2Status("LoD2: Im Gebiet wurden keine Gebäude gefunden. Es bleibt bei OpenStreetMap.");
+    ladeSetze("lod2", "keine", 1, "keine Gebäude im Gebiet");
     return;
   }
   const { features, mittelpunkte, meta } = baueDachflaechen(ergebnis.gebaeude);
@@ -882,6 +941,7 @@ function wendeLod2An(ergebnis) {
   if (osmFeatures.length) map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
   lod2Vorhanden = true;
   lod2Quelle = `LoD2: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
+  ladeSetze("lod2", "fertig", 1, `${zahl(ergebnis.gebaeude.length)} Gebäude`);
   zeigeLod2Status(
     `LoD2 geladen: ${zahl(ergebnis.gebaeude.length)} Gebäude mit ${zahl(features.length)} Dachflächen` +
     (osmFeatures.length ? `, davon ersetzen ${zahl(ersetzt)} OSM-Gebäude im Lageplan` : "") +
@@ -947,17 +1007,27 @@ function leseAlkisGml(text, art) {
 async function starteAlkis(rahmen, nummer) {
   try {
     zeigeAlkisStatus("Amtliche Straßenflächen werden beim LGLN geladen …");
+    ladeSetze("alkis", "laedt", null, "wird abgefragt …");
     const [west, sued, ost, nord] = turf.bbox(rahmen);
     const ecken = [[west, sued], [west, nord], [ost, sued], [ost, nord]].map((e) => utmWandler.forward(e));
     const xs = ecken.map((e) => e[0]), ys = ecken.map((e) => e[1]);
     const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map((z) => z.toFixed(1)).join(",");
 
+    const alkisNamen = { AX_Strassenverkehr: "Straßenraum", AX_Weg: "Wege und Gehwege", AX_Platz: "Plätze", AX_Gehoelz: "Gehölz", AX_Wald: "Wald" };
     const teile = await Promise.all(Object.keys(ALKIS_ARTEN).map(async (art) => {
+      ladeUnter("alkis", art, alkisNamen[art], "laedt", null, "");
       const url = `${ALKIS_WFS}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=adv:${art}` +
         `&SRSNAME=urn:ogc:def:crs:EPSG::25832&BBOX=${box},urn:ogc:def:crs:EPSG::25832&COUNT=${ALKIS_MAX}`;
-      const antwort = await fetch(url);
-      if (!antwort.ok) throw new Error(`Der LGLN-Dienst meldet Fehler ${antwort.status}`);
-      return leseAlkisGml(await antwort.text(), art);
+      try {
+        const antwort = await fetch(url);
+        if (!antwort.ok) throw new Error(`Der LGLN-Dienst meldet Fehler ${antwort.status}`);
+        const teil = leseAlkisGml(await antwort.text(), art);
+        ladeUnter("alkis", art, alkisNamen[art], "fertig", 1, `${zahl(teil.features.length)} Flächen`);
+        return teil;
+      } catch (fehler) {
+        ladeUnter("alkis", art, alkisNamen[art], "fehler", 1, "Fehler");
+        throw fehler;
+      }
     }));
     if (nummer !== ladeNummer) return { abgebrochen: true };
 
@@ -973,14 +1043,17 @@ function wendeAlkisAn(ergebnis) {
   if (ergebnis.abgebrochen) return;
   if (ergebnis.fehler) {
     zeigeAlkisStatus(`Amtliche Straßenflächen konnten nicht geladen werden (${ergebnis.fehler}). Die Pläne zeigen die Straßenlinien aus OpenStreetMap.`);
+    ladeSetze("alkis", "fehler", 1, "nicht geladen, Pläne nutzen OpenStreetMap-Linien");
     return;
   }
   if (ergebnis.keine) {
     zeigeAlkisStatus("Amtliche Straßenflächen: Für dieses Gebiet gibt es keine Daten (nur Niedersachsen). Es bleibt bei den Linien aus OpenStreetMap.");
+    ladeSetze("alkis", "keine", 1, "keine Daten (nur Niedersachsen)");
     return;
   }
   map.getSource("alkis-flaechen").setData({ type: "FeatureCollection", features: ergebnis.features });
   alkisFlaechen = ergebnis.features;
+  ladeSetze("alkis", "fertig", 1, `${zahl(ergebnis.features.length)} Flächen`);
   alkisVorhanden = true;
   alkisQuelle = `Straßenflächen: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
   const zaehler = { strasse: 0, weg: 0, platz: 0, gehoelz: 0, wald: 0 };

@@ -683,6 +683,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Nicht getestet:** Gebiete bis 1 km² mit starkem Relief (Tempo, Speicher), Handy, andere Browser, Genauigkeit der Höhenlinien (nur angesehen),
   Spalten am Gebäudefuß bei sehr steilen Hängen (nur ein Hang gesehen). Gelände (Ausgaben 2015 bis 2021) und Gebäude (2024) stammen aus
   verschiedenen Erhebungen.
+- [x] **Ladestand, Ladekreise und robusteres LoD2-Laden** (Branch `feature-osm-2d-plaene`, nur lokal):
+  Neue Datei `ladeleiste.js`. In der Seitenleiste (zwischen Datei-Import und „Beispiel Oldenburg“) zeigt der „Ladestand“ je Quelle (OpenStreetMap,
+  LoD2, amtliche Straßenflächen, Gelände) den Zustand und darunter, was genau geholt wird: die vier Overpass-Server, die einzelnen
+  LoD2-Kacheln mit geladenen und gesamten MB und Fortschrittsring, die fünf ALKIS-Abfragen, die Geländekacheln. Hinter jeder Zeile steht ein kleiner
+  Ladekreis (dreht sich, füllt sich, dann Haken oder Kreuz). Ein dünner Gesamtstreifen über den Reitern zeigt den Gesamtfortschritt
+  (OpenStreetMap meldet keinen Fortschritt, dort läuft nur der Kreis).
+  **Ursache für „LoD2 fehlt“ (nicht sicher belegt):** Im Test hing der LoD2-Download einmal ca. 25 s ohne Daten und lief dann nach einem neuen Versuch
+  sofort durch. Vorher gab es weder Zeitüberschreitung noch neuen Versuch, das Tool wartete einfach. Jetzt: Abbruch nach 15 s ohne neue Daten, bis zu drei
+  Versuche je Kachel, drei Versuche bei der Kachelsuche, Hinweis im Ladestand und Knopf „Nochmal versuchen“. Zweite mögliche Ursache: Beim Entwickeln lieferte der
+  Standard-Webserver alte Dateien aus dem Zwischenspeicher des Browsers (Mischstände). Darum gibt es jetzt `server.py` (sendet „nicht zwischenspeichern“), den
+  `Start.bat` und `.claude/launch.json` benutzen. Gebiete über 1 km² lassen sich nicht analysieren (Knopf gesperrt, Hinweis im Seitenfeld).
+  **Getestet** (echte Daten): 4 LoD2-Kacheln (194 MB) + 4 Geländekacheln, normaler Ablauf mit Ladestand, Overpass-Server-Ausfall (502) sichtbar,
+  künstlicher Ausfall der Kachelsuche mit „Nochmal versuchen“. **Nicht getestet:** Abbruch bei Stillstand im Worker (nur Code), Handy, andere Browser,
+  ob der Fehler beim Nutzer damit weg ist.
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

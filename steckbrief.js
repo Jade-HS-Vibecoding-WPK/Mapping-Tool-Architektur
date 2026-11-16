@@ -84,13 +84,15 @@ function zeigeSteckbrief(f) {
   const p = f.properties;
   const k = flurstueckKennzahlen(f, analyseErgebnis);
   const grz = k.grundflaeche / k.flaeche, gfz = k.geschossflaeche / k.flaeche;
+  // Anteile auf die gezeichnete Fläche beziehen (die amtliche Fläche weicht oft leicht ab)
+  const nutzungSumme = [...k.nutzung.values()].reduce((s, a) => s + a, 0);
   const nutzungen = [...k.nutzung].sort((a, b) => b[1] - a[1])
-    .map(([art, a]) => `${art} ${prozent(a / k.flaeche, 0)}`).join(", ");
+    .map(([art, a]) => `${art} ${prozent(a / nutzungSumme, 0)}`).join(", ");
   const z = k.zone && k.zone.properties;
   // Bodenwert nur für Bauland sinnvoll (nicht für Straßen, Plätze, Grün- und Wasserflächen)
   let bauland = 0;
   for (const [art, a] of k.nutzung) if (!NUTZUNG_KLASSE[art]) bauland += a;
-  const istBauland = !k.nutzung.size || bauland > 0.5 * k.flaeche;
+  const istBauland = !k.nutzung.size || bauland > 0.5 * nutzungSumme;
   steckbriefBox.innerHTML = `
     <header>
       <h3>Flurstück ${p.nummer || "–"}</h3>

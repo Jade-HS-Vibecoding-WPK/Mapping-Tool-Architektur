@@ -17,8 +17,10 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Bibliotheken per CDN: MapLibre GL JS (Karte, 3D), Turf.js (Flächen/Längen), Chart.js (Diagramme).
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km² (Grenze im Code: 1,1 km²).
   Umwandlung in GeoJSON mit osmtogeojson. Code-Aufteilung: `app.js` (Karte, Gebiet, Reiter, Ablauf),
-  `osm.js` (Laden, Kategorien), `plaene.js` (2D-Pläne), `kennzahlen.js`. Eingebaute OSM-Daten des
-  Testgebiets: `data/beispiel-oldenburg-osm.js`.
+  `osm.js` (Laden, Kategorien), `plaene.js` (2D-Pläne), `kennzahlen.js`, `lod2.js` (LoD2-Daten, proj4,
+  Dachschattierung), `dreid.js` (3D mit three.js 0.147). Eingebaute Daten des Testgebiets:
+  `data/beispiel-oldenburg-osm.js` und `data/beispiel-oldenburg-lod2.js` (erzeugt mit `werkzeuge/lod2_beispiel.py`).
+- Keine Daten aus Google Maps oder Apple Karten (Nutzungsbedingungen verbieten das Abzeichnen, API-Key nötig).
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).
 - topoexport-DXF: binär, AC1024, Meter, LOKALE Koordinaten (Nullpunkt unten links, keine Georeferenz),

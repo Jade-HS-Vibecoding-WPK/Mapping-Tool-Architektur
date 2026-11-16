@@ -198,6 +198,12 @@ document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => zeigeAnsicht(tab.dataset.view));
 });
 
+// Legenden ein- und ausklappen: Klick auf die Überschrift der Legende
+document.addEventListener("click", (e) => {
+  const titel = e.target.closest(".plan-legende h3");
+  if (titel) titel.parentElement.classList.toggle("eingeklappt");
+});
+
 // ---------- 4. Analysieren ----------
 const btnBeispiel = document.getElementById("btn-beispiel");
 let analyseLaeuft = false;
@@ -243,10 +249,27 @@ async function analysiere(nurBeispiel = false) {
     const kennzahlen = berechneKennzahlen(daten, bbox);
     const quelleText = `Quelle: © OpenStreetMap-Mitwirkende (ODbL), Datenstand ${datumText(daten.datenstand)} (${herkunft})`;
 
+    // Amtliche LoD2-Gebäude (Dachformen), wenn das Gebiet im Oldenburger Beispiel liegt
+    let lod2Daten = null, lod2 = null, daecher = null;
+    if (beruehrtBeispielgebiet(bbox)) {
+      meldung("Lade amtliche 3D-Gebäude (LoD2) …");
+      try {
+        lod2Daten = await ladeBeispielLod2();
+        lod2 = lod2Gebaeude(lod2Daten, bbox);
+        daecher = dachflaechenGeoJSON(lod2Daten, lod2, bbox);
+      } catch (fehler) {
+        console.warn("LoD2-Daten nicht verfügbar:", fehler);
+      }
+    }
+    const lgln = lod2 && lod2.length ? " · 3D-Gebäude: LGLN Niedersachsen, LoD2 (CC BY 4.0)" : "";
+
     // 3. Anzeigen: zuerst den Schwarzplan
-    zeigeAnsicht("schwarzplan");
-    await zeichnePlaene(daten, bbox, kennzahlen, quelleText);
+    // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)
     zeigeKennzahlen(kennzahlen, quelleText);
+    zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude: daten.gebaeude.features, baeume: daten.baeume, quelleText: quelleText + lgln });
+    meldung("Zeichne die Pläne …");
+    zeigeAnsicht("schwarzplan");
+    await zeichnePlaene(daten, bbox, kennzahlen, quelleText + lgln, daecher);
     meldung(`Fertig: ${fmt(kennzahlen.gebaeudeAnzahl)} Gebäude, ${fmt(kennzahlen.strassenGesamt / 1000, 1)} km Straßen. Siehe Reiter oben.`);
   } catch (fehler) {
     console.error(fehler);

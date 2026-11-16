@@ -584,9 +584,32 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     OSM keine Geschosszahl, 56 % keine Nutzung („unbekannt“): Das verbessern später die LoD2-Daten.
   - Im Browser getestet: Beispiel, Live-Abfrage (ca. 50 s), alle Reiter, Handybreite 375 px.
   - Kronenüberdeckung zeigt „folgt“ (braucht die Kronengrößen aus topoexport).
-- [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): zuerst CityGML (ZIP, mehrere
-  Kacheln, Anzeige der benötigten Kacheln) und topoexport-DXF (binär), Verortung von Hand
+- [x] **Korrekturen nach Durchsicht** (16.11.2026):
+  - **3D-Modell im Beispiel Oldenburg eingebaut** (`dreid.js`, three.js 0.147): 1.437 amtliche LoD2-Gebäude
+    mit echten Dachformen (Wände weiß, Dächer hellgrau, feine Kanten), 986 Bäume aus OSM (Stamm + Krone,
+    Höhe aus der Krone geschätzt), Boden, roter Gebietsrahmen und Nordpfeil. Drehen, Zoomen, Verschieben,
+    „Ansicht zurücksetzen“. Außerhalb der LoD2-Kacheln stehen Ersatz-Klötze aus OSM (rötlich, Geschosse × 3 m).
+    Andere Gebiete bekommen nur Ersatz-Klötze.
+  - Daten: `data/beispiel-oldenburg-lod2.js` (2 MB, Kacheln 447_5887 und 447_5888, Koordinaten in dm),
+    erzeugt mit `werkzeuge/lod2_beispiel.py` aus den CityGML-Dateien. Umrechnung UTM 32 ↔ Grad mit proj4 (`lod2.js`).
+  - **Lageplan:** Gebäude hell mit dunklem Umriss, darauf die LoD2-Dachflächen **schattiert nach Neigung**
+    (Licht von Nordwesten, 45°). Ohne LoD2-Daten: helle Gebäude ohne Dachformen.
+  - **Straßen als Flächen mit Rand** statt als Strich: aus den OSM-Linien in typischer Breite (75 % des
+    Straßenraums), Ränder verschmelzen an Kreuzungen. Im Straßennetz nach Kategorie abgestuft (dunkel =
+    wichtig), schmale Wege gestrichelt. Im Lageplan einheitlich hell mit grauem Rand.
+  - **Google Maps / Apple Karten bewusst nicht verwendet:** Deren Bedingungen verbieten das Abzeichnen
+    und Herausziehen von Daten, außerdem bräuchten sie einen API-Key. Stattdessen später die amtlichen
+    Straßenflächen aus topoexport (LGLN, `TPX_ROADS_CONTOURS`/`_HATCH`).
+  - Legenden lassen sich per Klick auf den Titel einklappen.
+  - **Wichtig – topoexport:** Die aktuellen Dateien in Downloads (`topoexport-D8F988.zip`, 763 × 761 m,
+    Gelände 31–34 m, 863 Gebäude) zeigen **nicht** die Oldenburger Innenstadt (Abgleich mit den LoD2-Grundrissen
+    ergab keine Übereinstimmung). Die Angaben in 4b-2/4b-3 stammen aus einem früheren Export.
+    → Nutzer\*in exportiert die Oldenburger Innenstadt neu (gleicher Ausschnitt wie das Testgebiet).
+    Damit dann: Westrand-Gebäude aus topoexport-3D und amtliche Straßenflächen im Beispiel.
+- [ ] **Nächster Schritt:** neuer topoexport-Export einbauen (Westrand 3D, Straßenflächen), danach
+  Datei-Import und Detailstufen-Regel (Schritt 5): CityGML (ZIP, mehrere Kacheln, Anzeige der benötigten
+  Kacheln) und topoexport-DXF (binär, Bibliothek ezdxf in Python funktioniert), Verortung von Hand
 - [ ] Offen aus Schritt 3: Datenquellen prüfen (topoexport: Koordinaten des Ausschnitts, UTM-32-Export, Kosten)
-- [ ] Idee: Legende ein- und ausklappbar machen, damit sie auf kleinen Bildschirmen weniger vom Plan verdeckt
+- [x] Legende ein- und ausklappbar
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

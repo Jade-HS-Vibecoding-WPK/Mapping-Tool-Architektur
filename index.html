@@ -12,6 +12,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
   <!-- Wandelt OSM-Daten in GeoJSON um (das Format, das Karte und Turf verstehen) -->
   <script src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
+  <!-- Rechnet amtliche Koordinaten (UTM 32) in Längen-/Breitengrade um -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.11.0/proj4.js"></script>
+  <!-- 3D-Darstellung (three.js) mit Maussteuerung (OrbitControls) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -96,7 +101,13 @@
             <div><h3 id="plan-leer-titel">Schwarzplan</h3><p>Erscheint nach „Analysieren“. Wähle zuerst ein Gebiet oder lade das Beispiel Oldenburg.</p></div>
           </div>
         </section>
-        <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen. Folgt in einem späteren Schritt.</p></div></section>
+        <section class="view" data-view="3d">
+          <div id="dreid"></div>
+          <div class="plan-legende" id="dreid-legende"></div>
+          <div class="placeholder-box" id="dreid-leer">
+            <div><h3>3D-Modell</h3><p>Erscheint nach „Analysieren“. Im Beispiel Oldenburg mit amtlichen LoD2-Gebäuden (echte Dachformen) und Bäumen, sonst mit einfachen Klötzen aus OSM.</p></div>
+          </div>
+        </section>
         <section class="view" data-view="kennzahlen">
           <div class="kennzahlen" id="kennzahlen-inhalt">
             <div class="placeholder-box"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge und Nutzungen. Erscheinen nach „Analysieren“.</p></div></div>
@@ -109,6 +120,8 @@
   <script src="osm.js"></script>
   <script src="kennzahlen.js"></script>
   <script src="plaene.js"></script>
+  <script src="lod2.js"></script>
+  <script src="dreid.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -5,14 +5,18 @@ Ein Tool entwickeln, das Lagepläne, Schwarzpläne, 3D-Gebäude daten, Straßen 
 2D-Pläne aus OpenStreetMap funktionieren: Rechteck auf der Karte aufziehen, „Analysieren“ klicken,
 dann erscheinen Schwarzplan, Straßennetz, Grün, Lageplan und eine Kennzahlen-Tafel (GRZ/GFZ brutto
 und netto, Grünanteil, Straßenlängen, Nutzungen). Der Knopf „Beispiel Oldenburg laden“ nutzt
-eingebaute OSM-Daten der Oldenburger Innenstadt (`data/beispiel-oldenburg-osm.js`).
-3D-Modell, Datei-Import und Export folgen.
+eingebaute OSM-Daten der Oldenburger Innenstadt (`data/beispiel-oldenburg-osm.js`) und zeigt
+dazu ein 3D-Modell mit den amtlichen LoD2-Gebäuden (echte Dachformen) und Bäumen. Im Lageplan
+erscheinen die Dächer als schattierte Dachaufsicht, Straßen als Flächen mit Rand.
+Datei-Import und Export folgen.
 
 **Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
 `python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.
 
 **Quellen:** Kartendaten © OpenStreetMap-Mitwirkende, Lizenz ODbL
 (https://www.openstreetmap.org/copyright), abgefragt über die Overpass-API.
+3D-Gebäude: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN),
+3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)
 - [`UEBERGABE.md`](UEBERGABE.md): Zusammenfassung der bisherigen Sitzung für die Weiterarbeit in einem neuen Chat

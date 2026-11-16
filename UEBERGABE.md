@@ -31,13 +31,13 @@ Stand der Übergabe: 16.11.2026, Grundgerüst fertig.
 - Gearbeitet wurde im Zweig **`entwicklung`** mit 2 Commits über `main`:
   1. `Planung: PLAN.md und CLAUDE.md hinzufügen`
   2. `Grundgerüst: Karte von Oldenburg, Rechteck-Auswahl, Layout`
-- **Diese Commits sind NICHT auf GitHub.** Push wurde mit 403 abgelehnt, weil die **Claude GitHub
-  App für die Organisation „Jade-HS-Vibecoding-WPK“ nicht installiert** ist. Das Neuverbinden des
-  GitHub-Kontos hat nicht gereicht. Die Installation muss jemand vornehmen, der die Organisation
-  verwaltet (Kursbetreuung): https://github.com/apps/claude/installations/select_target
-- Die Nutzerin / der Nutzer hat den Stand als **ZIP** (`ortsanalyse_grundgeruest.zip`) bekommen. Wenn
-  die neue Sitzung die Dateien nicht im Repository findet, die ZIP hochladen lassen und deren Inhalt
-  ins Repository übernehmen.
+- **Der Zweig `entwicklung` ist auf GitHub.** Push hat nach anfänglichen 403-Fehlern funktioniert.
+  In der neuen Sitzung den Zweig `entwicklung` auschecken und dort weiterarbeiten. `main` enthält
+  nur den Anfangsstand. Für GitHub Pages muss `entwicklung` später nach `main` übernommen werden
+  (vorher mit der Nutzerin / dem Nutzer absprechen).
+- Falls ein Push wieder mit 403 scheitert: Die Claude GitHub App muss für die Organisation
+  „Jade-HS-Vibecoding-WPK“ installiert sein (https://github.com/apps/claude/installations/select_target).
+- Zur Sicherheit gibt es den Stand auch als **ZIP** (`ortsanalyse_grundgeruest.zip`).
 
 ## 3. Alle Entscheidungen (bestätigt)
 
@@ -145,8 +145,8 @@ Dateien im Repository: `index.html`, `style.css`, `app.js`, `PLAN.md`, `CLAUDE.m
 ## 6. Was die Nutzerin / der Nutzer in der neuen Sitzung bereithalten sollte
 
 1. Diese Datei (`UEBERGABE.md`).
-2. Den Projektstand: entweder ist der Zweig `entwicklung` inzwischen auf GitHub, oder die ZIP
-   `ortsanalyse_grundgeruest.zip` hochladen.
+2. Den Projektstand: Der Zweig `entwicklung` ist auf GitHub. Die neue Sitzung am besten mit dem
+   Repository `mapping-tool-architektur` starten. Die ZIP ist nur noch eine Sicherheitskopie.
 3. Für die Daten-Schritte die Beispieldateien erneut hochladen:
    `topoexport_2D_vectorial.dxf`, `topoexport_3D_modeling.dxf`, `LICENSE.txt` (topoexport) und die
    CityGML-Kacheln als **ZIP** (`LoD2_32_447_5887`, `LoD2_32_447_5888`, optional `446_5887`, `446_5888`).
@@ -170,7 +170,6 @@ Dateien im Repository: `index.html`, `style.css`, `app.js`, `PLAN.md`, `CLAUDE.m
 
 ## 8. Offene Punkte
 
-- **Push freischalten:** Claude GitHub App für die Organisation installieren (Kursbetreuung).
 - **Früh testen:** die topoexport-3D-DXF in Allplan 2024 und ArchiCAD 29 öffnen. Kommen MESH-Gebäude,
   Gelände und Bäume an? Daran entscheidet sich, ob der Export MESH oder 3DFACE schreibt. Den Test
   macht die Nutzerin / der Nutzer und schickt Screenshots.
@@ -182,6 +181,7 @@ Dateien im Repository: `index.html`, `style.css`, `app.js`, `PLAN.md`, `CLAUDE.m
 ## 9. Vorschlag für die erste Nachricht in der neuen Sitzung
 
 > Ich studiere Architektur und kann nicht programmieren. Erklär mir jeden Schritt einfach.
-> Im Anhang ist `UEBERGABE.md` aus meiner letzten Sitzung. Lies sie, dann `CLAUDE.md` und `PLAN.md`
-> im Projekt, und mach mit dem nächsten Schritt weiter: OSM-Daten laden und die 2D-Pläne.
+> Mein Projekt liegt im Repository `Jade-HS-Vibecoding-WPK/mapping-tool-architektur`, Zweig
+> `entwicklung`. Lies dort zuerst `UEBERGABE.md` aus meiner letzten Sitzung, dann `CLAUDE.md` und
+> `PLAN.md`, und mach mit dem nächsten Schritt weiter: OSM-Daten laden und die 2D-Pläne.
 > Stell mir erst Fragen, bevor du loslegst.

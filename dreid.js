@@ -188,11 +188,13 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
   d.startAnsicht = d.camera.position.clone();
 
   // Legende
-  const lod2Anzahl = lod2 ? lod2.length : 0;
+  const lod2Anzahl = lod2 ? lod2.filter((g) => g.quelle === "citygml").length : 0;
+  const topoAnzahl = lod2 ? lod2.filter((g) => g.quelle === "topoexport").length : 0;
   document.getElementById("dreid-legende").innerHTML = `
     <h3>3D-Modell</h3>
     <ul>
-      ${lod2Anzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäude LoD2, echte Dachformen (${fmt(lod2Anzahl)})</span></li>` : ""}
+      ${lod2Anzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäude LoD2 aus CityGML, echte Dachformen (${fmt(lod2Anzahl)})</span></li>` : ""}
+      ${topoAnzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäudeteile LoD2 aus topoexport, Westrand (${fmt(topoAnzahl)})</span></li>` : ""}
       ${ersatzAnzahl ? `<li><span class="lz lz-flaeche" style="background:#eac3b9"></span><span>Ersatz aus OSM, Geschosse × 3 m (${fmt(ersatzAnzahl)})</span></li>` : ""}
       ${liste.length ? `<li><span class="lz lz-kreis"></span><span>Einzelbaum, Höhe geschätzt (${fmt(liste.length)})</span></li>` : ""}
     </ul>

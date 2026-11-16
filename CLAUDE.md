@@ -19,7 +19,10 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   Umwandlung in GeoJSON mit osmtogeojson. Code-Aufteilung: `app.js` (Karte, Gebiet, Reiter, Ablauf),
   `osm.js` (Laden, Kategorien), `plaene.js` (2D-Pläne), `kennzahlen.js`, `lod2.js` (LoD2-Daten, proj4,
   Dachschattierung), `dreid.js` (3D mit three.js 0.147). Eingebaute Daten des Testgebiets:
-  `data/beispiel-oldenburg-osm.js` und `data/beispiel-oldenburg-lod2.js` (erzeugt mit `werkzeuge/lod2_beispiel.py`).
+  `data/beispiel-oldenburg-osm.js`, `data/beispiel-oldenburg-lod2.js` (erzeugt mit `werkzeuge/lod2_beispiel.py`,
+  danach ergänzt mit `werkzeuge/topoexport_beispiel.py`) und `data/beispiel-oldenburg-strassen.js`.
+- Richtige topoexport-Daten = Inhalt von `topoexport-D8F988.zip`. Die losen DXF-Dateien in Downloads zeigen einen
+  anderen Ort. Amtliche Straßenflächen enthalten nur das Hauptstraßennetz, Rest aus OSM.
 - Keine Daten aus Google Maps oder Apple Karten (Nutzungsbedingungen verbieten das Abzeichnen, API-Key nötig).
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).

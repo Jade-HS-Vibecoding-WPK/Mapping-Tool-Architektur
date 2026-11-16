@@ -246,13 +246,12 @@ async function analysiere(nurBeispiel = false) {
     meldung("Bereite Daten auf und berechne Kennzahlen …");
     await new Promise((r) => setTimeout(r, 30)); // kurz Luft holen, damit die Meldung erscheint
     const daten = bereiteAuf(rohdaten, bbox);
-    const kennzahlen = berechneKennzahlen(daten, bbox);
     const quelleText = `Quelle: © OpenStreetMap-Mitwirkende (ODbL), Datenstand ${datumText(daten.datenstand)} (${herkunft})`;
 
-    // Amtliche LoD2-Gebäude (Dachformen), wenn das Gebiet im Oldenburger Beispiel liegt
+    // Amtliche Daten (LoD2-Gebäude, Straßenflächen), wenn das Gebiet im Oldenburger Beispiel liegt
     let lod2Daten = null, lod2 = null, daecher = null;
     if (beruehrtBeispielgebiet(bbox)) {
-      meldung("Lade amtliche 3D-Gebäude (LoD2) …");
+      meldung("Lade amtliche 3D-Gebäude und Straßenflächen …");
       try {
         lod2Daten = await ladeBeispielLod2();
         lod2 = lod2Gebaeude(lod2Daten, bbox);
@@ -260,8 +259,18 @@ async function analysiere(nurBeispiel = false) {
       } catch (fehler) {
         console.warn("LoD2-Daten nicht verfügbar:", fehler);
       }
+      try {
+        const amtlich = await ladeBeispielStrassen();
+        daten.strassenAmtlich = strassenflaechenGeoJSON(amtlich, bbox);
+        // OSM-Straßen nur dort als Fläche zeichnen, wo keine amtliche Straßenfläche liegt
+        daten.strassenAussen = strassenAusserhalb(daten.strassen, daten.strassenAmtlich);
+      } catch (fehler) {
+        console.warn("Amtliche Straßenflächen nicht verfügbar:", fehler);
+      }
     }
-    const lgln = lod2 && lod2.length ? " · 3D-Gebäude: LGLN Niedersachsen, LoD2 (CC BY 4.0)" : "";
+    const kennzahlen = berechneKennzahlen(daten, bbox);
+    const lgln = (lod2 && lod2.length) || daten.strassenAmtlich
+      ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "";
 
     // 3. Anzeigen: zuerst den Schwarzplan
     // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)

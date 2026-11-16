@@ -25,17 +25,17 @@ const PLAN_FARBEN = {
   akzent: "#e2482d"
 };
 
-// Grautöne der Straßenflächen im Straßennetz-Plan (je wichtiger, desto dunkler)
-const STRASSEN_TOENE = { haupt: "#4a4a4a", neben: "#858585", wohn: "#c2c2c0", fuss: "#e4e4e1" };
+// Linienstärke der Straßenachsen im Straßennetz-Plan (Pixel bei Zoom 16, je wichtiger, desto dicker)
+const ACHSEN_STAERKE = { haupt: 3.4, neben: 2.0, wohn: 1.0 };
 
 // Welche Ebenen gehören zu welchem Plan?
 const PLAN_EBENEN = {
   schwarzplan: ["gebaeude-haupt", "gebaeude-neben", "rahmen"],
   strassen: ["gebaeude-hell", "verkehrsflaechen", "bahn-flaeche", "bahn", "strassen-rand", "strassen-flaeche",
-    "strasse-fuss", "rahmen"],
+    "strassen-amtlich", "strassen-amtlich-rand", "strasse-fuss", "achse-wohn", "achse-neben", "achse-haupt", "rahmen"],
   gruen: ["gebaeude-hell", "gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "baeume", "rahmen"],
   lageplan: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "verkehrsflaechen",
-    "strassen-rand", "strassen-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume",
+    "strassen-rand", "strassen-flaeche", "strassen-amtlich", "strassen-amtlich-rand", "weg-fein","bahn-flaeche", "bahn", "baeume",
     "gebaeude-lage", "gebaeude-neben-hell", "daecher", "gebaeude-umriss", "rahmen"]
 };
 
@@ -85,7 +85,8 @@ function erstellePlanKarte(bbox) {
 }
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
-const QUELLEN = ["gebaeude", "strassen", "bahn", "gruen", "wasserLinien", "baeume", "verkehrsflaechen", "daecher", "rahmen"];
+const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
+  "baeume", "verkehrsflaechen", "daecher", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -94,11 +95,14 @@ function ebenenAnlegen(breitengrad) {
     const optionen = { type: "geojson", data: leereSammlung };
     if (name === "gebaeude") optionen.attribution = osm; // Quellenangabe unten rechts
     if (name === "daecher") optionen.attribution = "Dächer: LGLN, 3D-Gebäudemodell LoD2 (CC BY 4.0)";
+    if (name === "strassenAmtlich") optionen.attribution = "Straßenflächen: LGLN, DLM (CC BY 4.0) über topoexport";
     k.addSource(name, optionen);
   }
   const filterKat = (kat) => ["==", ["get", "kategorie"], kat];
   const rund = { "line-cap": "round", "line-join": "round" };
   const rang = ["match", ["get", "kategorie"], "haupt", 4, "neben", 3, "wohn", 2, 1];
+  const achse = (kat) => ({ id: `achse-${kat}`, type: "line", source: "strassen", filter: filterKat(kat), layout: rund,
+    paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": mitZoom(ACHSEN_STAERKE[kat]) } });
   const ebenen = [
     // Grün und Wasser (Flächen)
     { id: "gruen-wiese", type: "fill", source: "gruen", filter: filterKat("wiese"), paint: { "fill-color": PLAN_FARBEN.wiese } },
@@ -114,13 +118,20 @@ function ebenenAnlegen(breitengrad) {
       paint: { "fill-color": PLAN_FARBEN.verkehrsflaeche, "fill-outline-color": PLAN_FARBEN.strasseRand } },
     // Straßen als Fläche mit Rand: erst alle Ränder (etwas breiter), dann alle Flächen darüber.
     // So verschmelzen Kreuzungen zu einer Fläche, und nur der äußere Rand bleibt als Linie stehen.
-    { id: "strassen-rand", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
+    // (Quelle „strassenOsmFlaeche“: OSM-Straßen außerhalb der amtlichen Straßenflächen)
+    { id: "strassen-rand", type: "line", source: "strassenOsmFlaeche", filter: STRASSE_ALS_FLAECHE, layout: rund,
       paint: { "line-color": PLAN_FARBEN.strasseRand,
         "line-width": inMetern(["+", ["*", ["get", "breite"], FAHRBAHN_FAKTOR], 1.0], breitengrad) } },
-    { id: "strassen-flaeche", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE,
+    { id: "strassen-flaeche", type: "line", source: "strassenOsmFlaeche", filter: STRASSE_ALS_FLAECHE,
       layout: { ...rund, "line-sort-key": rang },
       paint: { "line-color": PLAN_FARBEN.strasseLage,
         "line-width": inMetern(["*", ["get", "breite"], FAHRBAHN_FAKTOR], breitengrad) } },
+    // Amtliche Straßenflächen (genaue Ränder aus dem Landesamt)
+    { id: "strassen-amtlich", type: "fill", source: "strassenAmtlich", paint: { "fill-color": PLAN_FARBEN.strasseLage } },
+    { id: "strassen-amtlich-rand", type: "line", source: "strassenAmtlich",
+      paint: { "line-color": PLAN_FARBEN.strasseRand, "line-width": mitZoom(0.8) } },
+    // Straßenachsen nach Kategorie (nur im Straßennetz)
+    achse("wohn"), achse("neben"), achse("haupt"),
     // Schmale Wege: im Straßennetz schwarz gestrichelt, im Lageplan fein grau
     { id: "strasse-fuss", type: "line", source: "strassen", filter: ["!", STRASSE_ALS_FLAECHE],
       paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": mitZoom(0.7), "line-dasharray": [3, 2] } },
@@ -152,7 +163,8 @@ function ebenenAnlegen(breitengrad) {
 }
 
 // Legenden-Einträge pro Plan: [Art des Zeichens, Farbe/Stärke, Text, Schalter?]
-function legendeFuer(plan, k, mitDaechern) {
+function legendeFuer(plan, k, mitDaechern, amtlich) {
+  const strassenFlaeche = amtlich ? "Straßenfläche (amtlich, LGLN)" : "Straßenfläche (aus OSM, typische Breite)";
   const m = (wert) => `${fmt(wert)} m`;
   const kat = (key) => `${STRASSEN_KATEGORIEN[key]} · ${m(k.strassen[key])}`;
   switch (plan) {
@@ -161,11 +173,12 @@ function legendeFuer(plan, k, mitDaechern) {
       ["flaeche", PLAN_FARBEN.neben, `Nebengebäude, Überdachungen (${fmt(k.nebenAnzahl)})`, "neben"]
     ];
     case "strassen": return [
-      ["flaeche", STRASSEN_TOENE.haupt, kat("haupt")],
-      ["flaeche", STRASSEN_TOENE.neben, kat("neben")],
-      ["flaeche", STRASSEN_TOENE.wohn, kat("wohn")],
+      ["linie", ACHSEN_STAERKE.haupt, kat("haupt")],
+      ["linie", ACHSEN_STAERKE.neben, kat("neben")],
+      ["linie", ACHSEN_STAERKE.wohn, kat("wohn")],
       ["strich", PLAN_FARBEN.schwarz, kat("fuss")],
-      ["flaeche", STRASSEN_TOENE.fuss, "Fußgängerzone, Platz, Parkplatz"],
+      ["flaeche", "#e3e3e0", strassenFlaeche],
+      ["flaeche", PLAN_FARBEN.verkehrsflaeche, "Platz, Parkplatz"],
       ["strich", "#555555", "Bahn"]
     ];
     case "gruen": return [
@@ -180,7 +193,7 @@ function legendeFuer(plan, k, mitDaechern) {
         ? ["flaeche", "linear-gradient(135deg,#f6f6f4 0 50%,#9a9a98 50%)", "Gebäude, Dachaufsicht schattiert (LoD2)"]
         : ["flaeche", PLAN_FARBEN.gebaeudeLage, "Gebäude (Dachformen nur mit LoD2-Daten)"],
       ["flaeche", PLAN_FARBEN.nebenLage, "Nebengebäude, Überdachungen", "neben"],
-      ["flaeche", PLAN_FARBEN.strasseLage, "Straße, Platz (Fläche mit Rand)"],
+      ["flaeche", PLAN_FARBEN.strasseLage, strassenFlaeche],
       ["linie", 0.6, "Fuß- und Radweg"],
       ["strich", "#555555", "Bahn"],
       ["flaeche", PLAN_FARBEN.park, "Park, Garten, Friedhof"],
@@ -225,12 +238,13 @@ function zeigePlan(plan) {
     if (ebene.id === "papier") continue;
     planKarte.setLayoutProperty(ebene.id, "visibility", sichtbar.has(ebene.id) ? "visible" : "none");
   }
-  // Straßenflächen: im Straßennetz nach Kategorie abgestuft, im Lageplan einheitlich hell
-  planKarte.setPaintProperty("strassen-flaeche", "line-color", plan === "strassen"
-    ? ["match", ["get", "kategorie"], "haupt", STRASSEN_TOENE.haupt, "neben", STRASSEN_TOENE.neben,
-        "wohn", STRASSEN_TOENE.wohn, STRASSEN_TOENE.fuss]
-    : PLAN_FARBEN.strasseLage);
-  planKarte.setPaintProperty("strassen-rand", "line-color", plan === "strassen" ? PLAN_FARBEN.schwarz : PLAN_FARBEN.strasseRand);
+  // Straßenflächen: im Straßennetz etwas dunkler mit dunklem Rand (darauf die Achsen), im Lageplan hell
+  const imNetz = plan === "strassen";
+  const flaeche = imNetz ? "#e3e3e0" : PLAN_FARBEN.strasseLage, rand = imNetz ? "#6a6a6a" : PLAN_FARBEN.strasseRand;
+  planKarte.setPaintProperty("strassen-flaeche", "line-color", flaeche);
+  planKarte.setPaintProperty("strassen-amtlich", "fill-color", flaeche);
+  planKarte.setPaintProperty("strassen-rand", "line-color", rand);
+  planKarte.setPaintProperty("strassen-amtlich-rand", "line-color", rand);
   zeigeLegende();
 }
 
@@ -248,9 +262,12 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   for (const name of ["gebaeude", "strassen", "bahn", "gruen", "wasserLinien", "baeume", "verkehrsflaechen"]) {
     planKarte.getSource(name).setData(daten[name]);
   }
+  planKarte.getSource("strassenOsmFlaeche").setData(daten.strassenAussen || daten.strassen);
+  planKarte.getSource("strassenAmtlich").setData(daten.strassenAmtlich || leereSammlung);
   planKarte.getSource("daecher").setData(daecher || leereSammlung);
   planKarte.getSource("rahmen").setData(turf.bboxPolygon(bbox));
   const mitDaechern = !!(daecher && daecher.features.length);
-  for (const plan of Object.keys(PLAN_EBENEN)) planLegenden[plan] = legendeFuer(plan, kennzahlen, mitDaechern);
+  const amtlich = !!(daten.strassenAmtlich && daten.strassenAmtlich.features.length);
+  for (const plan of Object.keys(PLAN_EBENEN)) planLegenden[plan] = legendeFuer(plan, kennzahlen, mitDaechern, amtlich);
   zeigePlan(aktuellerPlan);
 }

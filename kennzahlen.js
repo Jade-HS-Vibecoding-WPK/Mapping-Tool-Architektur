@@ -59,7 +59,14 @@ function flaechenAnteile(daten, bbox, gebietM2) {
   daten.gruen.features.filter((f) => f.properties.kategorie === "wasser").forEach((f) => flaeche(f, "wasser"));
   daten.wasserLinien.features.forEach((f) => linie(f, "wasser", f.properties.breite));
   daten.verkehrsflaechen.features.forEach((f) => flaeche(f, "verkehr"));
-  daten.strassen.features.forEach((f) => linie(f, "verkehr", f.properties.breite));
+  if (daten.strassenAmtlich) {
+    // Amtliche Straßenflächen; OSM-Straßen nur außerhalb davon, schmale Wege überall
+    daten.strassenAmtlich.features.forEach((f) => flaeche(f, "verkehr"));
+    daten.strassenAussen.features.filter((f) => f.properties.breite >= 5).forEach((f) => linie(f, "verkehr", f.properties.breite));
+    daten.strassen.features.filter((f) => f.properties.breite < 5).forEach((f) => linie(f, "verkehr", f.properties.breite));
+  } else {
+    daten.strassen.features.forEach((f) => linie(f, "verkehr", f.properties.breite));
+  }
   daten.bahn.features.forEach((f) => (f.properties.art === "bahnflaeche" ? flaeche(f, "bahn") : linie(f, "bahn", f.properties.breite)));
   daten.gebaeude.features.forEach((f) => flaeche(f, f.properties.art === "neben" ? "neben" : "gebaeude"));
 
@@ -133,7 +140,8 @@ function berechneKennzahlen(daten, bbox) {
     strassen,
     strassenGesamt: Object.values(strassen).reduce((a, b) => a + b, 0),
     anteile,
-    nutzungen
+    nutzungen,
+    strassenAmtlich: !!daten.strassenAmtlich
   };
 }
 
@@ -230,9 +238,10 @@ function zeigeKennzahlen(k, quelle) {
     <section class="kz-block kz-breit">
       <h4>Flächenanteile</h4>
       ${balken(fa, k.gebietM2, (w) => prozent(w / k.gebietM2))}
-      <p class="kz-hinweis">Straßenflächen sind aus den OSM-Straßenlinien mit typischen Breiten geschätzt
-        (z. B. Hauptstraße 16–18 m, Wohnstraße 10 m, Fußweg 2,5 m). „Sonstige Freifläche“ sind Höfe, Gärten
-        und Plätze ohne eigene Kategorie.</p>
+      <p class="kz-hinweis">${k.strassenAmtlich
+        ? "Straßenflächen stammen aus den amtlichen Daten (LGLN, über topoexport), schmale Wege und Bereiche außerhalb sind aus OSM geschätzt."
+        : "Straßenflächen sind aus den OSM-Straßenlinien mit typischen Breiten geschätzt (z. B. Hauptstraße 16–18 m, Wohnstraße 10 m, Fußweg 2,5 m)."}
+        „Sonstige Freifläche“ sind Höfe, Gärten und Plätze ohne eigene Kategorie.</p>
     </section>
 
     <section class="kz-block kz-breit">

@@ -78,6 +78,7 @@ function farbschluessel(ansicht) {
       e.push(eintrag(farbfeld(FARBE.gruen), "Boden: Grün"));
       e.push(eintrag(farbfeld(FARBE.wasser), "Boden: Wasser"));
       e.push(eintrag(kreisfeld(FARBE.krone, FARBE.kroneRand), "Baum"));
+      if (gelaende) e.push(eintrag(linienfeld("#8a6d4b", 2), `Höhenlinie (alle ${d3 && d3.boden ? d3.boden.abstand : 1} m)`));
       break;
   }
   return e.join("");
@@ -117,7 +118,10 @@ function eckdaten(ansicht) {
     const hoehen = lod2Meta.map((m) => m.hoehe).filter((h) => h > 0);
     if (hoehen.length) zeilen.push(["Höchstes Gebäude", `${zahl(Math.max(...hoehen), 1)} m`]);
     if (k.hatOsm) zeilen.push(["Bäume", zahl(k.baeume)]);
-    zeilen.push(["Gelände", "flach angenommen"]);
+    zeilen.push(gelaende
+      ? ["Gelände", `${zahl(gelaende.min, 1)} bis ${zahl(gelaende.max, 1)} m ü. NHN`]
+      : ["Gelände", "flach angenommen"]);
+    if (gelaende && d3 && d3.ueberhoehung > 1) zeilen.push(["Überhöhung", `${zahl(d3.ueberhoehung, 1)}×`]);
   }
   return zeilen;
 }
@@ -126,6 +130,7 @@ function quellenzeile() {
   const q = ["© OpenStreetMap-Mitwirkende (ODbL)"];
   if (lod2Vorhanden) q.push(lod2Quelle.replace(/^LoD2: /, "Gebäude: "));
   if (alkisVorhanden) q.push(alkisQuelle);
+  if (gelaende) q.push(gelaendeQuelle);
   return q.join(" · ");
 }
 

@@ -521,6 +521,8 @@ function verwerfeDaten() {
   baumFeatures = [];
   alkisVorhanden = false;
   alkisQuelle = "";
+  gelaende = null;
+  gelaendeQuelle = "";
   osmFeatures = [];
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
@@ -532,6 +534,7 @@ function verwerfeDaten() {
   zeigeFehler("");
   zeigeLod2Status("");
   zeigeAlkisStatus("");
+  zeigeGelaendeStatus("");
 }
 
 // Stellt die Karte passend zum aktuellen Reiter ein
@@ -624,10 +627,16 @@ btnAnalyse.addEventListener("click", async () => {
   zeigeFehler("");
   zeigeLod2Status("");
   zeigeAlkisStatus("");
+  zeigeGelaendeStatus("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
 
+  // Das Gelände (Höhenmodell) laden wir ebenfalls gleich mit; es wird nur für das 3D-Modell gebraucht.
+  starteGelaende(rahmen, meineNummer).then((ergebnis) => {
+    if (!aktuell()) return;
+    wendeGelaendeAn(ergebnis);
+  });
   // Amtliche Straßenflächen und LoD2-Dächer laden gleichzeitig mit OpenStreetMap.
   // Jede Quelle zeigt ihr Ergebnis, sobald sie fertig ist, ohne auf die anderen zu warten.
   starteAlkis(rahmen, meineNummer).then((ergebnis) => {
@@ -1223,7 +1232,11 @@ function baueAbschnitte(k) {
 
   abschnitte.push({ titel: "Gebiet", zeilen: [
     ["Fläche", fm2(A), "Größe des gewählten Rechtecks"],
-    ["Breite × Höhe", `${zahl(k.breiteM)} × ${zahl(k.hoeheM)} m`, ""]
+    ["Breite × Höhe", `${zahl(k.breiteM)} × ${zahl(k.hoeheM)} m`, ""],
+    ...(typeof gelaende !== "undefined" && gelaende ? [
+      ["Geländehöhe", `${zahl(gelaende.min, 1)} bis ${zahl(gelaende.max, 1)} m`, "Über NHN, Höhenmodell DGM1 des LGLN, umschließendes Rechteck des Gebiets"],
+      ["Höhenunterschied", `${zahl(gelaende.max - gelaende.min, 1)} m`, ""]
+    ] : [])
   ] });
 
   if (k.hatOsm) {

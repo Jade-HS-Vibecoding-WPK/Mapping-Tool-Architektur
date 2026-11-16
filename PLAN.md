@@ -670,8 +670,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Wege kräftiger sandfarben, Plätze heller; Wasser dunkler blau; 3D-Dächer neutral grau, Ersatzblöcke deutlicher bläulich. Grün blieb unverändert.
   **Nicht geprüft:** Ob die neuen Farben dir gefallen (Geschmackssache, bitte ansehen), Handy, Farbsehschwäche. Die Eckdaten sind die Kennzahlen,
   also mit denselben Einschränkungen (siehe oben).
-- [ ] **Nächster Schritt:** Gelände im 3D (LGLN-Höhenmodell DGM1: Suche `https://dgm.stac.lgln.niedersachsen.de/search`, Kachel ca. 3,7 MB als
-  Cloud-Optimized GeoTIFF, per Range-Anfrage lesbar, Genauigkeit laut Metadaten 0,3 m, CORS offen; beides nur geprüft, nicht eingebaut),
-  danach Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff (README, Poster, GitHub Pages)
+- [x] **Gelände im 3D** (Branch `feature-osm-2d-plaene`, nur lokal): Neue Datei `gelaende.js` (GeoTIFF-Bibliothek geotiff.js 2.1.3 per CDN).
+  Das Tool sucht über `https://dgm.stac.lgln.niedersachsen.de/search` die Kacheln des 1-m-Höhenmodells (DGM1, pro Kachel die neueste Ausgabe),
+  liest per Teil-Anfrage nur das Stück des Rechtecks (meist unter 2 MB), setzt mehrere Kacheln zusammen und füllt Lücken. Im 3D gibt es jetzt
+  ein Höhenrelief (ca. 300 × 300 Punkte) mit dem Lageplan als Bild, Schummerung (verstärkt: Neigung mal 3, nur zur Lesbarkeit), Höhenlinien
+  (Abstand automatisch 1, 2, 5 oder 10 m, ein- und ausschaltbar), Überhöhung 1 bis 5× (nur Gelände, Gebäude werden mitgehoben und behalten
+  ihre Höhe). LoD2-Gebäude behalten ihre absoluten Höhen (NHN), Wandfüße sitzen 1 m unter dem Boden, OSM-Ersatzblöcke und Bäume stehen auf dem
+  Gelände. Kennzahlen: Geländehöhe und Höhenunterschied; Legende und Quellenangabe „Gelände: © GeoBasis-DE/LGLN <Jahr>, Daten geändert“.
+  **Getestet** (echte Daten): Oldenburg Innenstadt (1,5 bis 7,8 m, 2 Kacheln, Ausgabe 2021; 4-fach überhöht geprüft), Bad Harzburg 42 ha
+  (251 bis 291 m, 4 Kacheln, Ausgabe 2018, 3D-Bauzeit 2,2 s, Gebäude und Bäume sitzen sichtbar auf dem Hang), Hamburg (keine Höhendaten: flacher
+  Boden, Hinweis, Regler ausgeblendet).
+  **Nicht getestet:** Gebiete bis 1 km² mit starkem Relief (Tempo, Speicher), Handy, andere Browser, Genauigkeit der Höhenlinien (nur angesehen),
+  Spalten am Gebäudefuß bei sehr steilen Hängen (nur ein Hang gesehen). Gelände (Ausgaben 2015 bis 2021) und Gebäude (2024) stammen aus
+  verschiedenen Erhebungen.
+- [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
+  (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

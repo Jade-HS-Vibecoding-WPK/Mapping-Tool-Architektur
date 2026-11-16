@@ -102,23 +102,76 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
   const ecken = [[w, s], [o, s], [o, n], [w, n]].map(([lon, lat]) => gradZuUtm(lon, lat));
   const mitte = gradZuUtm((w + o) / 2, (s + n) / 2);
   const lokal = (e, nn) => [e - mitte[0], nn - mitte[1]];
+  const eckenLokal = ecken.map(([e, nn]) => lokal(e, nn));
+  const minX = Math.min(...eckenLokal.map((p) => p[0])), maxX = Math.max(...eckenLokal.map((p) => p[0]));
+  const minY = Math.min(...eckenLokal.map((p) => p[1])), maxY = Math.max(...eckenLokal.map((p) => p[1]));
 
-  // Boden und roter Gebietsrahmen
-  const bodenForm = new THREE.Shape(ecken.map(([e, nn]) => new THREE.Vector2(...lokal(e, nn))));
-  const boden = new THREE.Mesh(new THREE.ShapeGeometry(bodenForm), new THREE.MeshBasicMaterial({ color: DREID_FARBEN.boden }));
-  boden.position.z = -0.05;
-  d.gruppe.add(boden);
-  const rahmenPunkte = ecken.concat([ecken[0]]).map(([e, nn]) => new THREE.Vector3(...lokal(e, nn), 0.05));
+  // Gelände (wenn vorhanden): Höhe an jedem Punkt, bezogen auf den tiefsten Geländepunkt (z0)
+  const gelaende = lod2Daten && lod2Daten.gelaende;
+  let hoehe = () => 0, z0 = 0;
+  if (gelaende) {
+    const [vx, vy] = lokal(lod2Daten.nullpunkt[0], lod2Daten.nullpunkt[1]);
+    const g = gelaende;
+    z0 = Math.min(...g.z) / 10;
+    const zelle = (i, j) => g.z[Math.min(g.ny - 1, Math.max(0, j)) * g.nx + Math.min(g.nx - 1, Math.max(0, i))] / 10;
+    hoehe = (x, y) => { // bilineare Interpolation im Raster
+      const gx = Math.min(g.nx - 1.001, Math.max(0, (x - vx - g.x0) / g.dx));
+      const gy = Math.min(g.ny - 1.001, Math.max(0, (y - vy - g.y0) / g.dy));
+      const i = Math.floor(gx), j = Math.floor(gy), fx = gx - i, fy = gy - j;
+      const h = zelle(i, j) * (1 - fx) * (1 - fy) + zelle(i + 1, j) * fx * (1 - fy)
+        + zelle(i, j + 1) * (1 - fx) * fy + zelle(i + 1, j + 1) * fx * fy;
+      return h - z0;
+    };
+    // Geländefläche als Dreiecksnetz, genau auf das Gebiet zugeschnitten
+    const schritte = (a, b, start, d) => {
+      const werte = [a];
+      for (let v = start + Math.ceil((a - start) / d) * d; v < b; v += d) if (v > a) werte.push(v);
+      werte.push(b);
+      return werte;
+    };
+    const xs = schritte(minX, maxX, vx + g.x0, g.dx), ys = schritte(minY, maxY, vy + g.y0, g.dy);
+    const punkte = [], index = [];
+    for (const y of ys) for (const x of xs) punkte.push(x, y, hoehe(x, y));
+    for (let j = 0; j < ys.length - 1; j++) for (let i = 0; i < xs.length - 1; i++) {
+      const a = j * xs.length + i, b = a + 1, c = a + xs.length, dd = c + 1;
+      index.push(a, b, dd, a, dd, c);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(punkte, 3));
+    geo.setIndex(index);
+    geo.computeVertexNormals();
+    const flaeche = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0xecebe6, side: THREE.DoubleSide,
+      polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 }));
+    d.gruppe.add(flaeche);
+  } else {
+    // Ohne Geländedaten: flacher Boden
+    const bodenForm = new THREE.Shape(eckenLokal.map((p) => new THREE.Vector2(...p)));
+    const boden = new THREE.Mesh(new THREE.ShapeGeometry(bodenForm), new THREE.MeshBasicMaterial({ color: DREID_FARBEN.boden }));
+    boden.position.z = -0.05;
+    d.gruppe.add(boden);
+  }
+
+  // Roter Gebietsrahmen, auf das Gelände gelegt (alle 10 m ein Punkt)
+  const rahmenPunkte = [];
+  eckenLokal.forEach((p, i) => {
+    const q = eckenLokal[(i + 1) % 4];
+    const teile = Math.max(1, Math.round(Math.hypot(q[0] - p[0], q[1] - p[1]) / 10));
+    for (let k = 0; k <= teile; k++) {
+      const x = p[0] + (q[0] - p[0]) * k / teile, y = p[1] + (q[1] - p[1]) * k / teile;
+      rahmenPunkte.push(new THREE.Vector3(x, y, hoehe(x, y) + 0.3));
+    }
+  });
   d.gruppe.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(rahmenPunkte),
     new THREE.LineBasicMaterial({ color: DREID_FARBEN.akzent })));
 
-  // LoD2-Gebäude: Wände und Dächer getrennt sammeln
+  // LoD2-Gebäude: Wände und Dächer getrennt sammeln (mit Gelände: auf echter Höhe über NHN)
   const waende = [], daecher = [];
   if (lod2) {
     const [dx, dy] = lokal(lod2Daten.nullpunkt[0], lod2Daten.nullpunkt[1]);
     for (const g of lod2) {
+      const dz = gelaende ? g.basis - z0 : 0;
       for (const f of g.flaechen) {
-        const ringe = f.ringe.map((r) => r.map(([x, y, z]) => [x + dx, y + dy, z]));
+        const ringe = f.ringe.map((r) => r.map(([x, y, z]) => [x + dx, y + dy, z + dz]));
         flaecheInDreiecke(ringe, f.typ === "R" ? daecher : waende);
       }
     }
@@ -130,16 +183,17 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
   for (const f of osmGebaeude) {
     const mittelpunkt = turf.centroid(f).geometry.coordinates;
     if (lod2Daten && inLod2Abdeckung(lod2Daten, ...mittelpunkt)) continue;
-    const hoehe = f.properties.art === "neben" ? 3 : f.properties.geschosse * 3;
+    const klotzHoehe = f.properties.art === "neben" ? 3 : f.properties.geschosse * 3;
     const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
     for (const poly of polys) {
       const ringe = poly.map((r) => r.slice(0, -1).map(([lon, lat]) => lokal(...gradZuUtm(lon, lat))));
       if (ringe[0].length < 3) continue;
+      const boden = Math.min(...ringe[0].map((p) => hoehe(...p))); // tiefster Geländepunkt unter dem Klotz
       const form = new THREE.Shape(ringe[0].map((p) => new THREE.Vector2(...p)));
       form.holes = ringe.slice(1).map((r) => new THREE.Path(r.map((p) => new THREE.Vector2(...p))));
-      const geo = new THREE.ExtrudeGeometry(form, { depth: hoehe, bevelEnabled: false });
+      const geo = new THREE.ExtrudeGeometry(form, { depth: klotzHoehe, bevelEnabled: false });
       const pos = geo.toNonIndexed().attributes.position.array;
-      for (let i = 0; i < pos.length; i++) ersatz.push(pos[i]);
+      for (let i = 0; i < pos.length; i++) ersatz.push(i % 3 === 2 ? pos[i] + boden : pos[i]);
       geo.dispose();
     }
     ersatzAnzahl++;
@@ -166,8 +220,9 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
       const [x, y] = lokal(...gradZuUtm(...b.geometry.coordinates));
       const r = Math.min(8, Math.max(2, b.properties.kronenradius));
       const h = Math.max(6, r * 2.4); // Baumhöhe grob aus der Krone geschätzt
-      staemme.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, 0), new THREE.Quaternion(), new THREE.Vector3(1, 1, h - r)));
-      kronen.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, h - r), new THREE.Quaternion(), new THREE.Vector3(r, r, r * 0.9)));
+      const z = hoehe(x, y);          // Geländehöhe am Stamm
+      staemme.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(1, 1, h - r)));
+      kronen.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z + h - r), new THREE.Quaternion(), new THREE.Vector3(r, r, r * 0.9)));
     });
     d.gruppe.add(staemme, kronen);
   }
@@ -176,7 +231,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
   const nordY = Math.max(...ecken.map(([e, nn]) => lokal(e, nn)[1])) + 25;
   const pfeil = new THREE.Shape([new THREE.Vector2(0, 18), new THREE.Vector2(7, -6), new THREE.Vector2(0, 0), new THREE.Vector2(-7, -6)]);
   const nord = new THREE.Mesh(new THREE.ShapeGeometry(pfeil), new THREE.MeshBasicMaterial({ color: DREID_FARBEN.akzent }));
-  nord.position.set(0, nordY, 0.1);
+  nord.position.set(0, nordY, hoehe(0, nordY) + 0.1);
   d.gruppe.add(nord);
 
   // Kamera: schräg von Südwesten auf die Mitte
@@ -197,6 +252,8 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
       ${topoAnzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäudeteile LoD2 aus topoexport, Westrand (${fmt(topoAnzahl)})</span></li>` : ""}
       ${ersatzAnzahl ? `<li><span class="lz lz-flaeche" style="background:#eac3b9"></span><span>Ersatz aus OSM, Geschosse × 3 m (${fmt(ersatzAnzahl)})</span></li>` : ""}
       ${liste.length ? `<li><span class="lz lz-kreis"></span><span>Einzelbaum, Höhe geschätzt (${fmt(liste.length)})</span></li>` : ""}
+      ${gelaende ? `<li><span class="lz lz-flaeche" style="background:#ecebe6"></span><span>Gelände (LGLN über topoexport), ${fmt(z0, 1)} bis ${fmt(z0 + Math.max(...gelaende.z) / 10 - Math.min(...gelaende.z) / 10, 1)} m ü. NHN, nicht überhöht</span></li>`
+        : `<li><span class="lz lz-flaeche" style="background:#f4f4f2"></span><span>Boden flach (keine Geländedaten)</span></li>`}
     </ul>
     <p class="legende-hilfe">Ziehen: drehen · Rechte Maustaste: verschieben · Rad: zoomen</p>
     <button class="btn btn-klein" id="dreid-zurueck">Ansicht zurücksetzen</button>

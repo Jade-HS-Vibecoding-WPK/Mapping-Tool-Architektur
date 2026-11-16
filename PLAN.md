@@ -622,6 +622,14 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     standardmäßig ausgeblendet und per Häkchen in der Legende einblendbar (ohne LoD2-Daten immer sichtbar).
   - **Dachkanten fein nachgezeichnet** (First, Grate, Traufen). Dafür fasst `topoexport_beispiel.py` die
     Dach-Dreiecke im Westrand zu ganzen Dachflächen zusammen (1.968 Flächen), damit keine Dreieckskanten erscheinen.
+- [x] **Korrekturen Runde 3** (16.11.2026):
+  - Lageplan zeigt die Straßen genau wie das Straßennetz (breite Flächen, Grauton nach Kategorie, schwarzer
+    Rand). Die amtlichen Straßenflächen werden damit nur noch für die Netto-Rechnung genutzt.
+  - **Gelände im 3D-Modell:** Das Geländemodell aus topoexport (LGLN-DGM, 52 × 52 Punkte, ca. 20 m Raster,
+    −0,9 bis 8,3 m ü. NHN) steht als Raster in `data/beispiel-oldenburg-lod2.js` (`gelaende`). Die 3D-Ansicht
+    zeichnet es zugeschnitten aufs Gebiet; Gebäude stehen auf ihrer echten Bodenhöhe, Ersatz-Klötze und Bäume
+    auf der Geländehöhe, der rote Rahmen liegt auf dem Gelände. Nicht überhöht (Oldenburg ist sehr flach).
+    Ohne Geländedaten bleibt der flache Boden.
 - [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): CityGML (ZIP, mehrere Kacheln,
   Anzeige der benötigten Kacheln) und topoexport-DXF im Browser (binär), Verortung von Hand.
   Idee: die topoexport-Bäume (2756–4401, mit Kronengröße) statt der OSM-Bäume für Grün und 3D nutzen.

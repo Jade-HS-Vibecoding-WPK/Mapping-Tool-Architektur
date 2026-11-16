@@ -35,7 +35,7 @@ const PLAN_EBENEN = {
     "strasse-fuss", "rahmen"],
   gruen: ["gebaeude-hell", "gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "baeume", "rahmen"],
   lageplan: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "verkehrsflaechen",
-    "strassen-rand", "strassen-flaeche", "strassen-amtlich", "strassen-amtlich-rand", "weg-fein","bahn-flaeche", "bahn", "baeume",
+    "netz-rand", "netz-flaeche", "strasse-fuss", "bahn-flaeche", "bahn", "baeume",
     "gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"]
 };
 
@@ -173,7 +173,6 @@ function ebenenAnlegen(breitengrad) {
 
 // Legenden-Einträge pro Plan: [Art des Zeichens, Farbe/Stärke, Text, Schalter?]
 function legendeFuer(plan, k, amtlich) {
-  const strassenFlaeche = amtlich ? "Straßenfläche (amtlich, LGLN)" : "Straßenfläche (aus OSM, typische Breite)";
   const m = (wert) => `${fmt(wert)} m`;
   const kat = (key) => `${STRASSEN_KATEGORIEN[key]} · ${m(k.strassen[key])}`;
   switch (plan) {
@@ -204,8 +203,11 @@ function legendeFuer(plan, k, amtlich) {
         ["flaeche", PLAN_FARBEN.gebaeudeLage, "Gebäude (Dachformen nur mit LoD2-Daten)"],
         ["flaeche", PLAN_FARBEN.nebenLage, "Nebengebäude, Überdachungen", "neben"]
       ]),
-      ["flaeche", PLAN_FARBEN.strasseLage, strassenFlaeche],
-      ["linie", 0.6, "Fuß- und Radweg"],
+      ["flaeche", STRASSEN_TOENE.haupt, STRASSEN_KATEGORIEN.haupt],
+      ["flaeche", STRASSEN_TOENE.neben, STRASSEN_KATEGORIEN.neben],
+      ["flaeche", STRASSEN_TOENE.wohn, STRASSEN_KATEGORIEN.wohn],
+      ["flaeche", STRASSEN_TOENE.fuss, "Fußgängerzone, Platz, Parkplatz"],
+      ["strich", PLAN_FARBEN.schwarz, "Fuß- und Radweg"],
       ["strich", "#555555", "Bahn"],
       ["flaeche", PLAN_FARBEN.park, "Park, Garten, Friedhof"],
       ["flaeche", PLAN_FARBEN.wald, "Wald"],

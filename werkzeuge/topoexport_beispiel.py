@@ -134,6 +134,20 @@ def main(dxf2d, dxf3d):
     for e in msp3:
         if e.dxf.layer == "TPX_TERRAIN_TERRAIN_MESH" and e.dxftype() == "MESH":
             gelaende = [(v[0], v[1], v[2]) for v in e.vertices]
+    # Gelände als regelmäßiges Raster speichern (Höhen in dm über NHN), für die 3D-Ansicht
+    xs = sorted({round(p[0], 2) for p in gelaende}); ys = sorted({round(p[1], 2) for p in gelaende})
+    hoehen = {(round(p[0], 2), round(p[1], 2)): p[2] for p in gelaende}
+    if len(xs) * len(ys) == len(gelaende):
+        daten["gelaende"] = {
+            "x0": round(xs[0] + dx, 2), "y0": round(ys[0] + dy, 2),
+            "dx": round((xs[-1] - xs[0]) / (len(xs) - 1), 4), "dy": round((ys[-1] - ys[0]) / (len(ys) - 1), 4),
+            "nx": len(xs), "ny": len(ys),
+            "z": [round(hoehen[(x, y)] * 10) for y in ys for x in xs]  # zeilenweise von Süd nach Nord
+        }
+        print("Gelände:", len(xs), "x", len(ys), "Punkte, Höhe", min(p[2] for p in gelaende), "bis", max(p[2] for p in gelaende))
+    else:
+        print("Gelände ist kein regelmäßiges Raster, wird nicht gespeichert")
+
     def bodenhoehe(x, y):
         naechste = sorted(gelaende, key=lambda p: (p[0] - x) ** 2 + (p[1] - y) ** 2)[:4]
         gew = [1 / ((p[0] - x) ** 2 + (p[1] - y) ** 2 + 1) for p in naechste]

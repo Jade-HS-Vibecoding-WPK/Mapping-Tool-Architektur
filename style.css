@@ -137,6 +137,12 @@ html, body {
   background: var(--paper-soft);
 }
 
+/* Haken "LoD2 laden" */
+.check { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 12px; cursor: pointer; }
+.check input { margin-top: 3px; accent-color: var(--accent); }
+.check small { color: var(--ink-soft); }
+#lod2-status { margin: 8px 0 0; }
+
 /* ---------- Ablagefeld für Dateien (noch ohne Funktion) ---------- */
 .dropzone {
   border: 1px dashed var(--ink-soft);

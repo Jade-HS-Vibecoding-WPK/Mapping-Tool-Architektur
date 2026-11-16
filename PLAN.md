@@ -582,11 +582,32 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Prüfung Zusatzdaten (nur Recherche, nicht belegt):**
   - topoexport ist eine Web-Oberfläche mit Handauswahl, eine Abruf-Schnittstelle (API) wurde nicht gefunden: Datei-Import bleibt der Weg.
   - LGLN-LoD2 (CityGML) ist frei (CC BY 4.0 laut LGLN-Präsentation, Quellenvermerk „© GeoBasis-DE/LGLN Jahr“).
-    Der Download läuft über ein Web-Portal (ArcGIS Hub / Experience). Eine feste Download-Adresse pro Kachel
-    habe ich **nicht gefunden**, geratene Adressen lieferten 404. Ob ein Browser die ca. 57-MB-Kacheln direkt laden darf (CORS), ist **ungeprüft**.
+    **Automatischer Abruf geht (gefunden und getestet):** Der LGLN hat eine offizielle Suchschnittstelle (STAC):
+    `https://lod.stac.lgln.niedersachsen.de/search?collections=lod2&bbox=West,Süd,Ost,Nord`
+    liefert die benötigten Kacheln samt Download-Adresse, z. B.
+    `https://lod2.s3.eu-de.cloud-object-storage.appdomain.cloud/LoD2_32_447_5888_1_ni.gml` (ca. 57 MB, Stand der Kachel 03.09.2024).
+    Für das Oldenburger Testgebiet liefert die Suche die Kacheln `447_5888` und `447_5887`.
+    **Getestet aus dem Browser:** Suche und Teil-Download (HTTP 206, 200 KB per Range-Anfrage) klappen ohne Fehler (CORS offen).
+    **Ungeprüft:** vollständiger Download einer Kachel (57 MB) im Browser, Einlesen der CityGML-Datei (Dauer, Speicher),
+    Kachelnamen für Randgebiete (z. B. `446_…`).
+    Die Kachel ist ein CityGML-Dokument pro km², die Gebäude im Rechteck müssen wir herausfiltern (Aufgabe für den Import-Schritt).
+    Zusätzlich gibt es pro Kachel ein Shape-ZIP (`…/SHP/LoD2_…ni.zip`), das ist eine Alternative zum Einlesen.
   - Offen: ALKIS-Gebäude per WFS und Luftbild (Lizenz) nicht geprüft.
-  - Frage ans Team: Woher stammen die Kacheln `LoD2_32_447_5888_1_ni` (Download-Link)?
-- [ ] **Nächster Schritt:** Datei-Import (LoD2 CityGML, topoexport DXF) mit Beispieldateien, danach Dachformen im Lageplan
-  und mehr Details; dann Kennzahlen
+- [x] **LoD2-Dachformen im Lageplan** (Branch `feature-osm-2d-plaene`, nur lokal):
+  Haken „LoD2-Dachformen laden“ (standardmäßig an). Nach „Analysieren“ sucht das Tool über die LGLN-Schnittstelle (STAC)
+  die Kacheln, lädt sie in einem Hintergrundprogramm (`lod2-worker.js`, Datenstrom, nur Gebäude im Rechteck) parallel zu den
+  OSM-Daten, rechnet UTM 32 mit proj4 um und färbt jede Dachfläche nach Neigung und Himmelsrichtung (Licht von Nordwesten).
+  Wo LoD2 ein Gebäude hat, ersetzt es im Lageplan die helle OSM-Fläche (Zuordnung: Mittelpunkt einer Dachfläche liegt im OSM-Gebäude).
+  Schwarzplan, Straßennetz und Grün sind unverändert. Quellenvermerk „© GeoBasis-DE/LGLN 2024, Daten geändert“ wird angezeigt.
+  **Getestet** im Browser mit echten Daten (Oldenburg Innenstadt): 2 Kacheln = 97 MB in ca. 6 s geladen, kein Hängen der Seite
+  (gemessen), Rechteck 167 × 167 m: 103 Gebäude mit 585 Dachflächen, 86 von 88 OSM-Gebäuden ersetzt; Rechteck außerhalb
+  Niedersachsens (Hamburg) meldet „keine Daten“. Lageplan zeigt sichtbar First- und Traufkanten.
+  **Nicht getestet:** 1 km² (bis zu 4 Kacheln = ca. 230 MB, Speicher und Dauer unbekannt), Handy, andere Browser, Fehlerfall
+  LGLN-Server ausgefallen (nur der Code-Pfad), Gebäude auf Kachelgrenzen.
+  **Beobachtungen:** (1) Overpass war im Test wiederholt überlastet (502); bei Fehler von OSM wird LoD2 verworfen, obwohl es
+  nach ca. 8 s da wäre. (2) Der Plan zeigt LoD2 erst, wenn OSM fertig ist. Idee: Mit LoD2-Grundrissen schon nach wenigen Sekunden
+  einen Schwarzplan zeigen (nur Niedersachsen) und OSM danach ergänzen. (3) Kacheln könnten im Browser zwischengespeichert werden.
+  **Hinweis zum Start:** Das Hintergrundprogramm läuft nur über einen Webserver (GitHub Pages oder lokal), nicht per Doppelklick auf `index.html`.
+- [ ] **Nächster Schritt:** topoexport-Datei-Import (DXF), Kennzahlen, 3D mit den LoD2-Daten (die Dachflächen sind schon da)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

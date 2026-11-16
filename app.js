@@ -5,6 +5,7 @@
    3. Reiter (Tabs) für die Ansichten umschalten
    4. OpenStreetMap-Daten laden (Overpass) und einsortieren
    5. Pläne zeichnen: Schwarzplan, Straßennetz, Grün, Lageplan
+   6. LoD2-Dachformen vom LGLN laden (Hintergrundprogramm lod2-worker.js) und im Lageplan zeigen
    ============================================================ */
 
 const MAX_FLAECHE_M2 = 1_000_000; // höchstens 1 km²
@@ -350,6 +351,7 @@ const FARBE = {
   gebaeudeLageplan: "#e6e1d9",   // helle Dachfläche; echte Dachformen folgen mit LoD2
   nebenLageplan: "#cfcfcf",
   umriss: "#222222",
+  dachKante: "#4a4640",
   nebengebaeude: "#9a9a9a",
   kontext: "#ebebeb",
   gruen: "#cfe0c3",
@@ -378,7 +380,8 @@ const EBENEN = {
   strassen: ["strassen-linie"],
   baeume: ["baeume"],
   gebaeude: ["gebaeude-flaeche"],
-  umriss: ["gebaeude-umriss"]
+  umriss: ["gebaeude-umriss"],
+  dach: ["dach-flaeche", "dach-umriss"]   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
 };
 
 // Was zeigt welcher Reiter?
@@ -390,12 +393,15 @@ const ANSICHTEN = {
                  text: "Straßennetz: Linienstärke nach Straßenart." },
   gruen:       { basiskarte: false, ebenen: ["kontext", "gruen", "wasser", "baeume"],
                  text: "Grün und Wasser: Parks, Wiesen, Wald, Bäume, Gewässer." },
-  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude", "umriss"],
+  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude", "umriss", "dach"],
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Lageplan: alle Ebenen übereinander." }
 };
 
 let datenVorhanden = false;
+let lod2Vorhanden = false;   // sind LoD2-Dachflächen geladen?
+let osmFeatures = [];        // die einsortierten OSM-Objekte des aktuellen Gebiets
+let lod2Quelle = "";         // Quellenvermerk für die geladenen LoD2-Daten
 
 function legePlanEbenenAn() {
   map.addSource("osm-daten", { type: "geojson", data: leer });
@@ -423,6 +429,12 @@ function legePlanEbenenAn() {
   // Feiner Umriss um die Gebäude (nur im Lageplan sichtbar)
   map.addLayer({ id: "gebaeude-umriss", type: "line", source: quelle, layout: unsichtbar,
     filter: istKat("gebaeude", "nebengebaeude"), paint: { "line-color": FARBE.umriss, "line-width": 0.8 } });
+  // LoD2-Dachflächen: jede Dachfläche hat ihre eigene Farbe (nach Neigung und Himmelsrichtung schattiert)
+  map.addSource("lod2-dach", { type: "geojson", data: leer });
+  map.addLayer({ id: "dach-flaeche", type: "fill", source: "lod2-dach", layout: unsichtbar,
+    paint: { "fill-color": ["get", "farbe"] } });
+  map.addLayer({ id: "dach-umriss", type: "line", source: "lod2-dach", layout: unsichtbar,
+    paint: { "line-color": FARBE.dachKante, "line-width": 0.5 } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
   map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
     paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
@@ -441,11 +453,17 @@ function verwerfeDaten() {
   ladeNummer++; // eine noch laufende Abfrage wird damit ungültig
   btnAnalyse.textContent = "Analysieren";
   datenVorhanden = false;
+  stoppeLod2();
+  lod2Vorhanden = false;
+  lod2Quelle = "";
+  osmFeatures = [];
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
+    map.getSource("lod2-dach").setData(leer);
     map.getSource("maske").setData(leer);
   }
   zeigeFehler("");
+  zeigeLod2Status("");
 }
 
 // Stellt die Karte passend zum aktuellen Reiter ein
@@ -468,6 +486,14 @@ function wendeAnsichtAn() {
   map.setPaintProperty("gebaeude-flaeche", "fill-color",
     ["match", ["get", "kat"], "nebengebaeude", einstellung.neben || FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
 
+  // Im Lageplan zeichnen wir Gebäude, für die LoD2-Dächer da sind, nicht doppelt (als OSM-Fläche).
+  // In den anderen Plänen bleiben alle OSM-Gebäude.
+  const gebaeudeFilter = aktuelleAnsicht === "lageplan" && lod2Vorhanden
+    ? ["all", istKat("gebaeude", "nebengebaeude"), ["==", ["coalesce", ["get", "lod2"], 0], 0]]
+    : istKat("gebaeude", "nebengebaeude");
+  map.setFilter("gebaeude-flaeche", gebaeudeFilter);
+  map.setFilter("gebaeude-umriss", gebaeudeFilter);
+
   // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
   map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : 0.08);
   map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#e2482d");
@@ -482,7 +508,9 @@ function wendeAnsichtAn() {
       : "Noch kein Gebiet. Wähle im Reiter „Karte“ ein Rechteck und klicke dann auf „Analysieren“.";
   }
   hinweis.hidden = !(imPlan && !datenVorhanden);
-  document.getElementById("map-source").hidden = !(imPlan && datenVorhanden);
+  const quellen = document.getElementById("map-source");
+  quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "");
+  quellen.hidden = !(imPlan && datenVorhanden);
 }
 
 // ---------- „Analysieren“ ----------
@@ -497,21 +525,27 @@ function zeigeFehler(text) {
 btnAnalyse.addEventListener("click", async () => {
   if (!gebiet || turf.area(gebiet) > MAX_FLAECHE_M2) return;
   const meineNummer = ++ladeNummer;
+  stoppeLod2(); // ein noch laufender LoD2-Abruf vom letzten Mal wird beendet
   const [west, sued, ost, nord] = turf.bbox(gebiet);
   const rahmen = gebiet;
 
   zeigeFehler("");
+  zeigeLod2Status("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden von OpenStreetMap geladen. Das kann bis zu einer Minute dauern.";
 
+  // Die LoD2-Dachformen laden wir gleichzeitig mit den OSM-Daten, das spart Wartezeit.
+  const lod2Ergebnis = chkLod2.checked ? starteLod2(rahmen, meineNummer) : null;
+
+  let features;
   try {
     const roh = await holeOsmDaten(sued, west, nord, ost);
     if (meineNummer !== ladeNummer) return; // inzwischen anderes Gebiet gewählt oder gelöscht
 
     const umgewandelt = osmtogeojson(roh);
     const zaehler = { gebaeude: 0, nebengebaeude: 0, strasse: 0, gruen: 0, wasser: 0, wasserlinie: 0, baum: 0 };
-    const features = [];
+    features = [];
     for (const f of umgewandelt.features) {
       const k = kategorisiere(f);
       if (!k) continue;
@@ -521,9 +555,12 @@ btnAnalyse.addEventListener("click", async () => {
     if (!features.length) {
       analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
       zeigeFehler("In diesem Gebiet gibt es in OpenStreetMap keine passenden Daten. Wähle ein anderes Gebiet.");
+      stoppeLod2();
+      zeigeLod2Status("");
       return;
     }
 
+    osmFeatures = features;
     map.getSource("osm-daten").setData({ type: "FeatureCollection", features });
     map.getSource("maske").setData(maskeFuer(rahmen));
     datenVorhanden = true;
@@ -537,10 +574,196 @@ btnAnalyse.addEventListener("click", async () => {
     if (meineNummer !== ladeNummer) return;
     analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
     zeigeFehler(fehler.message);
+    stoppeLod2();
+    zeigeLod2Status("");
+    return;
   } finally {
     if (meineNummer === ladeNummer) {
       btnAnalyse.textContent = "Analysieren";
       btnAnalyse.disabled = !gebiet || turf.area(gebiet) > MAX_FLAECHE_M2;
     }
   }
+
+  // OSM steht. Jetzt auf die LoD2-Dachformen warten (falls gewünscht) und im Lageplan ergänzen.
+  if (lod2Ergebnis) {
+    const ergebnis = await lod2Ergebnis;
+    if (meineNummer !== ladeNummer) return;
+    wendeLod2An(ergebnis);
+  }
 });
+
+// ---------- 6. LoD2: Dachformen der amtlichen 3D-Gebäudemodelle ----------
+// Der LGLN (Landesvermessung Niedersachsen) stellt die Gebäude als 1-km-Kacheln frei zur Verfügung.
+// Eine offizielle Suchschnittstelle (STAC) sagt uns, welche Kacheln unser Rechteck berühren.
+const STAC_SUCHE = "https://lod.stac.lgln.niedersachsen.de/search";
+const chkLod2 = document.getElementById("chk-lod2");
+const lod2StatusFeld = document.getElementById("lod2-status");
+let lod2Worker = null;
+
+// UTM Zone 32 (ETRS89): das Koordinatensystem der amtlichen Daten, Einheit Meter
+proj4.defs("EPSG:25832", "+proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs +type=crs");
+const utmWandler = proj4("EPSG:4326", "EPSG:25832");
+
+function zeigeLod2Status(text) {
+  lod2StatusFeld.textContent = text;
+  lod2StatusFeld.hidden = !text;
+}
+
+function stoppeLod2() {
+  if (lod2Worker) { lod2Worker.terminate(); lod2Worker = null; }
+}
+
+async function sucheLod2Kacheln([west, sued, ost, nord]) {
+  const bbox = [west, sued, ost, nord].map((z) => z.toFixed(6)).join(",");
+  const antwort = await fetch(`${STAC_SUCHE}?collections=lod2&limit=20&bbox=${bbox}`);
+  if (!antwort.ok) throw new Error(`Die Suche beim LGLN meldet Fehler ${antwort.status}`);
+  const daten = await antwort.json();
+  return (daten.features || [])
+    .map((f) => ({
+      id: f.id,
+      url: f.assets && f.assets["lod2-gml"] && f.assets["lod2-gml"].href,
+      jahr: ((f.properties && f.properties.datetime) || "").slice(0, 4)
+    }))
+    .filter((k) => k.url);
+}
+
+// Startet das Hintergrundprogramm und gibt die Gebäude zurück (Liste von Gebäuden mit Dachflächen)
+function leseLod2(kacheln, utmBox, bericht) {
+  return new Promise((fertig, fehler) => {
+    const worker = new Worker("lod2-worker.js");
+    lod2Worker = worker;
+    worker.onmessage = (e) => {
+      const d = e.data;
+      if (d.typ === "fortschritt") bericht(d);
+      else if (d.typ === "fertig") { worker.terminate(); if (lod2Worker === worker) lod2Worker = null; fertig(d.gebaeude); }
+      else if (d.typ === "fehler") { worker.terminate(); if (lod2Worker === worker) lod2Worker = null; fehler(new Error(d.text)); }
+    };
+    worker.onerror = (e) => { worker.terminate(); if (lod2Worker === worker) lod2Worker = null; fehler(new Error(e.message || "Hintergrundprogramm abgestürzt")); };
+    worker.postMessage({ kacheln: kacheln.map(({ id, url }) => ({ id, url })), bbox: utmBox });
+  });
+}
+
+// Sucht die Kacheln, lädt sie und liefert { gebaeude, jahr } oder { keine } oder { fehler }. Wirft nie.
+async function starteLod2(rahmen, nummer) {
+  try {
+    zeigeLod2Status("LoD2: Suche passende Kacheln beim LGLN …");
+    const [west, sued, ost, nord] = turf.bbox(rahmen);
+    const kacheln = await sucheLod2Kacheln([west, sued, ost, nord]);
+    if (nummer !== ladeNummer) return { abgebrochen: true };
+    if (!kacheln.length) return { keine: true };
+
+    const ecken = [[west, sued], [west, nord], [ost, sued], [ost, nord]].map((e) => utmWandler.forward(e));
+    const xs = ecken.map((e) => e[0]), ys = ecken.map((e) => e[1]);
+    const utmBox = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+
+    const gebaeude = await leseLod2(kacheln, utmBox, (p) => {
+      if (nummer !== ladeNummer) return;
+      const prozent = p.gesamt ? Math.round((p.geladen / p.gesamt) * 100) : 0;
+      zeigeLod2Status(`LoD2: ${prozent} % von ${p.kacheln} Kachel${p.kacheln > 1 ? "n" : ""} geladen (${zahl(p.geladen / 1e6, 0)} MB), ${zahl(p.gebaeude)} Gebäude im Gebiet gefunden …`);
+    });
+    const jahre = kacheln.map((k) => k.jahr).filter(Boolean).sort();
+    return { gebaeude, jahr: jahre[jahre.length - 1] || "", kacheln: kacheln.length };
+  } catch (fehler) {
+    return { fehler: fehler.message };
+  }
+}
+
+// ----- Dachflächen aufbereiten -----
+// Wir beleuchten jede Dachfläche gedanklich von Nordwesten (wie bei Geländeschummerung in Karten):
+// zur Sonne geneigte Flächen werden hell, abgewandte dunkel, Flachdächer liegen dazwischen.
+const LICHT = [-0.5, 0.5, Math.SQRT1_2];
+const DACH_DUNKEL = [143, 138, 130];
+const DACH_HELL = [244, 241, 236];
+
+// Senkrechte Richtung der Fläche (nach oben zeigend), aus den 3D-Eckpunkten [x, y, z, x, y, z, ...]
+function flaechenNormale(ring) {
+  let nx = 0, ny = 0, nz = 0;
+  const n = ring.length / 3;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const x1 = ring[i * 3], y1 = ring[i * 3 + 1], z1 = ring[i * 3 + 2];
+    const x2 = ring[j * 3], y2 = ring[j * 3 + 1], z2 = ring[j * 3 + 2];
+    nx += (y1 - y2) * (z1 + z2);
+    ny += (z1 - z2) * (x1 + x2);
+    nz += (x1 - x2) * (y1 + y2);
+  }
+  const laenge = Math.hypot(nx, ny, nz) || 1;
+  const vorzeichen = nz < 0 ? -1 : 1;
+  return [vorzeichen * nx / laenge, vorzeichen * ny / laenge, vorzeichen * nz / laenge];
+}
+
+function dachFarbe(normale) {
+  const licht = normale[0] * LICHT[0] + normale[1] * LICHT[1] + normale[2] * LICHT[2];
+  const t = Math.min(1, Math.max(0, (licht - 0.1) / 0.9));
+  const kanal = (i) => Math.round(DACH_DUNKEL[i] + (DACH_HELL[i] - DACH_DUNKEL[i]) * t);
+  return `rgb(${kanal(0)}, ${kanal(1)}, ${kanal(2)})`;
+}
+
+// Macht aus den UTM-Dachflächen Karten-Flächen (Längen-/Breitengrad) mit Farbe.
+// Gibt außerdem je Fläche einen Mittelpunkt zurück, mit dem wir die passenden OSM-Gebäude finden.
+function baueDachflaechen(gebaeudeListe) {
+  const features = [];
+  const mittelpunkte = [];
+  for (const g of gebaeudeListe) {
+    for (const ringe of g.flaechen) {
+      const normale = flaechenNormale(ringe[0]);
+      if (normale[2] < 0.05) continue; // fast senkrecht: von oben nicht zu sehen
+      const koordinaten = ringe.map((ring) => {
+        const punkte = [];
+        for (let i = 0; i < ring.length; i += 3) punkte.push(utmWandler.inverse([ring[i], ring[i + 1]]));
+        return punkte;
+      });
+      features.push({ type: "Feature", properties: { farbe: dachFarbe(normale) },
+        geometry: { type: "Polygon", coordinates: koordinaten } });
+      const aussen = koordinaten[0];
+      const n = Math.max(1, aussen.length - 1); // letzter Punkt ist gleich dem ersten
+      let lon = 0, lat = 0;
+      for (let i = 0; i < n; i++) { lon += aussen[i][0]; lat += aussen[i][1]; }
+      mittelpunkte.push([lon / n, lat / n]);
+    }
+  }
+  return { features, mittelpunkte };
+}
+
+// Markiert OSM-Gebäude, auf denen mindestens eine LoD2-Dachfläche liegt, mit lod2 = 1
+function markiereOsmGebaeude(mittelpunkte) {
+  const gebaeude = osmFeatures
+    .filter((f) => f.properties.kat === "gebaeude" || f.properties.kat === "nebengebaeude")
+    .map((f) => ({ f, bb: turf.bbox(f) }));
+  let markiert = 0;
+  for (const [lon, lat] of mittelpunkte) {
+    for (const g of gebaeude) {
+      if (g.f.properties.lod2 === 1) continue;
+      const [w, s, o, n] = g.bb;
+      if (lon < w || lon > o || lat < s || lat > n) continue;
+      if (turf.booleanPointInPolygon([lon, lat], g.f)) { g.f.properties.lod2 = 1; markiert++; }
+    }
+  }
+  return markiert;
+}
+
+function wendeLod2An(ergebnis) {
+  if (ergebnis.abgebrochen) return;
+  if (ergebnis.fehler) {
+    zeigeLod2Status(`LoD2 konnte nicht geladen werden (${ergebnis.fehler}). Der Lageplan nutzt die OpenStreetMap-Gebäude.`);
+    return;
+  }
+  if (ergebnis.keine) {
+    zeigeLod2Status("LoD2: Für dieses Gebiet gibt es keine amtlichen Daten (nur Niedersachsen). Es bleibt bei OpenStreetMap.");
+    return;
+  }
+  if (!ergebnis.gebaeude.length) {
+    zeigeLod2Status("LoD2: Im Gebiet wurden keine Gebäude gefunden. Es bleibt bei OpenStreetMap.");
+    return;
+  }
+  const { features, mittelpunkte } = baueDachflaechen(ergebnis.gebaeude);
+  const ersetzt = markiereOsmGebaeude(mittelpunkte);
+  map.getSource("lod2-dach").setData({ type: "FeatureCollection", features });
+  map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
+  lod2Vorhanden = true;
+  lod2Quelle = `LoD2: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
+  zeigeLod2Status(
+    `LoD2 geladen: ${zahl(ergebnis.gebaeude.length)} Gebäude mit ${zahl(features.length)} Dachflächen, ` +
+    `davon ersetzen ${zahl(ersetzt)} OSM-Gebäude im Lageplan. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
+  wendeAnsichtAn();
+}

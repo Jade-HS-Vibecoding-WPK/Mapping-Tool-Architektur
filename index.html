@@ -12,6 +12,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
   <!-- Wandelt die Rohdaten von OpenStreetMap in Flächen und Linien um, die die Karte zeichnen kann -->
   <script src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
+  <!-- Rechnet zwischen Längen/Breitengrad und den UTM-Koordinaten der amtlichen Daten um -->
+  <script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -44,6 +46,10 @@
       <section class="step">
         <h2><span class="num">02</span> Daten</h2>
         <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
+        <label class="check" for="chk-lod2">
+          <input type="checkbox" id="chk-lod2" checked>
+          <span>LoD2-Dachformen laden <small>(amtliche 3D-Gebäude des LGLN, nur Niedersachsen, ca. 60 bis 230 MB Download)</small></span>
+        </label>
         <div class="dropzone is-disabled" aria-disabled="true">
           Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
         </div>
@@ -54,6 +60,7 @@
       <section class="step step-main">
         <button id="btn-analyse" class="btn btn-primary btn-block" disabled>Analysieren</button>
         <p class="hint" id="analyse-hint">Zuerst ein Gebiet wählen.</p>
+        <p class="hint" id="lod2-status" hidden></p>
         <p class="warning" id="analyse-fehler" role="alert" hidden></p>
       </section>
 

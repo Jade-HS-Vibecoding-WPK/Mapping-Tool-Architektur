@@ -90,6 +90,7 @@
           <div id="map"></div>
           <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
           <div class="map-hint" id="plan-hint" hidden></div>
+          <div class="legende" id="legende-karte"></div>
           <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
@@ -103,6 +104,7 @@
             <label class="d3-check"><input type="checkbox" id="d3-baeume" checked> Bäume</label>
             <button class="btn" id="d3-png" type="button">Bild speichern</button>
           </div>
+          <div class="legende legende-3d" id="legende-3d" hidden></div>
           <div class="map-hint" id="d3-hinweis" hidden></div>
           <div class="d3-info" id="d3-info"></div>
         </section>
@@ -119,5 +121,6 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
   <script src="app.js"></script>
   <script src="ansicht3d.js"></script>
+  <script src="legende.js"></script>
 </body>
 </html>

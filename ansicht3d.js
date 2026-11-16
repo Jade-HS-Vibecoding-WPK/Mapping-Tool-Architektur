@@ -16,10 +16,8 @@
 
 const D3_GESCHOSSHOEHE_M = 3;
 const D3_FARBEN = {
-  hintergrund: "#f6f5f2",
-  wand: "#e8e6e1", dach: "#a9a39a",
-  ersatzWand: "#d3d9df", ersatzDach: "#c2cbd3",
-  stamm: "#6b5a46", krone: "#8fb67e", kroneNadel: "#6f9a7a"
+  ...FARBE.d3,
+  krone: FARBE.krone, kroneNadel: FARBE.kroneNadel
 };
 
 const d3Buehne = document.getElementById("d3-buehne");
@@ -169,7 +167,7 @@ function d3BodenMaterial(xmin, ymin, B, H, mass) {
   leinwand.width = Math.max(16, Math.round(B * mass));
   leinwand.height = Math.max(16, Math.round(H * mass));
   const ctx = leinwand.getContext("2d");
-  ctx.fillStyle = "#eeece7";
+  ctx.fillStyle = D3_FARBEN.boden;
   ctx.fillRect(0, 0, leinwand.width, leinwand.height);
   ctx.lineJoin = "round";
   const pt = (lonlat) => {
@@ -180,16 +178,16 @@ function d3BodenMaterial(xmin, ymin, B, H, mass) {
   const osm = (kat) => osmFeatures.filter((f) => f.properties.kat === kat);
   const amtlich = (...arten) => alkisFlaechen.filter((f) => arten.includes(f.properties.kat));
 
-  flaechen(osm("gruen").concat(amtlich("gehoelz", "wald")), "#cfe0c3");
-  flaechen(osm("wasser"), "#bcd5e6");
-  ctx.strokeStyle = "#bcd5e6";
+  flaechen(osm("gruen").concat(amtlich("gehoelz", "wald")), FARBE.gruen);
+  flaechen(osm("wasser"), FARBE.wasser);
+  ctx.strokeStyle = FARBE.wasser;
   osm("wasserlinie").forEach((f) => { ctx.lineWidth = (WASSER_BREITE_SCHAETZUNG[f.properties.typ] || 2) * mass; zeichneLinie(ctx, pt, f.geometry); });
   if (alkisVorhanden) {
-    flaechen(amtlich("strasse"), "#c4c4c4");
-    flaechen(amtlich("weg"), "#e4e0d8");
-    flaechen(amtlich("platz"), "#ece8e0");
+    flaechen(amtlich("strasse"), FARBE.plan.fahrbahn);
+    flaechen(amtlich("weg"), FARBE.plan.weg);
+    flaechen(amtlich("platz"), FARBE.plan.platz);
   } else {
-    ctx.strokeStyle = "#c4c4c4";
+    ctx.strokeStyle = FARBE.plan.fahrbahn;
     osm("strasse").forEach((f) => { ctx.lineWidth = (STRASSENBREITE_SCHAETZUNG[f.properties.typ] || 4) * mass; zeichneLinie(ctx, pt, f.geometry); });
   }
   // Rahmen des gewählten Gebiets
@@ -301,6 +299,8 @@ function d3Baue() {
   d3.baeume = baeume;
   d3.szene.add(gruppe);
   d3.ausdehnung = Math.max(B, H) * 1.15;
+  d3.lod2Anzahl = lod2Gebaeude.length;
+  d3.ersatzAnzahl = ersatzAnzahl;
 
   const lod2Anzahl = lod2Gebaeude.length;
   const baumAnzahl = baumFeatures.filter((f) => f.properties.form === "stamm").length;
@@ -315,6 +315,7 @@ function d3Baue() {
   d3.quellenText = "Ortsanalyse 3D · " + quellen.join(" · ") + " · nicht vermessungsgenau";
 
   d3SetzeAnsicht("schraeg");
+  if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
 // ----- Aufruf aus app.js -----

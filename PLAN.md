@@ -659,6 +659,17 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Die Kennzahlen nahmen deshalb vorher die Gebäudehöhe (First) statt der Traufhöhe als Geschosshöhe. Seit der Korrektur: mittlere Geschosszahl im
   91-ha-Gebiet 3,2 (vorher ca. 3,6 in einem anderen Gebiet), GFZ brutto 1,07. Die früher in diesem Plan genannten Werte (GFZ 1,23 und 2,28)
   sind damit zu hoch gewesen.
-- [ ] **Nächster Schritt:** topoexport-Import (DXF), dann Feinschliff (README, Poster, GitHub Pages)
+- [x] **Legende und Farben** (Branch `feature-osm-2d-plaene`, nur lokal): Neue Datei `legende.js`. In jedem Karten-Reiter und im 3D gibt es eine
+  ein- und ausblendbare Legende (Knopf „Legende“, Zustand wird im Browser gemerkt; auf niedrigen Bildschirmen startet sie zugeklappt) mit
+  Farbschlüssel der sichtbaren Ebenen und Eckdaten aus den Kennzahlen (z. B. Gebiet, Gebäude, GRZ/GFZ, Verkehr, Grün, Kronenüberdeckung, im 3D
+  Anzahl LoD2/Ersatz, höchstes Gebäude) plus Quellenangabe. Alle Farben stehen jetzt zentral in `FARBE` (app.js) und werden von Karte, Legende
+  und 3D gelesen. Überarbeitet: Grün (kräftiger), Wasser (klareres Blau), Baumkronen (dunklerer Rand), Lageplan (mehr Kontrast bei Dächern,
+  Fahrbahn kühl-grau, Gehweg und Platz warm-sandfarben), 3D (helle Wände, wärmere dunklere Dächer, kräftigerer Boden). Schwarzplan unverändert.
+  **Getestet** (echte Daten, Oldenburg): Legende in Karte, Schwarzplan, Straßennetz, Grün, Lageplan und 3D, Zuklappen und Öffnen, Merken.
+  **Nicht geprüft:** Ob die neuen Farben dir gefallen (Geschmackssache, bitte ansehen), Handy, Farbsehschwäche. Die Eckdaten sind die Kennzahlen,
+  also mit denselben Einschränkungen (siehe oben).
+- [ ] **Nächster Schritt:** Gelände im 3D (LGLN-Höhenmodell DGM1: Suche `https://dgm.stac.lgln.niedersachsen.de/search`, Kachel ca. 3,7 MB als
+  Cloud-Optimized GeoTIFF, per Range-Anfrage lesbar, Genauigkeit laut Metadaten 0,3 m, CORS offen; beides nur geprüft, nicht eingebaut),
+  danach Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

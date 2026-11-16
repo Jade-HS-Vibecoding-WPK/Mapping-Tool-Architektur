@@ -218,6 +218,7 @@ function zeigeAnsicht(ziel) {
   }
   if (ziel === "kennzahlen") aktualisiereKennzahlen();
   if (ziel === "3d") aktualisiere3D();
+  if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -363,23 +364,33 @@ function kategorisiere(feature) {
 }
 
 // ---------- 5. Pläne zeichnen ----------
+// Zentrale Farbpalette: Karte, Legende und 3D-Ansicht lesen alle von hier, damit sie zusammenpassen.
 const FARBE = {
+  // Gebäude
   gebaeudeSchwarzplan: "#000000",
-  gebaeudeLageplan: "#e6e1d9",   // helle Dachfläche; echte Dachformen folgen mit LoD2
-  nebenLageplan: "#cfcfcf",
-  umriss: "#222222",
-  dachKante: "#4a4640",
-  nebengebaeude: "#9a9a9a",
-  kontext: "#ebebeb",
-  gruen: "#cfe0c3",
-  baum: "#7fa874",
-  krone: "#9cc08b",
-  kroneNadel: "#7aa58a",
-  kroneRand: "#5f8a55",
-  stamm: "#3f4b38",
-  wasser: "#bcd5e6",
+  gebaeudeLageplan: "#ddd5c8",   // OSM-Gebäude ohne LoD2 im Lageplan (Dachfläche)
+  nebenLageplan: "#bdb6aa",
+  nebengebaeude: "#8c8c8c",      // Nebengebäude im Schwarzplan
+  umriss: "#2b2823",
+  dachKante: "#3a362f",
+  dachDunkel: [104, 96, 88],     // LoD2-Dächer: von der Sonne abgewandt ...
+  dachHell: [246, 242, 234],     // ... bis zur Sonne zugewandt
+  kontext: "#e0e0e0",            // Gebäude als Orientierung in Straßennetz und Grün
+  // Grün und Wasser
+  gruen: "#bcd9a6",
+  baum: "#6fa05a",
+  krone: "#7fb06a",
+  kroneNadel: "#4f8f74",
+  kroneRand: "#3f6f38",
+  stamm: "#3a3a2e",
+  wasser: "#8fc1e6",
+  // Straßen: Linien und Flächen
   strasseSchwarz: "#000000",
-  strasseLageplan: "#555555"
+  strasseLageplan: "#555555",
+  netz: { fahrbahn: "#2e2e2e", weg: "#bdbdbd", platz: "#dedede", kante: "#111111" },        // Straßennetz (Schwarz-Weiß)
+  plan: { fahrbahn: "#b9bdc2", weg: "#e6dfcf", platz: "#efe6d2", kante: "#7d7a72" },        // Lageplan und 3D-Boden
+  // 3D-Modell
+  d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#9a8b7d", ersatzWand: "#d5e0ea", ersatzDach: "#a7b8c9", stamm: "#6b5a46" }
 };
 
 // Meter auf der Karte in Pixel umrechnen, damit Straßen und Bäume beim Zoomen ihre echte Breite behalten.
@@ -412,12 +423,12 @@ const ANSICHTEN = {
   schwarzplan: { basiskarte: false, ebenen: ["gebaeude"], gebaeude: FARBE.gebaeudeSchwarzplan,
                  text: "Schwarzplan: Gebäude schwarz, Nebengebäude grau." },
   strassen:    { basiskarte: false, ebenen: ["kontext", "strassen", "alkis"], strasse: FARBE.strasseSchwarz,
-                 alkis: { strasse: "#3b3b3b", weg: "#c9c9c9", platz: "#e6e6e6", kante: "#111111" },
+                 alkis: { strasse: FARBE.netz.fahrbahn, weg: FARBE.netz.weg, platz: FARBE.netz.platz, kante: FARBE.netz.kante },
                  text: "Straßennetz: Linienstärke nach Straßenart." },
   gruen:       { basiskarte: false, ebenen: ["kontext", "gruen", "wasser", "baeume"],
                  text: "Grün und Wasser: Parks, Wiesen, Wald, Bäume, Gewässer." },
   lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "alkis", "baeume", "gebaeude", "umriss", "dach"],
-                 alkis: { strasse: "#cfcfcf", weg: "#ebe7df", platz: "#f3f0ea", kante: "#8a8a8a" },
+                 alkis: { strasse: FARBE.plan.fahrbahn, weg: FARBE.plan.weg, platz: FARBE.plan.platz, kante: FARBE.plan.kante },
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Lageplan: alle Ebenen übereinander." }
 };
@@ -471,15 +482,15 @@ function legePlanEbenenAn() {
   map.addLayer({ id: "dach-flaeche", type: "fill", source: "lod2-dach", layout: unsichtbar,
     paint: { "fill-color": ["get", "farbe"] } });
   map.addLayer({ id: "dach-umriss", type: "line", source: "lod2-dach", layout: unsichtbar,
-    paint: { "line-color": FARBE.dachKante, "line-width": 0.5 } });
+    paint: { "line-color": FARBE.dachKante, "line-width": 0.6 } });
   // Bäume: jede Krone ist eine eigene, leicht unregelmäßige Form in ihrer Größe, darüber ein Punkt für den Stamm.
   // Die Kronen liegen über den Dächern (wie im Lageplan üblich) und sind durchscheinend.
   map.addSource("baum-kronen", { type: "geojson", data: leer });
   map.addLayer({ id: "baum-krone", type: "fill", source: "baum-kronen", layout: unsichtbar,
     filter: ["==", ["get", "form"], "krone"],
-    paint: { "fill-color": ["case", ["==", ["get", "nadel"], 1], FARBE.kroneNadel, FARBE.krone], "fill-opacity": 0.72 } });
+    paint: { "fill-color": ["case", ["==", ["get", "nadel"], 1], FARBE.kroneNadel, FARBE.krone], "fill-opacity": 0.8 } });
   map.addLayer({ id: "baum-krone-rand", type: "line", source: "baum-kronen", layout: unsichtbar,
-    filter: ["==", ["get", "form"], "krone"], paint: { "line-color": FARBE.kroneRand, "line-width": 0.5, "line-opacity": 0.8 } });
+    filter: ["==", ["get", "form"], "krone"], paint: { "line-color": FARBE.kroneRand, "line-width": 0.7, "line-opacity": 0.9 } });
   map.addLayer({ id: "baum-stamm", type: "circle", source: "baum-kronen", layout: unsichtbar,
     filter: ["==", ["get", "form"], "stamm"], paint: { "circle-color": FARBE.stamm, "circle-radius": inMetern(0.35) } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
@@ -579,6 +590,7 @@ function wendeAnsichtAn() {
   const quellen = document.getElementById("map-source");
   quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "");
   quellen.hidden = !(imPlan && datenVorhanden);
+  if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
 // ---------- „Analysieren“ ----------
@@ -754,8 +766,8 @@ async function starteLod2(rahmen, nummer) {
 // Wir beleuchten jede Dachfläche gedanklich von Nordwesten (wie bei Geländeschummerung in Karten):
 // zur Sonne geneigte Flächen werden hell, abgewandte dunkel, Flachdächer liegen dazwischen.
 const LICHT = [-0.5, 0.5, Math.SQRT1_2];
-const DACH_DUNKEL = [143, 138, 130];
-const DACH_HELL = [244, 241, 236];
+const DACH_DUNKEL = FARBE.dachDunkel;
+const DACH_HELL = FARBE.dachHell;
 
 // Senkrechte Richtung der Fläche (nach oben zeigend), aus den 3D-Eckpunkten [x, y, z, x, y, z, ...]
 function flaechenNormale(ring) {

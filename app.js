@@ -196,7 +196,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -395,6 +395,13 @@ const FARBE = {
   strasseLageplan: "#555555",
   netz: { fahrbahn: "#2e2e2e", weg: "#bdbdbd", platz: "#dedede", kante: "#111111" },        // Straßennetz (Schwarz-Weiß)
   plan: { fahrbahn: "#a4a9b0", weg: "#e2cfa6", platz: "#f3e9d0", kante: "#6e6a62" },        // Lageplan und 3D-Boden
+  // Flurstücke: Farbläufe (hell, mittel, dunkel) je Einfärbung, grau = keine Angabe
+  flst: {
+    brw: ["#f7f0df", "#e6b56a", "#a8431f"],
+    grz: ["#eef3f6", "#8fb3c9", "#2f5d7e"],
+    gfz: ["#f1eef6", "#b8a3d0", "#5c3f87"],
+    keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#e2482d"
+  },
   // 3D-Modell
   d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#8a8887", ersatzWand: "#cfdcea", ersatzDach: "#9db3cb", stamm: "#6b5a46" }
 };
@@ -420,7 +427,8 @@ const EBENEN = {
   gebaeude: ["gebaeude-flaeche"],
   umriss: ["gebaeude-umriss"],
   dach: ["dach-flaeche", "dach-umriss"],   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
-  alkis: ["alkis-strasse", "alkis-weg", "alkis-platz", "alkis-kante"]   // amtliche Flächen (nur wenn geladen)
+  alkis: ["alkis-strasse", "alkis-weg", "alkis-platz", "alkis-kante"],   // amtliche Flächen (nur wenn geladen)
+  flurstuecke: ["flst-flaeche", "flst-linie", "flst-auswahl"]            // Flurstücke (nur wenn geladen), siehe flurstuecke.js
 };
 
 // Was zeigt welcher Reiter?
@@ -436,7 +444,9 @@ const ANSICHTEN = {
   lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "alkis", "baeume", "gebaeude", "umriss", "dach"],
                  alkis: { strasse: FARBE.plan.fahrbahn, weg: FARBE.plan.weg, platz: FARBE.plan.platz, kante: FARBE.plan.kante },
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
-                 text: "Lageplan: alle Ebenen übereinander." }
+                 text: "Lageplan: alle Ebenen übereinander." },
+  flurstuecke: { basiskarte: false, ebenen: ["kontext", "flurstuecke"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
+                 text: "Flurstücke mit Bodenrichtwert und Bestand." }
 };
 
 let datenVorhanden = false;
@@ -454,6 +464,10 @@ function legePlanEbenenAn() {
   const quelle = "osm-daten";
   const unsichtbar = { visibility: "none" };
 
+  // Flurstücke: die Fläche liegt ganz unten (Gebäude darüber), Linien und Auswahl kommen weiter unten über die Gebäude
+  map.addSource("flurstuecke", { type: "geojson", data: leer });
+  map.addLayer({ id: "flst-flaeche", type: "fill", source: "flurstuecke", layout: unsichtbar,
+    paint: { "fill-color": FARBE.flst.keine, "fill-opacity": 0.92 } });
   map.addLayer({ id: "kontext-gebaeude", type: "fill", source: quelle, layout: unsichtbar,
     filter: istKat("gebaeude", "nebengebaeude"), paint: { "fill-color": FARBE.kontext } });
   map.addLayer({ id: "gruen-flaeche", type: "fill", source: quelle, layout: unsichtbar,
@@ -499,6 +513,11 @@ function legePlanEbenenAn() {
     filter: ["==", ["get", "form"], "krone"], paint: { "line-color": FARBE.kroneRand, "line-width": 0.7, "line-opacity": 0.9 } });
   map.addLayer({ id: "baum-stamm", type: "circle", source: "baum-kronen", layout: unsichtbar,
     filter: ["==", ["get", "form"], "stamm"], paint: { "circle-color": FARBE.stamm, "circle-radius": inMetern(0.35) } });
+  // Flurstücksgrenzen und gewähltes Flurstück über den Gebäuden
+  map.addLayer({ id: "flst-linie", type: "line", source: "flurstuecke", layout: unsichtbar,
+    paint: { "line-color": FARBE.flst.linie, "line-width": 0.8 } });
+  map.addLayer({ id: "flst-auswahl", type: "line", source: "flurstuecke", layout: { visibility: "none", "line-join": "round" },
+    filter: ["==", ["get", "id"], -1], paint: { "line-color": FARBE.flst.auswahl, "line-width": 3 } });
   // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
   map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
     paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
@@ -530,6 +549,7 @@ function verwerfeDaten() {
   gelaende = null;
   gelaendeQuelle = "";
   osmFeatures = [];
+  verwerfeFlurstuecke();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -558,11 +578,14 @@ function wendeAnsichtAn() {
   for (const [gruppe, ids] of Object.entries(EBENEN)) {
     let an = datenVorhanden && einstellung.ebenen.includes(gruppe);
     if (gruppe === "strassen" && alkisVorhanden) an = false; // wo amtliche Flächen da sind, brauchen wir die dünnen Linien nicht
+    if (gruppe === "flurstuecke" && !flurstueckeVorhanden) an = false;
     ids.forEach((id) => map.setLayoutProperty(id, "visibility", sichtbar(an)));
   }
   map.setLayoutProperty("maske", "visibility", sichtbar(imPlan && datenVorhanden));
 
   // Farben je nach Plan
+  map.setPaintProperty("kontext-gebaeude", "fill-color", einstellung.kontextFarbe || FARBE.kontext);
+  map.setPaintProperty("kontext-gebaeude", "fill-opacity", einstellung.kontextOpacity || 1);
   map.setPaintProperty("strassen-linie", "line-color", einstellung.strasse || FARBE.strasseSchwarz);
   map.setPaintProperty("gebaeude-flaeche", "fill-color",
     ["match", ["get", "kat"], "nebengebaeude", einstellung.neben || FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
@@ -598,8 +621,10 @@ function wendeAnsichtAn() {
   }
   hinweis.hidden = !(imPlan && !datenVorhanden);
   const quellen = document.getElementById("map-source");
-  quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "");
+  quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "") +
+    (aktuelleAnsicht === "flurstuecke" && flurstueckeVorhanden ? " · " + flurstueckeQuelle : "");
   quellen.hidden = !(imPlan && datenVorhanden);
+  aktualisiereFlurstuecke();   // rechnet und zeichnet nur im Reiter "Flurstücke"
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
@@ -635,6 +660,7 @@ btnAnalyse.addEventListener("click", async () => {
   zeigeLod2Status("");
   zeigeAlkisStatus("");
   zeigeGelaendeStatus("");
+  zeigeFlstStatus("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
@@ -644,6 +670,12 @@ btnAnalyse.addEventListener("click", async () => {
   starteGelaende(rahmen, meineNummer).then((ergebnis) => {
     if (!aktuell()) return;
     wendeGelaendeAn(ergebnis);
+  });
+  // Flurstücke und Bodenrichtwerte (für den Reiter "Flurstücke") ebenfalls gleichzeitig
+  starteFlurstuecke(rahmen, meineNummer).then((ergebnis) => {
+    if (!aktuell()) return;
+    if (ergebnis.flurstuecke) zeigePlaene(rahmen, "lageplan");
+    wendeFlurstueckeAn(ergebnis);
   });
   // Amtliche Straßenflächen und LoD2-Dächer laden gleichzeitig mit OpenStreetMap.
   // Jede Quelle zeigt ihr Ergebnis, sobald sie fertig ist, ohne auf die anderen zu warten.
@@ -1257,7 +1289,7 @@ function berechneKennzahlen() {
   } else if (hatOsm) {
     hinweise.push("Netto-Werte (Bauland ohne Verkehr, Grün, Wasser) fehlen, weil keine Verkehrsflächen vorliegen.");
   }
-  hinweise.push("Bahnflächen und Flurstücke (Parzellen) sind noch nicht erfasst. Das Bauland ist daher eher zu groß, die Netto-Werte eher zu klein.");
+  hinweise.push("Bahnflächen sind noch nicht erfasst. Das Bauland ist daher eher zu groß, die Netto-Werte eher zu klein. Genauere Netto-Werte je Flurstück (ohne Verkehrsflächen) stehen im Reiter „Flurstücke“.");
 
   // Nutzung (LoD2-Code, sonst OSM-Gebäudeart) und Dachformen (nur LoD2)
   const nutzung = {};

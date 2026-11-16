@@ -697,6 +697,34 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Getestet** (echte Daten): 4 LoD2-Kacheln (194 MB) + 4 Geländekacheln, normaler Ablauf mit Ladestand, Overpass-Server-Ausfall (502) sichtbar,
   künstlicher Ausfall der Kachelsuche mit „Nochmal versuchen“. **Nicht getestet:** Abbruch bei Stillstand im Worker (nur Code), Handy, andere Browser,
   ob der Fehler beim Nutzer damit weg ist.
+- [x] **Reiter „Flurstücke“ mit Bodenrichtwert und Bestand** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Neue Datei `flurstuecke.js`.
+  Daten (beide frei, vom LGLN, gleichzeitig mit den anderen Quellen geladen): Flurstücke aus dem ALKIS-Dienst (`AX_Flurstueck`, mit amtlicher Fläche,
+  Gemarkung, Flur, Nummer) und Bodenrichtwertzonen aus dem BORIS-Dienst (`https://opendata.lgln.niedersachsen.de/doorman/noauth/boris_wfs`,
+  `BR_BodenrichtwertZonal`, Stichtag 01.01.2026: Wert €/m², Nutzung z. B. MK, Bauweise, Richtwert-GFZ, Zonenname).
+  Der **Grundsteuer-Viewer** hat keine Schnittstelle; er zeigt dieselben Richtwerte, deshalb laden wir sie direkt und verlinken Viewer und BORIS.NI im Infofeld.
+  Der Reiter färbt die Flurstücke nach Bodenrichtwert, GRZ oder GFZ (Umschalter), Gebäude liegen halbtransparent darüber. Klick auf ein Flurstück zeigt:
+  Fläche, Richtwert mit Zone, Nutzung, Bauweise, Richtwert-GFZ, Bodenwert (Fläche mal Richtwert, nur Orientierung), Bestand (Gebäude, bebaute Fläche, GRZ,
+  GRZ inkl. Nebengebäude, Geschossfläche, GFZ, Ø Geschosse, Verhältnis zur Richtwert-GFZ). Legende mit Eckdaten, darunter **GRZ/GFZ netto**
+  (nur Flurstücke ohne Verkehrsfläche und ohne Randflurstücke).
+  **Regeln:** (1) Zonenwahl bei Überlagerung: Zone, die das Flurstück zur Hälfte oder mehr bedeckt; Bauland (Zustand B/R) vor Landwirtschaft; dann die
+  kleinste Zone. Grund: im Testgebiet liegen unter der Innenstadt eine Außenbereichszone (4.800 ha) und eine Acker- und Grünlandzone (je 9.400 ha); mit
+  „größte Überlappung“ bekam ein Innenstadt-Flurstück fälschlich 6 €/m². (2) Verkehrsflächen: Flurstück gilt als Verkehr, wenn sein innerer Punkt in einer
+  amtlichen Straßen-, Weg- oder Platzfläche liegt; dort kein Richtwert, kein Bestand. (3) Bestand: OSM-Gebäude (mit Geschossen aus OSM, sonst LoD2-Traufhöhe
+  durch 3 m, sonst 3) werden anteilig nach Überlappung auf die Flurstücke verteilt; Nebengebäude (OSM oder amtlicher Code 51009) getrennt. GFZ = Grundfläche
+  mal Geschosse (Näherung, echte GFZ zählt Vollgeschosse). (4) Randflurstücke (ragen aus dem Rechteck) werden im Infofeld gewarnt und fehlen in GRZ/GFZ-Färbung
+  und netto.
+  **Nicht enthalten:** Bebauungsplan (für Oldenburg nur Umrisse als Datei, keine GRZ/GFZ-Zahlen als Dienst; entschieden: kein B-Plan), Lage-Faktor des
+  Grundsteuer-Viewers (braucht den Durchschnittsrichtwert der Gemeinde), Eigentümer (nicht im Open-Data-Dienst).
+  **Getestet** (echte Daten, Oldenburg Innenstadt 79 ha): 1.173 Flurstücke, 65 Zonen (Richtwerte 3,5 bis 2.350 €/m²), Laden, Einfärben nach Richtwert/GRZ,
+  Mausklick, Infofeld, Fehlerfälle (BORIS nicht erreichbar: Flurstücke bleiben, Hinweis; ALKIS nicht erreichbar: Hinweis, alte Daten bleiben), Zurücksetzen,
+  spätes Nachrechnen, wenn LoD2 nach OSM ankommt, alle Reiter danach ohne Fehler. Rechenzeit: Zonenzuordnung ca. 3 s (einmal beim Laden), Bestand ca. 0,7 s.
+  **Befund:** ca. 50 Flurstücke haben GRZ knapp über 1 (Gebäudegeometrie aus OSM und Flurstück passen nicht ganz zusammen); das Infofeld erklärt es.
+  Mit geladenem LoD2 ist die Haupt-GRZ niedriger (netto 0,46 statt 0,53), weil amtliche Nebengebäude (51009) abgezogen werden.
+  GFZ-Einfärbung nur im Code und per Abfrage der Werte geprüft (Skala 0 bis 4; im Testgebiet liegen ca. 36 % der Flurstücke über 3, Maximum 8,6 wegen
+  LoD2-Traufhöhe durch 3 m, nicht angesehen).
+  **Nicht getestet:** GFZ-Einfärbung am Bildschirm, Gebiete außerhalb von Oldenburg und Gemeinden mit anderen Zonenarten (Nutzungsschlüssel wie WA, MI, GE sind
+  nicht gegen die offizielle Liste geprüft), Gebiet mit 5.000 und mehr Flurstücken (Obergrenze, nur Hinweis im Code), Handy (Legende, Infofeld und Umschalter
+  überlagern sich), andere Browser, Richtigkeit der Bodenrichtwerte (kommen 1:1 vom LGLN, Zonenwahl bei Überlagerung ist unsere Regel).
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

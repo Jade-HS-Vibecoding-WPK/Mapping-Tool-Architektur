@@ -67,6 +67,7 @@
         <p class="hint" id="dgm-status" hidden></p>
         <p class="hint" id="alkis-status" hidden></p>
         <p class="hint" id="lod2-status" hidden></p>
+        <p class="hint" id="flst-status" hidden></p>
         <p class="warning" id="analyse-fehler" role="alert" hidden></p>
       </section>
 
@@ -87,18 +88,27 @@
         <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
         <button class="tab" data-view="gruen" role="tab">Grün</button>
         <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für fünf Reiter: Karte, Schwarzplan, Straßennetz, Grün und Lageplan.
+        <!-- Eine Karte für sechs Reiter: Karte, Schwarzplan, Straßennetz, Grün, Lageplan und Flurstücke.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
           <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
           <div class="map-hint" id="plan-hint" hidden></div>
           <div class="legende" id="legende-karte"></div>
+          <!-- Nur im Reiter "Flurstücke": Einfärbung wählen und Infofeld zum gewählten Flurstück (siehe flurstuecke.js) -->
+          <div class="flst-modus" id="flst-modus" hidden>
+            <span>Einfärben nach</span>
+            <button type="button" data-modus="brw" class="is-active">Bodenrichtwert</button>
+            <button type="button" data-modus="grz">GRZ Bestand</button>
+            <button type="button" data-modus="gfz">GFZ Bestand</button>
+          </div>
+          <div class="flst-info" id="flst-info" hidden></div>
           <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
@@ -135,6 +145,7 @@
   <script src="app.js"></script>
   <script src="ladeleiste.js"></script>
   <script src="gelaende.js"></script>
+  <script src="flurstuecke.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

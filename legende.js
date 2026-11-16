@@ -69,6 +69,9 @@ function farbschluessel(ansicht) {
       e.push(eintrag(farbfeld(FARBE.wasser), "Wasser"));
       e.push(eintrag(kreisfeld(FARBE.krone, FARBE.kroneRand), "Baumkrone"));
       break;
+    case "flurstuecke":
+      e.push(flurstueckeVorhanden ? flstLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
+      break;
     case "3d":
       e.push(eintrag(farbfeld(FARBE.d3.wand, "#b9b4aa"), "Wand (LoD2)"));
       e.push(eintrag(farbfeld(FARBE.d3.dach, "#6f6d6a"), "Dach (LoD2)"));
@@ -97,6 +100,7 @@ function eckdaten(ansicht) {
   const flaeche = turf.area(gebiet);
   zeilen.push(["Gebiet", fm2(flaeche)]);
   if (!datenVorhanden) return zeilen;
+  if (ansicht === "flurstuecke") return zeilen.concat(flstEckdaten());
   const k = kennzahlenMitMerker();
   const A = k.flaeche;
   if (ansicht === "schwarzplan" && k.hatOsm) {
@@ -130,6 +134,7 @@ function quellenzeile() {
   const q = ["© OpenStreetMap-Mitwirkende (ODbL)"];
   if (lod2Vorhanden) q.push(lod2Quelle.replace(/^LoD2: /, "Gebäude: "));
   if (alkisVorhanden) q.push(alkisQuelle);
+  if (flurstueckeVorhanden && aktuelleAnsicht === "flurstuecke") q.push(flurstueckeQuelle);
   if (gelaende) q.push(gelaendeQuelle);
   return q.join(" · ");
 }

@@ -559,6 +559,19 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Rechteck aufziehen (Breite × Höhe und Fläche werden angezeigt, Warnung über 1 km²), Nordpfeil,
   Maßstabsleiste, Quellenangabe, Reiter für alle Ansichten (noch Platzhalter), Knopf „Analysieren“
   (noch ohne Funktion), Ablagefeld für Dateien (noch ohne Funktion). Im Browser getestet, auch in Handybreite.
-- [ ] **Nächster Schritt:** Datenquellen prüfen und OSM-Daten laden (Schritte 3 und 4 in Abschnitt 6)
+- [x] **OSM-Daten und 2D-Pläne** (Branch `feature-osm-2d-plaene`, nur lokal committet, nicht gepusht):
+  „Analysieren“ lädt Gebäude, Straßen, Grün, Gewässer und Einzelbäume per Overpass-API und
+  zeichnet Schwarzplan (schwarz auf weiß, Nebengebäude grau), Straßennetz (Linienstärke nach Straßenart),
+  Grün (inkl. Wasser und Bäume) und Lageplan (alles zusammen). Die fünf Kartenreiter nutzen dieselbe Karte,
+  außerhalb des Rechtecks ist alles weiß abgedeckt. Neue Bibliothek: osmtogeojson 3.0.0-beta.5 (CDN).
+  Zwei Overpass-Server als Ersatz füreinander, Ladeanzeige, verständliche Fehlermeldung.
+  **Getestet** im Browser mit **echten** OSM-Daten (Oldenburg Innenstadt, ca. 0,19 km², 424 Gebäude,
+  181 Straßenabschnitte, 185 Bäume): alle vier Pläne zeichnen, Wechsel zurück zur Karte, Fehlerfall mit
+  absichtlich falschen Serveradressen. **Nicht getestet:** Handybreite, Gebiete bis 1 km², zweiter Overpass-Server
+  (war vom Testrechner aus nicht erreichbar), Firefox/Safari.
+  **Beobachtung:** Der Overpass-Server war langsam (ca. 60 s für das Testgebiet). Darum Zeitlimit 75 s.
+  Der Knopf „Beispiel Oldenburg laden“ (Demo-Daten fest eingebaut) wäre dafür die Absicherung.
+  **Offen in diesem Schritt:** Fußgängerzonen sind nur dünne Linien (Straßentyp „fuss“); Kennzahlen folgen separat.
+- [ ] **Nächster Schritt:** Datenquellen prüfen (Schritt 3 in Abschnitt 6), dann Kennzahlen und Datei-Import
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

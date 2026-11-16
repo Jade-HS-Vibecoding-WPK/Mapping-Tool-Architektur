@@ -14,7 +14,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 
 # Technik
 - Reine Website (HTML, CSS, JavaScript), läuft auf GitHub Pages, kein eigener Server.
-- Bibliotheken per CDN: MapLibre GL JS (Karte, 3D), Turf.js (Flächen/Längen), Chart.js (Diagramme).
+- Bibliotheken per CDN: MapLibre GL JS (Karte, 3D), Turf.js (Flächen/Längen), Chart.js (Diagramme),
+  osmtogeojson (OSM-Rohdaten in Flächen und Linien umwandeln).
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km².
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).
 - topoexport-DXF: binär, AC1024, Meter, LOKALE Koordinaten (Nullpunkt unten links, keine Georeferenz),

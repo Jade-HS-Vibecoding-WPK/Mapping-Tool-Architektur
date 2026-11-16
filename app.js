@@ -1,8 +1,10 @@
 /* ============================================================
-   Ortsanalyse – Logik (Grundgerüst)
+   Ortsanalyse – Logik
    1. Karte von Oldenburg anzeigen (schwarz-weiß)
    2. Rechteck aufziehen und Größe anzeigen
    3. Reiter (Tabs) für die Ansichten umschalten
+   4. OpenStreetMap-Daten laden (Overpass) und einsortieren
+   5. Pläne zeichnen: Schwarzplan, Straßennetz, Grün, Lageplan
    ============================================================ */
 
 const MAX_FLAECHE_M2 = 1_000_000; // höchstens 1 km²
@@ -60,13 +62,19 @@ let gebiet = null;        // das fertige Rechteck (als GeoJSON-Fläche)
 
 const leer = { type: "FeatureCollection", features: [] };
 
-// Ebenen für das Rechteck anlegen, sobald die Karte bereit ist
+// Ebenen anlegen, sobald die Karte bereit ist. Die Reihenfolge ist wichtig:
+// was später kommt, liegt weiter oben.
+// Unten: Daten der Pläne (Abschnitt 5), darüber die weiße "Maske", ganz oben das Rechteck.
+let kartenBereit = false;
 map.on("load", () => {
+  legePlanEbenenAn();
   map.addSource("gebiet", { type: "geojson", data: leer });
   map.addLayer({ id: "gebiet-flaeche", type: "fill", source: "gebiet",
     paint: { "fill-color": "#e2482d", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
     paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
+  kartenBereit = true;
+  wendeAnsichtAn();
 });
 
 // Aus zwei Ecken ein Rechteck machen
@@ -116,15 +124,21 @@ function aktualisiereAngaben(feature) {
   areaWarning.hidden = !zuGross;
   btnClear.disabled = false;
   btnAnalyse.disabled = zuGross;
-  analyseHint.textContent = zuGross ? "Gebiet zu groß (höchstens 1 km²)." : "Bereit. Die Analyse folgt in einem späteren Schritt.";
+  analyseHint.textContent = zuGross ? "Gebiet zu groß (höchstens 1 km²)." : "Bereit. Klicke auf „Analysieren“.";
 }
 
-btnDraw.addEventListener("click", () => zeichenmodus(!zeichnen));
+btnDraw.addEventListener("click", () => {
+  // Gezeichnet wird nur auf der Karte, nicht in den Plänen (dort ist die Hintergrundkarte aus)
+  if (!zeichnen) zeigeAnsicht("karte");
+  zeichenmodus(!zeichnen);
+});
 
 btnClear.addEventListener("click", () => {
   gebiet = null;
+  verwerfeDaten();
   zeigeRechteck(null);
   aktualisiereAngaben(null);
+  wendeAnsichtAn();
 });
 
 // Maus/Finger: drücken = erste Ecke, ziehen = Vorschau, loslassen = fertig
@@ -160,6 +174,7 @@ function beende(e) {
     return;
   }
   gebiet = fertig;
+  verwerfeDaten(); // alte Daten passen nicht mehr zum neuen Rechteck
   zeigeRechteck(gebiet);
   aktualisiereAngaben(gebiet);
   zeichenmodus(false);
@@ -177,11 +192,340 @@ document.addEventListener("keydown", (e) => {
 });
 
 // ---------- 3. Reiter (Tabs) ----------
+// Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
+// 3D und Kennzahlen sind noch Platzhalter-Seiten.
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan"];
+let aktuelleAnsicht = "karte";
+
+function zeigeAnsicht(ziel) {
+  aktuelleAnsicht = ziel;
+  const istKarte = KARTEN_REITER.includes(ziel);
+  // Wer den Reiter wechselt, während er zeichnet, bricht das Zeichnen ab
+  if (ziel !== "karte" && zeichnen) {
+    startPunkt = null;
+    zeigeRechteck(gebiet);
+    aktualisiereAngaben(gebiet);
+    zeichenmodus(false);
+  }
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === ziel));
+  document.querySelectorAll(".view").forEach((v) =>
+    v.classList.toggle("is-active", v.dataset.view === (istKarte ? "karte" : ziel)));
+  if (istKarte) {
+    map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
+    wendeAnsichtAn();
+  }
+}
+
 document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    const ziel = tab.dataset.view;
-    document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t === tab));
-    document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.dataset.view === ziel));
-    if (ziel === "karte") map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
-  });
+  tab.addEventListener("click", () => zeigeAnsicht(tab.dataset.view));
+});
+
+// ---------- 4. Daten von OpenStreetMap laden ----------
+// Overpass ist die kostenlose Abfrage-Schnittstelle von OpenStreetMap. Wir schicken ihr das Rechteck
+// und bekommen alle Gebäude, Straßen, Grünflächen, Gewässer und Bäume darin zurück.
+// Zwei öffentliche Server: Antwortet der erste nicht, versuchen wir den zweiten.
+const OVERPASS_SERVER = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter"
+];
+const ABFRAGE_LIMIT_MS = 75_000;
+
+// Welche OSM-Merkmale zu welcher Kategorie gehören
+const NEBENGEBAEUDE = new Set(["garage", "garages", "carport", "shed", "roof", "hut", "cabin", "greenhouse", "service", "kiosk", "container", "outbuilding"]);
+const STRASSENTYP = {
+  motorway: "haupt", motorway_link: "haupt", trunk: "haupt", trunk_link: "haupt", primary: "haupt", primary_link: "haupt",
+  secondary: "sammel", secondary_link: "sammel", tertiary: "sammel", tertiary_link: "sammel",
+  residential: "wohn", unclassified: "wohn", living_street: "wohn",
+  service: "service",
+  pedestrian: "fuss", footway: "fuss", path: "fuss", cycleway: "fuss", steps: "fuss", track: "fuss", bridleway: "fuss"
+};
+const GRUEN_LEISURE = new Set(["park", "garden", "pitch", "playground", "recreation_ground", "nature_reserve", "golf_course", "common", "dog_park"]);
+const GRUEN_LANDUSE = new Set(["grass", "forest", "meadow", "orchard", "vineyard", "cemetery", "village_green", "recreation_ground", "allotments", "flowerbed", "greenfield"]);
+const GRUEN_NATURAL = new Set(["wood", "scrub", "grassland", "heath", "wetland"]);
+const WASSER_LANDUSE = new Set(["basin", "reservoir"]);
+const WASSERLINIEN = new Set(["river", "stream", "canal", "ditch", "drain"]);
+const UNTERIRDISCH = new Set(["yes", "culvert", "building_passage"]);
+
+function overpassAbfrage(sued, west, nord, ost) {
+  const b = [sued, west, nord, ost].map((z) => z.toFixed(6)).join(",");
+  // Baut z. B. ["landuse"~"^(grass|forest)$"] aus einem Merkmal und einer Liste erlaubter Werte
+  const werte = (merkmal, liste) => `["${merkmal}"~"^(${[...liste].join("|")})$"]`;
+  const leisure = werte("leisure", GRUEN_LEISURE);
+  const landuse = werte("landuse", [...GRUEN_LANDUSE, ...WASSER_LANDUSE]);
+  const natural = werte("natural", [...GRUEN_NATURAL, "water"]);
+  const waterway = werte("waterway", [...WASSERLINIEN, "riverbank", "dock"]);
+  return `[out:json][timeout:60];
+(
+  way["building"](${b});
+  relation["building"](${b});
+  way["highway"](${b});
+  way${leisure}(${b});
+  relation${leisure}(${b});
+  way${landuse}(${b});
+  relation${landuse}(${b});
+  way${natural}(${b});
+  relation${natural}(${b});
+  way${waterway}(${b});
+  relation["waterway"="riverbank"](${b});
+  node["natural"="tree"](${b});
+);
+out geom;`;
+}
+
+// Fragt einen Server; wirft einen Fehler mit verständlichem Text, wenn es nicht klappt
+async function frageServer(url, abfrage) {
+  const abbruch = new AbortController();
+  const wecker = setTimeout(() => abbruch.abort(), ABFRAGE_LIMIT_MS);
+  try {
+    const antwort = await fetch(url, { method: "POST", body: new URLSearchParams({ data: abfrage }), signal: abbruch.signal });
+    if (!antwort.ok) throw new Error(`Server meldet Fehler ${antwort.status}`);
+    const daten = await antwort.json();
+    // Ist der Server überlastet, antwortet er manchmal "ok", aber mit einer Bemerkung statt mit Daten
+    if (daten.remark && /error|timed out|out of memory/i.test(daten.remark) && !(daten.elements || []).length) {
+      throw new Error("Server überlastet");
+    }
+    return daten;
+  } finally {
+    clearTimeout(wecker);
+  }
+}
+
+async function holeOsmDaten(sued, west, nord, ost) {
+  const abfrage = overpassAbfrage(sued, west, nord, ost);
+  let letzterFehler;
+  for (const url of OVERPASS_SERVER) {
+    try {
+      return await frageServer(url, abfrage);
+    } catch (fehler) {
+      letzterFehler = fehler;
+      console.warn("Overpass-Abfrage fehlgeschlagen:", url, fehler);
+    }
+  }
+  if (!navigator.onLine) throw new Error("Keine Internetverbindung. Bitte Verbindung prüfen und noch einmal versuchen.");
+  throw new Error("Der Datendienst von OpenStreetMap antwortet gerade nicht (" + (letzterFehler?.message || "unbekannter Fehler") +
+    "). Bitte in einer Minute noch einmal versuchen oder ein kleineres Gebiet wählen.");
+}
+
+// Sortiert jedes Objekt in eine Kategorie. Gibt null zurück, wenn es uns nicht interessiert.
+function kategorisiere(feature) {
+  const geo = feature.geometry && feature.geometry.type;
+  if (!geo) return null;
+  const p = feature.properties || {};
+  const t = p.tags || p; // osmtogeojson legt die OSM-Merkmale je nach Einstellung direkt oder unter "tags" ab
+  const flaeche = geo === "Polygon" || geo === "MultiPolygon";
+  const linie = geo === "LineString" || geo === "MultiLineString";
+
+  if (geo === "Point") return t.natural === "tree" ? { kat: "baum" } : null;
+
+  if (flaeche && t.building && t.building !== "no") {
+    return { kat: NEBENGEBAEUDE.has(t.building) ? "nebengebaeude" : "gebaeude" };
+  }
+  if (linie && t.highway && STRASSENTYP[t.highway] && !UNTERIRDISCH.has(t.tunnel)) {
+    return { kat: "strasse", typ: STRASSENTYP[t.highway] };
+  }
+  if (flaeche && (t.natural === "water" || t.waterway === "riverbank" || t.waterway === "dock" || WASSER_LANDUSE.has(t.landuse))) {
+    return { kat: "wasser" };
+  }
+  if (linie && WASSERLINIEN.has(t.waterway) && !UNTERIRDISCH.has(t.tunnel)) {
+    return { kat: "wasserlinie", typ: t.waterway };
+  }
+  if (flaeche && (GRUEN_LEISURE.has(t.leisure) || GRUEN_LANDUSE.has(t.landuse) || GRUEN_NATURAL.has(t.natural))) {
+    return { kat: "gruen" };
+  }
+  return null;
+}
+
+// ---------- 5. Pläne zeichnen ----------
+const FARBE = {
+  gebaeudeSchwarzplan: "#000000",
+  gebaeudeLageplan: "#2e2e2e",
+  nebengebaeude: "#9a9a9a",
+  kontext: "#ebebeb",
+  gruen: "#cfe0c3",
+  baum: "#7fa874",
+  wasser: "#bcd5e6",
+  strasseSchwarz: "#000000",
+  strasseLageplan: "#555555"
+};
+
+// Meter auf der Karte in Pixel umrechnen, damit Straßen und Bäume beim Zoomen ihre echte Breite behalten.
+// Bei Zoom 10 ist 1 m ca. 0,011 Pixel breit, bei Zoom 22 ca. 44,7 Pixel (auf Oldenburgs Breitengrad).
+function inMetern(meter) {
+  const mal = (faktor) => (typeof meter === "number" ? meter * faktor : ["*", meter, faktor]);
+  return ["interpolate", ["exponential", 2], ["zoom"], 10, mal(0.0109), 22, mal(44.7)];
+}
+const STRASSENBREITE_M = ["match", ["get", "typ"], "haupt", 12, "sammel", 9, "wohn", 6, "service", 4, 2];
+const WASSERLINIE_M = ["match", ["get", "typ"], "river", 8, "canal", 8, "stream", 2.5, 1.5];
+
+const istKat = (...namen) => ["in", ["get", "kat"], ["literal", namen]];
+
+// Gruppen von Ebenen, die ein Reiter ein- oder ausschaltet
+const EBENEN = {
+  kontext: ["kontext-gebaeude"],
+  gruen: ["gruen-flaeche"],
+  wasser: ["wasser-flaeche", "wasser-linie"],
+  strassen: ["strassen-linie"],
+  baeume: ["baeume"],
+  gebaeude: ["gebaeude-flaeche"]
+};
+
+// Was zeigt welcher Reiter?
+const ANSICHTEN = {
+  karte:       { basiskarte: true,  ebenen: [] },
+  schwarzplan: { basiskarte: false, ebenen: ["gebaeude"], gebaeude: FARBE.gebaeudeSchwarzplan,
+                 text: "Schwarzplan: Gebäude schwarz, Nebengebäude grau." },
+  strassen:    { basiskarte: false, ebenen: ["kontext", "strassen"], strasse: FARBE.strasseSchwarz,
+                 text: "Straßennetz: Linienstärke nach Straßenart." },
+  gruen:       { basiskarte: false, ebenen: ["kontext", "gruen", "wasser", "baeume"],
+                 text: "Grün und Wasser: Parks, Wiesen, Wald, Bäume, Gewässer." },
+  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude"],
+                 gebaeude: FARBE.gebaeudeLageplan, strasse: FARBE.strasseLageplan,
+                 text: "Lageplan: alle Ebenen übereinander." }
+};
+
+let datenVorhanden = false;
+
+function legePlanEbenenAn() {
+  map.addSource("osm-daten", { type: "geojson", data: leer });
+  map.addSource("maske", { type: "geojson", data: leer });
+  const quelle = "osm-daten";
+  const unsichtbar = { visibility: "none" };
+
+  map.addLayer({ id: "kontext-gebaeude", type: "fill", source: quelle, layout: unsichtbar,
+    filter: istKat("gebaeude", "nebengebaeude"), paint: { "fill-color": FARBE.kontext } });
+  map.addLayer({ id: "gruen-flaeche", type: "fill", source: quelle, layout: unsichtbar,
+    filter: istKat("gruen"), paint: { "fill-color": FARBE.gruen } });
+  // Wasser liegt über dem Grün, sonst verschwinden Teiche in Parks
+  map.addLayer({ id: "wasser-flaeche", type: "fill", source: quelle, layout: unsichtbar,
+    filter: istKat("wasser"), paint: { "fill-color": FARBE.wasser } });
+  map.addLayer({ id: "wasser-linie", type: "line", source: quelle, layout: unsichtbar,
+    filter: istKat("wasserlinie"), paint: { "line-color": FARBE.wasser, "line-width": inMetern(WASSERLINIE_M) } });
+  map.addLayer({ id: "strassen-linie", type: "line", source: quelle,
+    layout: { visibility: "none", "line-join": "round", "line-cap": "butt" },
+    filter: istKat("strasse"), paint: { "line-color": FARBE.strasseSchwarz, "line-width": inMetern(STRASSENBREITE_M) } });
+  map.addLayer({ id: "baeume", type: "circle", source: quelle, layout: unsichtbar,
+    filter: istKat("baum"), paint: { "circle-color": FARBE.baum, "circle-opacity": 0.8, "circle-radius": inMetern(2.5) } });
+  map.addLayer({ id: "gebaeude-flaeche", type: "fill", source: quelle, layout: unsichtbar,
+    filter: istKat("gebaeude", "nebengebaeude"),
+    paint: { "fill-color": ["match", ["get", "kat"], "nebengebaeude", FARBE.nebengebaeude, FARBE.gebaeudeSchwarzplan] } });
+  // Die Maske deckt alles außerhalb des Rechtecks weiß ab, damit der Plan genau am Rand endet
+  map.addLayer({ id: "maske", type: "fill", source: "maske", layout: unsichtbar,
+    paint: { "fill-color": "#ffffff", "fill-opacity": 1 } });
+}
+
+// Weiße Fläche über die ganze Welt mit einem Loch in Form des Rechtecks
+function maskeFuer(feature) {
+  const loch = feature.geometry.coordinates[0].slice().reverse();
+  return { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: {
+    type: "Polygon",
+    coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]], loch]
+  } }] };
+}
+
+function verwerfeDaten() {
+  ladeNummer++; // eine noch laufende Abfrage wird damit ungültig
+  btnAnalyse.textContent = "Analysieren";
+  datenVorhanden = false;
+  if (kartenBereit) {
+    map.getSource("osm-daten").setData(leer);
+    map.getSource("maske").setData(leer);
+  }
+  zeigeFehler("");
+}
+
+// Stellt die Karte passend zum aktuellen Reiter ein
+function wendeAnsichtAn() {
+  if (!kartenBereit) return;
+  const einstellung = ANSICHTEN[aktuelleAnsicht];
+  if (!einstellung) return; // 3D oder Kennzahlen: die Karte ist nicht sichtbar
+  const imPlan = aktuelleAnsicht !== "karte";
+  const sichtbar = (an) => (an ? "visible" : "none");
+
+  map.setLayoutProperty("osm", "visibility", sichtbar(einstellung.basiskarte));
+  for (const [gruppe, ids] of Object.entries(EBENEN)) {
+    const an = datenVorhanden && einstellung.ebenen.includes(gruppe);
+    ids.forEach((id) => map.setLayoutProperty(id, "visibility", sichtbar(an)));
+  }
+  map.setLayoutProperty("maske", "visibility", sichtbar(imPlan && datenVorhanden));
+
+  // Farben je nach Plan
+  map.setPaintProperty("strassen-linie", "line-color", einstellung.strasse || FARBE.strasseSchwarz);
+  map.setPaintProperty("gebaeude-flaeche", "fill-color",
+    ["match", ["get", "kat"], "nebengebaeude", FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
+
+  // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
+  map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : 0.08);
+  map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#e2482d");
+  map.setPaintProperty("gebiet-rand", "line-width", imPlan ? 1 : 2);
+  map.setPaintProperty("gebiet-rand", "line-dasharray", imPlan ? [1, 0] : [3, 2]);
+
+  // Hinweise über der Karte
+  const hinweis = document.getElementById("plan-hint");
+  if (imPlan && !datenVorhanden) {
+    hinweis.textContent = gebiet
+      ? "Noch keine Daten. Klicke links auf „Analysieren“."
+      : "Noch kein Gebiet. Wähle im Reiter „Karte“ ein Rechteck und klicke dann auf „Analysieren“.";
+  }
+  hinweis.hidden = !(imPlan && !datenVorhanden);
+  document.getElementById("map-source").hidden = !(imPlan && datenVorhanden);
+}
+
+// ---------- „Analysieren“ ----------
+const analyseFehler = document.getElementById("analyse-fehler");
+let ladeNummer = 0;
+
+function zeigeFehler(text) {
+  analyseFehler.textContent = text;
+  analyseFehler.hidden = !text;
+}
+
+btnAnalyse.addEventListener("click", async () => {
+  if (!gebiet || turf.area(gebiet) > MAX_FLAECHE_M2) return;
+  const meineNummer = ++ladeNummer;
+  const [west, sued, ost, nord] = turf.bbox(gebiet);
+  const rahmen = gebiet;
+
+  zeigeFehler("");
+  btnAnalyse.disabled = true;
+  btnAnalyse.textContent = "Lädt …";
+  analyseHint.textContent = "Daten werden von OpenStreetMap geladen. Das kann bis zu einer Minute dauern.";
+
+  try {
+    const roh = await holeOsmDaten(sued, west, nord, ost);
+    if (meineNummer !== ladeNummer) return; // inzwischen anderes Gebiet gewählt oder gelöscht
+
+    const umgewandelt = osmtogeojson(roh);
+    const zaehler = { gebaeude: 0, nebengebaeude: 0, strasse: 0, gruen: 0, wasser: 0, wasserlinie: 0, baum: 0 };
+    const features = [];
+    for (const f of umgewandelt.features) {
+      const k = kategorisiere(f);
+      if (!k) continue;
+      zaehler[k.kat]++;
+      features.push({ type: "Feature", geometry: f.geometry, properties: k });
+    }
+    if (!features.length) {
+      analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
+      zeigeFehler("In diesem Gebiet gibt es in OpenStreetMap keine passenden Daten. Wähle ein anderes Gebiet.");
+      return;
+    }
+
+    map.getSource("osm-daten").setData({ type: "FeatureCollection", features });
+    map.getSource("maske").setData(maskeFuer(rahmen));
+    datenVorhanden = true;
+    analyseHint.textContent =
+      `Geladen: ${zahl(zaehler.gebaeude + zaehler.nebengebaeude)} Gebäude (davon ${zahl(zaehler.nebengebaeude)} Nebengebäude), ` +
+      `${zahl(zaehler.strasse)} Straßenabschnitte, ${zahl(zaehler.gruen)} Grünflächen, ` +
+      `${zahl(zaehler.wasser + zaehler.wasserlinie)} Gewässer, ${zahl(zaehler.baum)} Einzelbäume. ` +
+      "Zählung inklusive Objekten, die über den Rand hinausragen.";
+    zeigeAnsicht("schwarzplan");
+  } catch (fehler) {
+    if (meineNummer !== ladeNummer) return;
+    analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
+    zeigeFehler(fehler.message);
+  } finally {
+    if (meineNummer === ladeNummer) {
+      btnAnalyse.textContent = "Analysieren";
+      btnAnalyse.disabled = !gebiet || turf.area(gebiet) > MAX_FLAECHE_M2;
+    }
+  }
 });

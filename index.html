@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+  <!-- Wandelt die Rohdaten von OpenStreetMap in Flächen und Linien um, die die Karte zeichnen kann -->
+  <script src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -52,6 +54,7 @@
       <section class="step step-main">
         <button id="btn-analyse" class="btn btn-primary btn-block" disabled>Analysieren</button>
         <p class="hint" id="analyse-hint">Zuerst ein Gebiet wählen.</p>
+        <p class="warning" id="analyse-fehler" role="alert" hidden></p>
       </section>
 
       <footer class="sources">
@@ -73,17 +76,16 @@
       </nav>
 
       <div class="views">
-        <!-- Die Karte -->
+        <!-- Eine Karte für fünf Reiter: Karte, Schwarzplan, Straßennetz, Grün und Lageplan.
+             Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
           <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
+          <div class="map-hint" id="plan-hint" hidden></div>
+          <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
         <!-- Platzhalter für die späteren Ansichten -->
-        <section class="view placeholder" data-view="schwarzplan"><div><h3>Schwarzplan</h3><p>Gebäude schwarz auf weiß, Nebengebäude grau. Erscheint nach „Analysieren“.</p></div></section>
-        <section class="view placeholder" data-view="strassen"><div><h3>Straßennetz</h3><p>Straßen nach Kategorie, unterschieden über die Linienstärke.</p></div></section>
-        <section class="view placeholder" data-view="gruen"><div><h3>Grün und Vegetation</h3><p>Parks, Wald, Wiesen, Einzelbäume und Wasser.</p></div></section>
-        <section class="view placeholder" data-view="lageplan"><div><h3>Lageplan</h3><p>Alle Ebenen übereinander, mit Nordpfeil und Maßstab.</p></div></section>
         <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen.</p></div></section>
         <section class="view placeholder" data-view="kennzahlen"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge, Nutzungen und Diagramme.</p></div></section>
       </div>

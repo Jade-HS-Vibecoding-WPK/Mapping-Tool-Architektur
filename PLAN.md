@@ -630,6 +630,10 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     zeichnet es zugeschnitten aufs Gebiet; Gebäude stehen auf ihrer echten Bodenhöhe, Ersatz-Klötze und Bäume
     auf der Geländehöhe, der rote Rahmen liegt auf dem Gelände. Nicht überhöht (Oldenburg ist sehr flach).
     Ohne Geländedaten bleibt der flache Boden.
+- [x] **Korrektur Runde 4** (16.11.2026): Lageplan-Straßen feiner (55 % des typischen Straßenraums),
+  einheitlich hellgrau mit dünnem grauem Rand, ohne Farbunterscheidung nach Kategorie; Fußwege als feine graue
+  Linie. Straßen überdecken keine Gebäude mehr: Grundrisse und Dachaufsichten werden mit schmalem weißem Saum
+  ausgespart. Das Straßennetz behält die breiten Flächen nach Kategorie.
 - [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): CityGML (ZIP, mehrere Kacheln,
   Anzeige der benötigten Kacheln) und topoexport-DXF im Browser (binär), Verortung von Hand.
   Idee: die topoexport-Bäume (2756–4401, mit Kronengröße) statt der OSM-Bäume für Grün und 3D nutzen.

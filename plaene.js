@@ -35,8 +35,8 @@ const PLAN_EBENEN = {
     "strasse-fuss", "rahmen"],
   gruen: ["gebaeude-hell", "gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "baeume", "rahmen"],
   lageplan: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "verkehrsflaechen",
-    "netz-rand", "netz-flaeche", "strasse-fuss", "bahn-flaeche", "bahn", "baeume",
-    "gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"]
+    "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume",
+    "aussparung-flaeche", "aussparung-grundriss", "aussparung-dach", "gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"]
 };
 
 const PLAN_TITEL = {
@@ -67,6 +67,7 @@ function inMetern(meterAusdruck, breitengrad) {
 // Straßen ab 5 m Breite werden als Fläche gezeichnet, schmale Wege als feine Linie
 const STRASSE_ALS_FLAECHE = [">=", ["get", "breite"], 5];
 const FAHRBAHN_FAKTOR = 0.75; // gezeichnete Breite = 75 % des typischen Straßenraums
+const LAGEPLAN_FAKTOR = 0.55; // im Lageplan feiner: 55 % des typischen Straßenraums
 
 function erstellePlanKarte(bbox) {
   planKarte = new maplibregl.Map({
@@ -159,6 +160,16 @@ function ebenenAnlegen(breitengrad) {
     { id: "gebaeude-lage", type: "fill", source: "gebaeude", filter: ["==", ["get", "art"], "haupt"], paint: { "fill-color": PLAN_FARBEN.gebaeudeLage } },
     { id: "gebaeude-neben-hell", type: "fill", source: "gebaeude", filter: ["==", ["get", "art"], "neben"],
       paint: { "fill-color": PLAN_FARBEN.nebenLage, "fill-outline-color": "#9a9a9a" } },
+    // Lageplan: Straßen fein und einheitlich hell mit dünnem grauem Rand
+    { id: "lage-rand", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
+      paint: { "line-color": "#9c9c9a", "line-width": inMetern(["+", ["*", ["get", "breite"], LAGEPLAN_FAKTOR], 0.6], breitengrad) } },
+    { id: "lage-flaeche", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
+      paint: { "line-color": PLAN_FARBEN.strasseLage, "line-width": inMetern(["*", ["get", "breite"], LAGEPLAN_FAKTOR], breitengrad) } },
+    // Aussparung: Gebäude (Grundriss und Dachaufsicht) mit schmalem weißen Saum über die Straßen legen,
+    // damit Straßen die Gebäude nie überdecken
+    { id: "aussparung-flaeche", type: "fill", source: "gebaeude", paint: { "fill-color": "#ffffff" } },
+    { id: "aussparung-grundriss", type: "line", source: "gebaeude", paint: { "line-color": "#ffffff", "line-width": mitZoom(1.4) } },
+    { id: "aussparung-dach", type: "line", source: "daecher", paint: { "line-color": "#ffffff", "line-width": mitZoom(1.4) } },
     { id: "gebaeude-umriss", type: "line", source: "gebaeude", filter: ["==", ["get", "art"], "haupt"],
       paint: { "line-color": PLAN_FARBEN.umriss, "line-width": mitZoom(0.7) } },
     { id: "daecher", type: "fill", source: "daecher", paint: { "fill-color": ["get", "farbe"], "fill-antialias": false } },
@@ -203,11 +214,8 @@ function legendeFuer(plan, k, amtlich) {
         ["flaeche", PLAN_FARBEN.gebaeudeLage, "Gebäude (Dachformen nur mit LoD2-Daten)"],
         ["flaeche", PLAN_FARBEN.nebenLage, "Nebengebäude, Überdachungen", "neben"]
       ]),
-      ["flaeche", STRASSEN_TOENE.haupt, STRASSEN_KATEGORIEN.haupt],
-      ["flaeche", STRASSEN_TOENE.neben, STRASSEN_KATEGORIEN.neben],
-      ["flaeche", STRASSEN_TOENE.wohn, STRASSEN_KATEGORIEN.wohn],
-      ["flaeche", STRASSEN_TOENE.fuss, "Fußgängerzone, Platz, Parkplatz"],
-      ["strich", PLAN_FARBEN.schwarz, "Fuß- und Radweg"],
+      ["flaeche", PLAN_FARBEN.strasseLage, "Straße, Platz"],
+      ["linie", 0.6, "Fuß- und Radweg"],
       ["strich", "#555555", "Bahn"],
       ["flaeche", PLAN_FARBEN.park, "Park, Garten, Friedhof"],
       ["flaeche", PLAN_FARBEN.wald, "Wald"],

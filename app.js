@@ -373,8 +373,8 @@ const FARBE = {
   nebengebaeude: "#8c8c8c",      // Nebengebäude im Schwarzplan
   umriss: "#2b2823",
   dachKante: "#3a362f",
-  dachDunkel: [104, 96, 88],     // LoD2-Dächer: von der Sonne abgewandt ...
-  dachHell: [246, 242, 234],     // ... bis zur Sonne zugewandt
+  dachDunkel: [72, 66, 60],       // LoD2-Dächer: von der Sonne abgewandt ...
+  dachHell: [250, 247, 240],     // ... bis zur Sonne zugewandt
   kontext: "#e0e0e0",            // Gebäude als Orientierung in Straßennetz und Grün
   // Grün und Wasser
   gruen: "#bcd9a6",
@@ -383,14 +383,14 @@ const FARBE = {
   kroneNadel: "#4f8f74",
   kroneRand: "#3f6f38",
   stamm: "#3a3a2e",
-  wasser: "#8fc1e6",
+  wasser: "#6aaedb",
   // Straßen: Linien und Flächen
   strasseSchwarz: "#000000",
   strasseLageplan: "#555555",
   netz: { fahrbahn: "#2e2e2e", weg: "#bdbdbd", platz: "#dedede", kante: "#111111" },        // Straßennetz (Schwarz-Weiß)
-  plan: { fahrbahn: "#b9bdc2", weg: "#e6dfcf", platz: "#efe6d2", kante: "#7d7a72" },        // Lageplan und 3D-Boden
+  plan: { fahrbahn: "#a4a9b0", weg: "#e2cfa6", platz: "#f3e9d0", kante: "#6e6a62" },        // Lageplan und 3D-Boden
   // 3D-Modell
-  d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#9a8b7d", ersatzWand: "#d5e0ea", ersatzDach: "#a7b8c9", stamm: "#6b5a46" }
+  d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#8a8887", ersatzWand: "#cfdcea", ersatzDach: "#9db3cb", stamm: "#6b5a46" }
 };
 
 // Meter auf der Karte in Pixel umrechnen, damit Straßen und Bäume beim Zoomen ihre echte Breite behalten.
@@ -788,7 +788,7 @@ function flaechenNormale(ring) {
 
 function dachFarbe(normale) {
   const licht = normale[0] * LICHT[0] + normale[1] * LICHT[1] + normale[2] * LICHT[2];
-  const t = Math.min(1, Math.max(0, (licht - 0.1) / 0.9));
+  const t = Math.min(1, Math.max(0, (licht - 0.2) / 0.7));   // engerer Bereich = mehr Kontrast zwischen den Dachseiten
   const kanal = (i) => Math.round(DACH_DUNKEL[i] + (DACH_HELL[i] - DACH_DUNKEL[i]) * t);
   return `rgb(${kanal(0)}, ${kanal(1)}, ${kanal(2)})`;
 }

@@ -666,6 +666,8 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   und 3D gelesen. Überarbeitet: Grün (kräftiger), Wasser (klareres Blau), Baumkronen (dunklerer Rand), Lageplan (mehr Kontrast bei Dächern,
   Fahrbahn kühl-grau, Gehweg und Platz warm-sandfarben), 3D (helle Wände, wärmere dunklere Dächer, kräftigerer Boden). Schwarzplan unverändert.
   **Getestet** (echte Daten, Oldenburg): Legende in Karte, Schwarzplan, Straßennetz, Grün, Lageplan und 3D, Zuklappen und Öffnen, Merken.
+  **Nachjustiert nach Rückmeldung:** Lageplan-Dächer kontrastreicher (dunkler und engerer Hell-Dunkel-Bereich), Fahrbahn bläulich-grau,
+  Wege kräftiger sandfarben, Plätze heller; Wasser dunkler blau; 3D-Dächer neutral grau, Ersatzblöcke deutlicher bläulich. Grün blieb unverändert.
   **Nicht geprüft:** Ob die neuen Farben dir gefallen (Geschmackssache, bitte ansehen), Handy, Farbsehschwäche. Die Eckdaten sind die Kennzahlen,
   also mit denselben Einschränkungen (siehe oben).
 - [ ] **Nächster Schritt:** Gelände im 3D (LGLN-Höhenmodell DGM1: Suche `https://dgm.stac.lgln.niedersachsen.de/search`, Kachel ca. 3,7 MB als

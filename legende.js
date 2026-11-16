@@ -71,7 +71,7 @@ function farbschluessel(ansicht) {
       break;
     case "3d":
       e.push(eintrag(farbfeld(FARBE.d3.wand, "#b9b4aa"), "Wand (LoD2)"));
-      e.push(eintrag(farbfeld(FARBE.d3.dach, "#7d7064"), "Dach (LoD2)"));
+      e.push(eintrag(farbfeld(FARBE.d3.dach, "#6f6d6a"), "Dach (LoD2)"));
       e.push(eintrag(farbfeld(FARBE.d3.ersatzWand, "#8da2b5"), "Ersatzblock aus OSM (ohne LoD2)"));
       e.push(eintrag(farbfeld(FARBE.plan.fahrbahn), "Boden: Fahrbahn"));
       e.push(eintrag(farbfeld(FARBE.plan.weg), "Boden: Weg, Platz"));

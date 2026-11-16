@@ -176,17 +176,45 @@ function importBeruehrt([w, s, o, n]) {
   return !!(importDaten.kombi && a && w < a[2] && o > a[0] && s < a[3] && n > a[1]);
 }
 
-// Welche amtlichen Daten gelten für das Gebiet? Import vor Beispiel.
+// Welche amtlichen Daten gelten für das Gebiet? Import und Beispiel werden zusammengeführt;
+// wo beide etwas haben, gewinnt der Import (Detailstufen-Regel).
 async function amtlicheDaten(bbox, nurBeispiel) {
-  if (!nurBeispiel && importBeruehrt(bbox)) {
-    return { lod2Daten: importDaten.kombi, strassenDaten: importDaten.strassen, herkunft: "Import" };
+  const imp = !nurBeispiel && importBeruehrt(bbox);
+  const bsp = beruehrtBeispielgebiet(bbox);
+  if (!imp && !bsp) return null;
+  let beispiel = null, beispielStrassen = null;
+  if (bsp) [beispiel, beispielStrassen] = await Promise.all([ladeBeispielLod2().catch(() => null), ladeBeispielStrassen().catch(() => null)]);
+  if (!imp) return { lod2Daten: beispiel, strassenDaten: beispielStrassen, herkunft: "Beispiel" };
+  if (!beispiel) return { lod2Daten: importDaten.kombi, strassenDaten: importDaten.strassen, herkunft: "Import" };
+  return { lod2Daten: zusammenfuehren(beispiel, importDaten.kombi), strassenDaten: importDaten.strassen || beispielStrassen, herkunft: "Import + Beispiel" };
+}
+
+// Beispiel- und Importdaten in einem gemeinsamen Format (Meter, Nullpunkt des Beispiels) vereinen
+function zusammenfuehren(bsp, imp) {
+  const [e0, n0] = bsp.nullpunkt, k = bsp.einheit;
+  const dx = imp.nullpunkt[0] - e0, dy = imp.nullpunkt[1] - n0;
+  const verschiebe = (r) => r.map((v, i) => (i % 3 === 0 ? v + dx : i % 3 === 1 ? v + dy : v));
+  const impKacheln = imp.kacheln.map(([a, b, c, d]) => [a + dx, b + dy, c + dx, d + dy]);
+  const inImportKachel = (x, y) => impKacheln.some(([a, b, c, d]) => x >= a && x < c && y >= b && y < d);
+  const impIds = new Set(imp.gebaeude.map((g) => g[0]));
+  const gebaeude = [];
+  for (const g of bsp.gebaeude) {
+    if (impIds.has(g[0])) continue; // dasselbe Gebäude ist importiert
+    const flaechen = g[5].map(([typ, ...ringe]) => [typ, ...ringe.map((r) => r.map((v) => v * k))]);
+    const dach = flaechen.find((f) => f[0] === "R") || flaechen[0];
+    const r = dach[1];
+    let sx = 0, sy = 0;
+    for (let i = 0; i < r.length; i += 3) { sx += r[i]; sy += r[i + 1]; }
+    if (inImportKachel(sx / (r.length / 3), sy / (r.length / 3))) continue; // dort gilt die importierte Kachel
+    gebaeude.push([g[0], g[1], g[2], g[3], g[4], flaechen, g[6]]);
   }
-  if (beruehrtBeispielgebiet(bbox)) {
-    const [lod2Daten, strassenDaten] = await Promise.all([
-      ladeBeispielLod2().catch(() => null), ladeBeispielStrassen().catch(() => null)]);
-    return { lod2Daten, strassenDaten, herkunft: "Beispiel" };
+  for (const g of imp.gebaeude) {
+    gebaeude.push([g[0], g[1], g[2], g[3], g[4], g[5].map(([typ, ...ringe]) => [typ, ...ringe.map(verschiebe)]), g[6],
+      g[7] ? g[7].map((ring) => ring.map(([x, y]) => [x + dx, y + dy])) : undefined]);
   }
-  return null;
+  const gelaende = imp.gelaende ? { ...imp.gelaende, x0: imp.gelaende.x0 + dx, y0: imp.gelaende.y0 + dy } : bsp.gelaende;
+  return { nullpunkt: bsp.nullpunkt, epsg: 25832, einheit: 1, kacheln: bsp.kacheln.concat(impKacheln), // (Kachelgrenzen sind schon in Metern gespeichert)
+    gebaeude, topoexport: bsp.topoexport, gelaende };
 }
 
 // ---------- Datenliste ----------
@@ -212,14 +240,20 @@ function zeigeDatenliste() {
 }
 
 // ---------- Benötigte LoD2-Kacheln ----------
-function zeigeKachelStatus() {
-  if (!gebiet) { kachelBox.hidden = true; return; }
+// Namen der 1-km-Kacheln (UTM 32, „Ost-km_Nord-km“), die das Gebiet berührt
+function benoetigteKacheln() {
   const [w, s, o, n] = turf.bbox(gebiet);
   const ecken = [[w, s], [o, s], [o, n], [w, n]].map(([lon, lat]) => gradZuUtm(lon, lat));
   const e0 = Math.floor(Math.min(...ecken.map((p) => p[0])) / 1000), e1 = Math.floor((Math.max(...ecken.map((p) => p[0])) - 0.01) / 1000);
   const n0 = Math.floor(Math.min(...ecken.map((p) => p[1])) / 1000), n1 = Math.floor((Math.max(...ecken.map((p) => p[1])) - 0.01) / 1000);
   const noetig = [];
   for (let e = e0; e <= e1; e++) for (let nn = n0; nn <= n1; nn++) noetig.push(`${e}_${nn}`);
+  return noetig;
+}
+
+function zeigeKachelStatus() {
+  if (!gebiet) { kachelBox.hidden = true; return; }
+  const noetig = benoetigteKacheln();
   const geladen = importDaten.citygml.filter((c) => c.kachel).map((c) => c.kachel.name);
   const fehlend = noetig.filter((k) => !geladen.includes(k));
   const unnoetig = geladen.filter((k) => !noetig.includes(k));
@@ -227,9 +261,96 @@ function zeigeKachelStatus() {
     <p><strong>LoD2-Kacheln für dieses Gebiet</strong> (amtliche 3D-Gebäude, 1 × 1 km):</p>
     <ul>${noetig.map((k) => `<li class="${geladen.includes(k) ? "ok" : "fehlt"}">${geladen.includes(k) ? "✓" : "–"} LoD2_32_${k}</li>`).join("")}</ul>
     ${fehlend.length ? `<p class="kachel-hinweis">${fehlend.length === noetig.length && !geladen.length ? "Noch keine geladen." : `Es fehlen ${fehlend.length}.`}
-      Kostenlos im Open-Data-Angebot des LGLN (3D-Gebäudemodelle LoD2). ${importDaten.topo3d ? "Bis dahin nimmt das Tool die Gebäude aus topoexport 3D." : ""}</p>` : `<p class="kachel-hinweis">Alle benötigten Kacheln sind geladen.</p>`}
+      ${importDaten.topo3d ? "Bis dahin nimmt das Tool die Gebäude aus topoexport 3D." : ""}</p>
+      <button class="btn btn-klein" id="kacheln-laden">Fehlende Kacheln laden</button>
+      <p class="kachel-hinweis">Automatisch aus Niedersachsen (LGLN) und NRW (Geobasis NRW), je Kachel bis ca. 60 MB.
+        Andere Länder: Dateien selbst herunterladen und hier ablegen.</p>`
+      : `<p class="kachel-hinweis">Alle benötigten Kacheln sind geladen.</p>`}
     ${unnoetig.length ? `<p class="kachel-hinweis">Nicht nötig für dieses Gebiet: ${unnoetig.map((k) => `LoD2_32_${k}`).join(", ")}</p>` : ""}`;
   kachelBox.hidden = false;
+  const knopf = document.getElementById("kacheln-laden");
+  if (knopf) knopf.addEventListener("click", () => ladeFehlendeKacheln(fehlend, knopf));
+}
+
+// ---------- LoD2-Kacheln selbst abholen (offene Daten der Länder) ----------
+// Niedersachsen: Kachelverzeichnis als ArcGIS-Dienst des LGLN, Dateien als GML (CC BY 4.0)
+// NRW: Verzeichnis index.json der Geobasis NRW, Dateien als GML (Datenlizenz Deutschland – Zero 2.0)
+const LGLN_KACHELN = "https://services-eu1.arcgis.com/4v3xxN52w88W065F/arcgis/rest/services/lgln_opengeodata_lod2/FeatureServer/0/query";
+const NRW_ORDNER = "https://www.opengeodata.nrw.de/produkte/geobasis/3dg/lod2_gml/lod2_gml/";
+let nrwVerzeichnis = null;
+
+async function sucheKachelLinks(namen) {
+  const links = new Map(); // Name → { url, land }
+  // 1. Niedersachsen (tile_id = „2“ + Ost-km + Nord-km)
+  try {
+    const ids = namen.map((k) => `2${k.replace("_", "")}`).join(",");
+    const antwort = await fetch(`${LGLN_KACHELN}?f=json&where=tile_id+IN+(${ids})&outFields=tile_id,xml&returnGeometry=false`);
+    const json = await antwort.json();
+    for (const f of json.features || []) {
+      const id = String(f.attributes.tile_id).slice(1);
+      links.set(`${id.slice(0, 3)}_${id.slice(3)}`, { url: f.attributes.xml, land: "Niedersachsen (LGLN, CC BY 4.0)" });
+    }
+  } catch (e) { console.warn("LGLN-Verzeichnis nicht erreichbar", e); }
+  // 2. NRW (nur für Kacheln, die in Niedersachsen nicht gefunden wurden)
+  const rest = namen.filter((k) => !links.has(k));
+  if (rest.length) {
+    try {
+      if (!nrwVerzeichnis) {
+        meldeImport("Lade das Kachelverzeichnis NRW …");
+        const json = await (await fetch(`${NRW_ORDNER}index.json`)).json();
+        nrwVerzeichnis = new Set(json.datasets.flatMap((d) => d.files.map((f) => f.name)));
+      }
+      for (const k of rest) {
+        const datei = `LoD2_32_${k}_1_NW.gml`;
+        if (nrwVerzeichnis.has(datei)) links.set(k, { url: NRW_ORDNER + datei, land: "NRW (Geobasis NRW, dl-de/zero-2-0)" });
+      }
+    } catch (e) { console.warn("NRW-Verzeichnis nicht erreichbar", e); }
+  }
+  return links;
+}
+
+// Eine Datei mit Fortschrittsanzeige herunterladen
+async function ladeMitFortschritt(url, text) {
+  const antwort = await fetch(url);
+  if (!antwort.ok) throw new Error(`Download fehlgeschlagen (${antwort.status})`);
+  const gesamt = +antwort.headers.get("content-length") || 0;
+  const leser = antwort.body.getReader();
+  const teile = [];
+  let geladen = 0;
+  for (;;) {
+    const { done, value } = await leser.read();
+    if (done) break;
+    teile.push(value);
+    geladen += value.length;
+    meldeImport(`${text}: ${fmt(geladen / 1e6, 1)}${gesamt ? ` von ${fmt(gesamt / 1e6, 1)}` : ""} MB …`);
+  }
+  return new Blob(teile);
+}
+
+async function ladeFehlendeKacheln(fehlend, knopf) {
+  knopf.disabled = true;
+  try {
+    meldeImport("Suche die Kacheln bei den Landesämtern …");
+    const links = await sucheKachelLinks(fehlend);
+    const nichtGefunden = fehlend.filter((k) => !links.has(k));
+    const dateien = [];
+    let nr = 0;
+    for (const [name, { url }] of links) {
+      nr++;
+      const blob = await ladeMitFortschritt(url, `Kachel ${nr} von ${links.size} (${name})`);
+      dateien.push(new File([blob], url.split("/").pop()));
+    }
+    if (dateien.length) await dateienAnnehmen(dateien);
+    const laender = [...new Set([...links.values()].map((l) => l.land))];
+    meldeImport((dateien.length ? `${dateien.length} Kachel(n) geladen. Quelle: ${laender.join(", ")}. ` : "") +
+      (nichtGefunden.length ? `Nicht gefunden: ${nichtGefunden.map((k) => `LoD2_32_${k}`).join(", ")} ` +
+        "(außerhalb von Niedersachsen und NRW – bitte beim jeweiligen Landesamt herunterladen und hier ablegen)." : ""));
+  } catch (fehler) {
+    console.error(fehler);
+    meldeImport(`Kacheln konnten nicht geladen werden: ${fehler.message}`);
+  } finally {
+    if (knopf.isConnected) knopf.disabled = false;
+  }
 }
 
 // =============================================================

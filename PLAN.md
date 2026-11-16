@@ -653,6 +653,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     51009 = Überdachung → Nebengebäude. Zuordnung: LoD2-Mittelpunkt liegt im OSM-Grundriss (einfacher als
     die geplanten > 50 % Überlappung). Ergebnis Oldenburg: 1.075 Gebäude mit amtlicher Höhe (nur noch 6 %
     geschätzt), mittlere Geschosszahl 3,3, GFZ 1,49 brutto / 2,25 netto, „unbekannte“ Nutzung 191 statt 724.
+- [x] **Grün/Straßen im 3D und LoD2-Abruf** (16.11.2026):
+  - 3D-Modell: Grün, Wasser, Straßen (mit Rand), Plätze und Bahn werden als Bild (Textur, 2048 px) auf
+    Gelände bzw. Boden gelegt und folgen so genau dem Geländeverlauf.
+  - **Knopf „Fehlende Kacheln laden“** in der Kachel-Anzeige: holt fehlende LoD2-Kacheln selbst ab und
+    importiert sie. Getestet: Oldenburg 446_5887 + 446_5888 in 38 s. Quellen (beide mit CORS, also direkt aus dem Browser):
+    - Niedersachsen: Kachelverzeichnis `services-eu1.arcgis.com/…/lgln_opengeodata_lod2/FeatureServer/0`
+      (Feld `xml` = GML-Link auf `lod2.s3.eu-de.cloud-object-storage.appdomain.cloud`, `tile_id` = „2“ + Ost-km + Nord-km).
+    - NRW: `opengeodata.nrw.de/produkte/geobasis/3dg/lod2_gml/lod2_gml/index.json` (3 MB, 35 022 Kacheln), Dateien `LoD2_32_E_N_1_NW.gml`.
+  - Geprüft, aber (noch) nicht eingebaut: **Brandenburg** (ZIP je km-Kachel, CORS ok, aber UTM 33),
+    **Berlin** (Atom-Feed, UTM 33), **Bayern** und **Bremen** (blockieren den Abruf aus dem Browser → von Hand
+    herunterladen). Andere Länder nicht im Detail geprüft. Achtung: Der Import kann bisher nur UTM 32.
+  - **Import und Beispiel werden zusammengeführt** (`zusammenfuehren` in import.js): importierte Kacheln
+    ersetzen dort die Beispieldaten, sonst gilt das Beispiel. Oldenburg mit den neuen Westrand-Kacheln:
+    1.705 CityGML-Gebäude, keine Ersatz-Klötze mehr.
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

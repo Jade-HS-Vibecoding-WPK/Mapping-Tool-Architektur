@@ -281,7 +281,7 @@ async function analysiere(nurBeispiel = false) {
     // 3. Anzeigen: zuerst den Schwarzplan
     // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)
     zeigeKennzahlen(kennzahlen, quelleText);
-    zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude: daten.gebaeude.features, baeume: daten.baeume, quelleText: quelleText + lgln });
+    zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude: daten.gebaeude.features, baeume: daten.baeume, plan: daten, quelleText: quelleText + lgln });
     meldung("Zeichne die Pläne …");
     zeigeAnsicht("schwarzplan");
     await zeichnePlaene(daten, bbox, kennzahlen, quelleText + lgln, daecher);

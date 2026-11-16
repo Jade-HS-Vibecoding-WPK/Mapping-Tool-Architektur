@@ -87,13 +87,60 @@ function leeren(gruppe) {
   while (gruppe.children.length) {
     const o = gruppe.children.pop();
     o.geometry && o.geometry.dispose();
-    o.material && o.material.dispose();
+    if (o.material) { o.material.map && o.material.map.dispose(); o.material.dispose(); }
   }
+}
+
+// Grün, Wasser, Straßen und Plätze als Bild malen, das auf Gelände bzw. Boden gelegt wird (Textur).
+// So liegen sie genau auf dem Gelände. rahmen = [minX, minY, maxX, maxY] in Metern.
+function bodenTextur(plan, lokal, [minX, minY, maxX, maxY], renderer) {
+  const B = 2048, H = Math.round(2048 * (maxY - minY) / (maxX - minX)) || 2048;
+  const leinwand = document.createElement("canvas");
+  leinwand.width = B; leinwand.height = H;
+  const ctx = leinwand.getContext("2d");
+  const proMeter = B / (maxX - minX);
+  const px = ([lon, lat]) => {
+    const [x, y] = lokal(...gradZuUtm(lon, lat));
+    return [(x - minX) * proMeter, (maxY - y) * proMeter];
+  };
+  ctx.fillStyle = "#ecebe6";
+  ctx.fillRect(0, 0, B, H);
+  const flaeche = (f, farbe, rand) => {
+    const g = f.geometry;
+    const polys = g.type === "Polygon" ? [g.coordinates] : g.type === "MultiPolygon" ? g.coordinates : [];
+    for (const poly of polys) {
+      ctx.beginPath();
+      for (const ring of poly) ring.forEach((p, i) => { const [x, y] = px(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+      ctx.fillStyle = farbe; ctx.fill("evenodd");
+      if (rand) { ctx.strokeStyle = rand; ctx.lineWidth = 1; ctx.stroke(); }
+    }
+  };
+  const linie = (f, farbe, breiteM, strich) => {
+    const g = f.geometry;
+    const linien = g.type === "LineString" ? [g.coordinates] : g.type === "MultiLineString" ? g.coordinates : [];
+    ctx.strokeStyle = farbe; ctx.lineWidth = Math.max(1, breiteM * proMeter);
+    ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.setLineDash(strich || []);
+    for (const l of linien) { ctx.beginPath(); l.forEach((p, i) => { const [x, y] = px(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
+    ctx.setLineDash([]);
+  };
+  const gruenFarbe = { wiese: "#dfe8d6", park: "#c9d9bd", wald: "#a6c098", wasser: "#c3d3dc" };
+  for (const kat of ["wiese", "park", "wald", "wasser"]) plan.gruen.features.filter((f) => f.properties.kategorie === kat).forEach((f) => flaeche(f, gruenFarbe[kat]));
+  plan.wasserLinien.features.forEach((f) => linie(f, "#c3d3dc", f.properties.breite));
+  plan.verkehrsflaechen.features.forEach((f) => flaeche(f, "#dcdcd8", "#b4b4b0"));
+  plan.bahn.features.forEach((f) => f.properties.art === "bahnflaeche" ? flaeche(f, "#dcdcd8") : linie(f, "#8a8a8a", 1.4, [12, 6]));
+  // Straßen: erst der Rand (etwas breiter), dann die Fläche, wie im Lageplan
+  const autos = plan.strassen.features.filter((f) => f.properties.breite >= 5);
+  autos.forEach((f) => linie(f, "#a8a8a4", f.properties.breite * 0.75 + 0.8));
+  autos.forEach((f) => linie(f, "#d4d4d0", f.properties.breite * 0.75));
+  plan.strassen.features.filter((f) => f.properties.breite < 5).forEach((f) => linie(f, "#c2c2be", 1.6));
+  const textur = new THREE.CanvasTexture(leinwand);
+  textur.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return textur;
 }
 
 // Baut die Szene neu. Koordinaten: Meter, x = Ost, y = Nord, z = Höhe.
 // ursprung = [Ost, Nord] in UTM 32 (Mitte des Gebiets)
-function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
+function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleText }) {
   const d = dreidStarten();
   leeren(d.gruppe);
   document.getElementById("dreid-leer").hidden = true;
@@ -105,6 +152,17 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
   const eckenLokal = ecken.map(([e, nn]) => lokal(e, nn));
   const minX = Math.min(...eckenLokal.map((p) => p[0])), maxX = Math.max(...eckenLokal.map((p) => p[0]));
   const minY = Math.min(...eckenLokal.map((p) => p[1])), maxY = Math.max(...eckenLokal.map((p) => p[1]));
+
+  // Bodenbild mit Grün, Wasser, Straßen und Plätzen; Bildkoordinaten (UV) aus der Lage im Gebiet
+  const textur = plan ? bodenTextur(plan, lokal, [minX, minY, maxX, maxY], d.renderer) : null;
+  const bodenMaterial = new THREE.MeshLambertMaterial({ color: textur ? 0xffffff : 0xecebe6, map: textur, side: THREE.DoubleSide,
+    polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+  const mitUV = (geo) => {
+    const pos = geo.attributes.position, uv = [];
+    for (let i = 0; i < pos.count; i++) uv.push((pos.getX(i) - minX) / (maxX - minX), (pos.getY(i) - minY) / (maxY - minY));
+    geo.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    return geo;
+  };
 
   // Gelände (wenn vorhanden): Höhe an jedem Punkt, bezogen auf den tiefsten Geländepunkt (z0)
   const gelaende = lod2Daten && lod2Daten.gelaende;
@@ -140,13 +198,11 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
     geo.setAttribute("position", new THREE.Float32BufferAttribute(punkte, 3));
     geo.setIndex(index);
     geo.computeVertexNormals();
-    const flaeche = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0xecebe6, side: THREE.DoubleSide,
-      polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 }));
-    d.gruppe.add(flaeche);
+    d.gruppe.add(new THREE.Mesh(mitUV(geo), bodenMaterial));
   } else {
     // Ohne Geländedaten: flacher Boden
     const bodenForm = new THREE.Shape(eckenLokal.map((p) => new THREE.Vector2(...p)));
-    const boden = new THREE.Mesh(new THREE.ShapeGeometry(bodenForm), new THREE.MeshBasicMaterial({ color: DREID_FARBEN.boden }));
+    const boden = new THREE.Mesh(mitUV(new THREE.ShapeGeometry(bodenForm)), bodenMaterial);
     boden.position.z = -0.05;
     d.gruppe.add(boden);
   }
@@ -251,6 +307,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, quelleText }) {
       ${lod2Anzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäude LoD2 aus CityGML, echte Dachformen (${fmt(lod2Anzahl)})</span></li>` : ""}
       ${topoAnzahl ? `<li><span class="lz lz-flaeche" style="background:#c9c6c1"></span><span>Gebäudeteile LoD2 aus topoexport, Westrand (${fmt(topoAnzahl)})</span></li>` : ""}
       ${ersatzAnzahl ? `<li><span class="lz lz-flaeche" style="background:#eac3b9"></span><span>Ersatz aus OSM, Geschosse × 3 m (${fmt(ersatzAnzahl)})</span></li>` : ""}
+      ${plan ? `<li><span class="lz lz-flaeche" style="background:linear-gradient(90deg,#c9d9bd 0 50%,#d4d4d0 50%)"></span><span>Grün, Wasser, Straßen und Plätze auf dem Boden</span></li>` : ""}
       ${liste.length ? `<li><span class="lz lz-kreis"></span><span>Einzelbaum, Höhe geschätzt (${fmt(liste.length)})</span></li>` : ""}
       ${gelaende ? `<li><span class="lz lz-flaeche" style="background:#ecebe6"></span><span>Gelände (LGLN über topoexport), ${fmt(z0, 1)} bis ${fmt(z0 + Math.max(...gelaende.z) / 10 - Math.min(...gelaende.z) / 10, 1)} m ü. NHN, nicht überhöht</span></li>`
         : `<li><span class="lz lz-flaeche" style="background:#f4f4f2"></span><span>Boden flach (keine Geländedaten)</span></li>`}

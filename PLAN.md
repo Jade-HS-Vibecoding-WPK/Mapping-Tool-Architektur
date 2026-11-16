@@ -4,7 +4,7 @@
 > Schwarzplan, Straßennetz, Grün/Vegetation, Lageplan und 3D-Modell erzeugt, auswertet und
 > kompakt zusammenfasst.
 
-Stand: **Planungsphase abgeschlossen, noch kein Code.**
+Stand: **Grundgerüst steht** (siehe Abschnitt 8).
 
 ---
 
@@ -494,7 +494,7 @@ ortsanalyse/
 ## 6. Reihenfolge der Arbeitsschritte
 
 1. **Idee und Plan:** PLAN.md und CLAUDE.md stehen ✅
-2. **Grundgerüst und Aussehen:** Seite mit der Karte von Oldenburg, Rechteck aufziehen, Layout im
+2. **Grundgerüst und Aussehen** ✅: Seite mit der Karte von Oldenburg, Rechteck aufziehen, Layout im
    Architektur-Look (Platzhalter für Pläne und Kennzahlen).
 3. **Datenquellen prüfen:** topoexport und LoD2 prüfen, Testdateien für Oldenburg herunterladen.
 4. **OSM-Daten und 2D-Pläne:** Schwarzplan, Straßennetz, Grün und Lageplan erscheinen; Kennzahlen
@@ -555,4 +555,10 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
 - [ ] Offen: DWG-Beispieldatei besorgen
 - [ ] Offen: Zeigt topoexport die Lage (Koordinaten) des Ausschnitts an? Gibt es eine Export-Option mit UTM 32?
 - [ ] Offen: Ist topoexport für uns kostenlos, und darf man es automatisch abfragen?
-- [ ] **Nächster Schritt:** Grundgerüst: Seite mit Karte von Oldenburg und Rechteck-Auswahl
+- [x] **Grundgerüst fertig** (`index.html`, `style.css`, `app.js`): Karte von Oldenburg in Grautönen,
+  Rechteck aufziehen (Breite × Höhe und Fläche werden angezeigt, Warnung über 1 km²), Nordpfeil,
+  Maßstabsleiste, Quellenangabe, Reiter für alle Ansichten (noch Platzhalter), Knopf „Analysieren“
+  (noch ohne Funktion), Ablagefeld für Dateien (noch ohne Funktion). Im Browser getestet, auch in Handybreite.
+- [ ] **Nächster Schritt:** Datenquellen prüfen und OSM-Daten laden (Schritte 3 und 4 in Abschnitt 6)
+- [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
+  Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ortsanalyse</title>
+  <meta name="description" content="Städtebauliche Ortsanalyse: Schwarzplan, Straßennetz, Grün, Lageplan und 3D-Modell für ein frei gewähltes Gebiet.">
+
+  <!-- Karten-Bibliothek (MapLibre) und Rechen-Bibliothek (Turf) aus dem Internet laden -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Seitenleiste links: Arbeitsschritte ===== -->
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>Ortsanalyse</h1>
+        <p class="subtitle">Städtebauliche Strukturen eines Untersuchungsgebiets erfassen, auswerten und darstellen</p>
+      </header>
+
+      <!-- Schritt 1: Gebiet -->
+      <section class="step">
+        <h2><span class="num">01</span> Gebiet wählen</h2>
+        <p class="hint">Klicke auf „Rechteck zeichnen“ und ziehe dann mit gedrückter Maustaste einen Ausschnitt auf der Karte auf.</p>
+        <div class="row">
+          <button id="btn-draw" class="btn">Rechteck zeichnen</button>
+          <button id="btn-clear" class="btn btn-ghost" disabled>Löschen</button>
+        </div>
+        <dl class="area-info" id="area-info" hidden>
+          <div><dt>Breite × Höhe</dt><dd id="area-dims">–</dd></div>
+          <div><dt>Fläche</dt><dd id="area-size">–</dd></div>
+        </dl>
+        <p class="warning" id="area-warning" hidden>Das Gebiet ist größer als 1 km². Bitte wähle einen kleineren Ausschnitt, damit die Daten schnell geladen werden.</p>
+      </section>
+
+      <!-- Schritt 2: Daten (kommt später) -->
+      <section class="step">
+        <h2><span class="num">02</span> Daten</h2>
+        <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
+        <div class="dropzone is-disabled" aria-disabled="true">
+          Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
+        </div>
+        <button class="btn btn-ghost btn-block" disabled>Beispiel Oldenburg laden <small>(folgt)</small></button>
+      </section>
+
+      <!-- Hauptbutton -->
+      <section class="step step-main">
+        <button id="btn-analyse" class="btn btn-primary btn-block" disabled>Analysieren</button>
+        <p class="hint" id="analyse-hint">Zuerst ein Gebiet wählen.</p>
+      </section>
+
+      <footer class="sources">
+        Kartengrundlage © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a> (ODbL).
+        Weitere Quellen: LGLN Niedersachsen (CC BY 4.0), Overture Maps (ODbL). Daten nicht vermessungsgenau.
+      </footer>
+    </aside>
+
+    <!-- ===== Hauptbereich rechts: Ansichten ===== -->
+    <main class="main">
+      <nav class="tabs" role="tablist" aria-label="Ansichten">
+        <button class="tab is-active" data-view="karte" role="tab">Karte</button>
+        <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
+        <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
+        <button class="tab" data-view="gruen" role="tab">Grün</button>
+        <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="3d" role="tab">3D</button>
+        <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
+      </nav>
+
+      <div class="views">
+        <!-- Die Karte -->
+        <section class="view is-active" data-view="karte">
+          <div id="map"></div>
+          <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
+        </section>
+
+        <!-- Platzhalter für die späteren Ansichten -->
+        <section class="view placeholder" data-view="schwarzplan"><div><h3>Schwarzplan</h3><p>Gebäude schwarz auf weiß, Nebengebäude grau. Erscheint nach „Analysieren“.</p></div></section>
+        <section class="view placeholder" data-view="strassen"><div><h3>Straßennetz</h3><p>Straßen nach Kategorie, unterschieden über die Linienstärke.</p></div></section>
+        <section class="view placeholder" data-view="gruen"><div><h3>Grün und Vegetation</h3><p>Parks, Wald, Wiesen, Einzelbäume und Wasser.</p></div></section>
+        <section class="view placeholder" data-view="lageplan"><div><h3>Lageplan</h3><p>Alle Ebenen übereinander, mit Nordpfeil und Maßstab.</p></div></section>
+        <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen.</p></div></section>
+        <section class="view placeholder" data-view="kennzahlen"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge, Nutzungen und Diagramme.</p></div></section>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

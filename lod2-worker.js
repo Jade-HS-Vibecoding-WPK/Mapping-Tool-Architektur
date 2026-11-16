@@ -10,7 +10,7 @@
    Eingabe:  { kacheln: [{ id, url }], bbox: [Ost_min, Nord_min, Ost_max, Nord_max] }  (UTM 32, Meter)
    Ausgabe:  { typ: "fortschritt", ... } zwischendurch,
              { typ: "fertig", gebaeude: [...] } am Ende oder { typ: "fehler", text } bei Problemen.
-   Ein Gebäude: { id, dachtyp, flaechen: [ [ring, ring, ...], ... ] }
+   Ein Gebäude: { id, dachtyp, funktion, hoehe, trauf, boden, flaechen: [ [ring, ring, ...], ... ] }
    Ein Ring ist eine flache Zahlenliste [x, y, z, x, y, z, ...] in Metern (UTM 32, Höhe über NHN).
    ============================================================ */
 
@@ -104,6 +104,13 @@ function verarbeiteBlock(block, bbox) {
 
   const idTreffer = /<bldg:Building[^>]*gml:id="([^"]+)"/.exec(block);
   const dachTreffer = /<bldg:roofType>(\d+)<\/bldg:roofType>/.exec(block);
+  // Merkmale für die Kennzahlen: Nutzungscode, Höhe über Gelände, Traufhöhe und Geländehöhe (beide über NHN)
+  const funktionTreffer = /<bldg:function>([^<]*)<\/bldg:function>/.exec(block);
+  const hoeheTreffer = /<bldg:measuredHeight[^>]*>([-\d.]+)<\/bldg:measuredHeight>/.exec(block);
+  const merkmal = (name) => {
+    const m = new RegExp('name="' + name + '">\s*<gen:value>([^<]*)</gen:value>').exec(block);
+    return m && m[1] !== "" && !Number.isNaN(Number(m[1])) ? Number(m[1]) : null;
+  };
 
   const flaechen = [];
   let beruehrt = false;
@@ -121,7 +128,15 @@ function verarbeiteBlock(block, bbox) {
     }
   }
   if (!beruehrt) return null;
-  return { id: idTreffer ? idTreffer[1] : "", dachtyp: dachTreffer ? dachTreffer[1] : "", flaechen };
+  return {
+    id: idTreffer ? idTreffer[1] : "",
+    dachtyp: dachTreffer ? dachTreffer[1] : "",
+    funktion: funktionTreffer ? funktionTreffer[1].trim() : "",
+    hoehe: hoeheTreffer ? Number(hoeheTreffer[1]) : null,   // Gebäudehöhe über Gelände (m)
+    trauf: merkmal("MittlereTraufHoehe"),                    // Traufhöhe über NHN (m)
+    boden: merkmal("AbsoluteHoehe"),                         // Geländehöhe über NHN (m)
+    flaechen
+  };
 }
 
 // Liegt mindestens ein Eckpunkt der Fläche im Rechteck?

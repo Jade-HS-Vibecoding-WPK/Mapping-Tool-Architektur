@@ -95,7 +95,10 @@
 
         <!-- Platzhalter für die späteren Ansichten -->
         <section class="view placeholder" data-view="3d"><div><h3>3D-Modell</h3><p>LoD2-Gebäude mit echten Dachformen, Gelände und Bäumen.</p></div></section>
-        <section class="view placeholder" data-view="kennzahlen"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge, Nutzungen und Diagramme.</p></div></section>
+        <!-- Kennzahlen: wird von app.js (Abschnitt 8) befüllt -->
+        <section class="view kz" data-view="kennzahlen">
+          <div class="kz-inhalt" id="kz-inhalt"></div>
+        </section>
       </div>
     </main>
   </div>

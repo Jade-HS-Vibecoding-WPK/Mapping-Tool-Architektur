@@ -623,7 +623,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Nicht getestet:** 1 km² (Obergrenze 3000 Flächen je Art: bei Erreichen Hinweis), Handy, andere Browser,
   Ausfall des LGLN-Dienstes (nur Code-Pfad), gesamter Ablauf mit OSM zusammen für das neue Gebiet (Overpass war wieder
   überlastet, 502). Der Quellenvermerk nennt als Jahr das Abrufjahr (2026), nicht das Stand-Jahr der Flächen.
-- [ ] **Nächster Schritt:** Bäume genauer (OSM mit Kronengröße, Gehölzflächen aus ALKIS), danach 3D mit three.js
-  (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import und Kennzahlen
+- [x] **Kennzahlen** (Branch `feature-osm-2d-plaene`, nur lokal): Reiter „Kennzahlen“ mit Gebiet, Gebäude, Dichte (GRZ/GFZ brutto
+  und netto), Verkehr (amtliche Flächen, Straßenlänge nach Art), Grün und Wasser, Flächenanteilen, Nutzung, Dachlandschaft,
+  Hinweisen zur Genauigkeit und Knopf „Kennzahlen als Text kopieren“. Alle Zahlen gelten für das Rechteck (Flächen und Längen am Rand
+  abgeschnitten, Anzahlen nach Mittelpunkt). Überlappungen werden über ein unsichtbares Raster (1 Pixel = 1 m) entfernt.
+  Geschosse: OSM `building:levels`, sonst LoD2-Traufhöhe über Gelände geteilt durch 3 m, sonst Ersatzwert 3 (im Hinweis ausgewiesen).
+  Gebäude mit amtlichem Code `51009_…` zählen jetzt als Nebengebäude (auch in der Karte grau).
+  **Getestet** (echte Daten, Oldenburg Innenstadt, 19 ha und 97 ha): Werte plausibel, bebaute Fläche per Polygon (266.570 m²) und
+  per unabhängiger Rasterzählung (266.511 m²) stimmen überein; Teilstände (ohne OSM) zeigen Hinweise statt Fehler.
+  **Nicht geprüft / Grenzen:** Schlüsselnummern für Nutzung und Dachformen sind aus dem AdV-Standard übernommen und nicht gegen die
+  offizielle Liste geprüft; Bahnflächen und Flurstücke fehlen (Netto-Werte eher zu klein); Handy; andere Browser.
+  **Tempo-Fund:** Der Overpass-Server `overpass.openstreetmap.fr` lieferte im Test das Testgebiet in ca. 4 s (der Haupt-Server brauchte
+  40 bis 60 s oder fiel aus). Er steht jetzt vorn in der Serverliste. Das Gesamtladen (OSM + ALKIS + LoD2) für ca. 1 km² dauerte ca. 29 s.
+  **Start der Seite:** nur über einen Webserver, per `Start.bat` (Doppelklick) oder Vorschau-Eintrag `.claude/launch.json` (beide noch nicht committet).
+- [ ] **Nächster Schritt:** Bäume genauer (OSM mit Kronengröße, Gehölzflächen aus ALKIS, Kronenüberdeckung), danach 3D mit three.js
+  (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

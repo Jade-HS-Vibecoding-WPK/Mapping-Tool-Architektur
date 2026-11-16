@@ -216,6 +216,7 @@ function zeigeAnsicht(ziel) {
     map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
     wendeAnsichtAn();
   }
+  if (ziel === "kennzahlen") aktualisiereKennzahlen();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
@@ -225,9 +226,10 @@ document.querySelectorAll(".tab").forEach((tab) => {
 // ---------- 4. Daten von OpenStreetMap laden ----------
 // Overpass ist die kostenlose Abfrage-Schnittstelle von OpenStreetMap. Wir schicken ihr das Rechteck
 // und bekommen alle Gebäude, Straßen, Grünflächen, Gewässer und Bäume darin zurück.
-// Drei öffentliche Server, die wir gleichzeitig fragen. Der schnellste, der Daten liefert, gewinnt,
+// Vier öffentliche Server, die wir gleichzeitig fragen. Der schnellste, der Daten liefert, gewinnt,
 // die anderen Abfragen werden abgebrochen. So bremst ein langsamer oder ausgefallener Server nicht.
 const OVERPASS_SERVER = [
+  "https://overpass.openstreetmap.fr/api/interpreter",   // im Test deutlich schneller (ca. 4 s statt 40 bis 60 s)
   "https://overpass-api.de/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter",
   "https://overpass.private.coffee/api/interpreter"
@@ -329,7 +331,12 @@ function kategorisiere(feature) {
   if (geo === "Point") return t.natural === "tree" ? { kat: "baum" } : null;
 
   if (flaeche && t.building && t.building !== "no") {
-    return { kat: NEBENGEBAEUDE.has(t.building) ? "nebengebaeude" : "gebaeude" };
+    const stockwerke = parseInt(t["building:levels"], 10);
+    return {
+      kat: NEBENGEBAEUDE.has(t.building) ? "nebengebaeude" : "gebaeude",
+      bau: t.building,                                                        // OSM-Gebäudeart, z. B. "residential"
+      ebenen: stockwerke >= 1 && stockwerke <= 60 ? stockwerke : undefined   // Geschosszahl, wenn in OSM eingetragen
+    };
   }
   if (linie && t.highway && STRASSENTYP[t.highway] && !UNTERIRDISCH.has(t.tunnel)) {
     return { kat: "strasse", typ: STRASSENTYP[t.highway] };
@@ -407,6 +414,7 @@ let lod2Vorhanden = false;   // sind LoD2-Dachflächen geladen?
 let osmFeatures = [];        // die einsortierten OSM-Objekte des aktuellen Gebiets
 let lod2Quelle = "";         // Quellenvermerk für die geladenen LoD2-Daten
 let alkisVorhanden = false;  // sind amtliche Straßenflächen geladen?
+let alkisFlaechen = [];      // die geladenen amtlichen Flächen (für die Kennzahlen)
 let alkisQuelle = "";        // Quellenvermerk dafür
 
 function legePlanEbenenAn() {
@@ -471,6 +479,8 @@ function verwerfeDaten() {
   lod2Vorhanden = false;
   lod2Quelle = "";
   lod2Mittelpunkte = [];
+  lod2Meta = [];
+  alkisFlaechen = [];
   alkisVorhanden = false;
   alkisQuelle = "";
   osmFeatures = [];
@@ -487,6 +497,7 @@ function verwerfeDaten() {
 
 // Stellt die Karte passend zum aktuellen Reiter ein
 function wendeAnsichtAn() {
+  if (aktuelleAnsicht === "kennzahlen") { aktualisiereKennzahlen(); return; }   // Kennzahlen neu rechnen, wenn neue Daten kamen
   if (!kartenBereit) return;
   const einstellung = ANSICHTEN[aktuelleAnsicht];
   if (!einstellung) return; // 3D oder Kennzahlen: die Karte ist nicht sichtbar
@@ -744,8 +755,10 @@ function dachFarbe(normale) {
 // Gibt außerdem je Fläche einen Mittelpunkt zurück, mit dem wir die passenden OSM-Gebäude finden.
 function baueDachflaechen(gebaeudeListe) {
   const features = [];
-  const mittelpunkte = [];
-  for (const g of gebaeudeListe) {
+  const mittelpunkte = [];   // je Dachfläche: [Länge, Breite, Nummer des Gebäudes]
+  const meta = [];           // je Gebäude: Merkmale und ein Punkt auf dem Gebäude (für die Kennzahlen)
+  gebaeudeListe.forEach((g, nummer) => {
+    meta[nummer] = { funktion: g.funktion, dachtyp: g.dachtyp, hoehe: g.hoehe, trauf: g.trauf, boden: g.boden, punkt: null };
     for (const ringe of g.flaechen) {
       const normale = flaechenNormale(ringe[0]);
       if (normale[2] < 0.05) continue; // fast senkrecht: von oben nicht zu sehen
@@ -760,27 +773,35 @@ function baueDachflaechen(gebaeudeListe) {
       const n = Math.max(1, aussen.length - 1); // letzter Punkt ist gleich dem ersten
       let lon = 0, lat = 0;
       for (let i = 0; i < n; i++) { lon += aussen[i][0]; lat += aussen[i][1]; }
-      mittelpunkte.push([lon / n, lat / n]);
+      mittelpunkte.push([lon / n, lat / n, nummer]);
+      if (!meta[nummer].punkt) meta[nummer].punkt = [lon / n, lat / n];
     }
-  }
-  return { features, mittelpunkte };
+  });
+  return { features, mittelpunkte, meta };
 }
 
 // Markiert OSM-Gebäude, auf denen mindestens eine LoD2-Dachfläche liegt, mit lod2 = 1.
 // Wird aufgerufen, sobald beides da ist (egal, was zuerst fertig wurde).
 let lod2Mittelpunkte = [];
+let lod2Meta = [];   // Merkmale der LoD2-Gebäude (Nutzung, Dachform, Höhen) für die Kennzahlen
 function markiereOsmGebaeude(mittelpunkte) {
   if (!mittelpunkte.length || !osmFeatures.length) return 0;
   const gebaeude = osmFeatures
     .filter((f) => f.properties.kat === "gebaeude" || f.properties.kat === "nebengebaeude")
     .map((f) => ({ f, bb: turf.bbox(f) }));
   let markiert = 0;
-  for (const [lon, lat] of mittelpunkte) {
+  for (const [lon, lat, nummer] of mittelpunkte) {
     for (const g of gebaeude) {
       if (g.f.properties.lod2 === 1) continue;
       const [w, s, o, n] = g.bb;
       if (lon < w || lon > o || lat < s || lat > n) continue;
-      if (turf.booleanPointInPolygon([lon, lat], g.f)) { g.f.properties.lod2 = 1; markiert++; }
+      if (turf.booleanPointInPolygon([lon, lat], g.f)) {
+        const m = lod2Meta[nummer] || {};
+        Object.assign(g.f.properties, { lod2: 1, funktion: m.funktion, dachtyp: m.dachtyp, hoehe: m.hoehe, trauf: m.trauf, boden: m.boden });
+        // Laut amtlichem Code (51009_…) ist es ein Nebengebäude oder eine Überdachung, auch wenn OSM es als normales Gebäude führt
+        if (m.funktion && m.funktion.startsWith("51009")) g.f.properties.kat = "nebengebaeude";
+        markiert++;
+      }
     }
   }
   return markiert;
@@ -800,8 +821,9 @@ function wendeLod2An(ergebnis) {
     zeigeLod2Status("LoD2: Im Gebiet wurden keine Gebäude gefunden. Es bleibt bei OpenStreetMap.");
     return;
   }
-  const { features, mittelpunkte } = baueDachflaechen(ergebnis.gebaeude);
+  const { features, mittelpunkte, meta } = baueDachflaechen(ergebnis.gebaeude);
   lod2Mittelpunkte = mittelpunkte;
+  lod2Meta = meta;
   const ersetzt = markiereOsmGebaeude(mittelpunkte);
   map.getSource("lod2-dach").setData({ type: "FeatureCollection", features });
   if (osmFeatures.length) map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
@@ -905,6 +927,7 @@ function wendeAlkisAn(ergebnis) {
     return;
   }
   map.getSource("alkis-flaechen").setData({ type: "FeatureCollection", features: ergebnis.features });
+  alkisFlaechen = ergebnis.features;
   alkisVorhanden = true;
   alkisQuelle = `Straßenflächen: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
   const zaehler = { strasse: 0, weg: 0, platz: 0 };
@@ -914,4 +937,359 @@ function wendeAlkisAn(ergebnis) {
     (ergebnis.abgeschnitten ? " (Achtung: Obergrenze erreicht, nicht alle Flächen geladen)" : "") +
     `. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
   wendeAnsichtAn();
+}
+
+// ---------- 8. Kennzahlen ----------
+// Alle Zahlen gelten für das gewählte Rechteck. Objekte am Rand werden abgeschnitten (Flächen, Längen)
+// oder nach ihrem Mittelpunkt gezählt (Anzahlen). Überlappende Flächen zählen wir nicht doppelt:
+// dafür "malen" wir sie unsichtbar in ein Raster (1 Pixel = ca. 1 m) und zählen die Pixel.
+const kzFeld = document.getElementById("kz-inhalt");
+const GESCHOSSHOEHE_M = 3;     // Annahme: ein Geschoss ist ca. 3 m hoch
+const GESCHOSSE_ERSATZ = 3;    // Ersatzwert, wenn weder OSM noch LoD2 eine Geschosszahl liefern
+const STRASSENBREITE_SCHAETZUNG = { haupt: 12, sammel: 9, wohn: 6, service: 4, fuss: 2 };   // Meter
+const STRASSENARTEN = { haupt: "Hauptstraßen", sammel: "Sammelstraßen", wohn: "Wohn- und Erschließungsstraßen", service: "Zufahrten", fuss: "Fuß-, Rad- und Waldwege" };
+const WASSER_BREITE_SCHAETZUNG = { river: 8, canal: 8, stream: 2.5, ditch: 1.5, drain: 1.5 };
+
+// Dachformen laut Schlüssel der amtlichen LoD2-Daten (AdV-Standard). Nicht gegen den Katalog geprüft.
+const DACHFORMEN = {
+  1000: "Flachdach", 2100: "Pultdach", 2200: "Versetztes Pultdach", 3100: "Satteldach", 3200: "Walmdach",
+  3300: "Krüppelwalmdach", 3400: "Mansarddach", 3500: "Zeltdach", 3600: "Kegeldach", 3700: "Kuppeldach",
+  3800: "Sheddach", 3900: "Bogendach", 4000: "Turmdach", 5000: "Mischform", 9999: "Sonstige"
+};
+
+// Nutzung grob aus dem amtlichen Gebäudecode (z. B. 31001_1000): erste Ziffer nach dem Unterstrich.
+// Das ist eine grobe Zuordnung, nicht gegen die offizielle Codeliste geprüft.
+function nutzungAusCode(code) {
+  if (!code) return null;
+  if (code.startsWith("51009")) return "Nebengebäude, Überdachung";
+  const ziffer = (code.split("_")[1] || "")[0];
+  if (ziffer === "1") return "Wohnen";
+  if (ziffer === "2") return "Gewerbe, Handel, Dienstleistung";
+  if (ziffer === "3") return "Öffentliche Zwecke";
+  return "Sonstige";
+}
+const OSM_WOHNEN = new Set(["residential", "house", "apartments", "detached", "semidetached_house", "terrace", "dormitory", "bungalow", "farm"]);
+const OSM_GEWERBE = new Set(["commercial", "retail", "office", "industrial", "warehouse", "hotel", "supermarket", "kiosk", "manufacture"]);
+const OSM_OEFFENTLICH = new Set(["public", "school", "university", "college", "hospital", "church", "cathedral", "chapel", "civic", "government", "kindergarten", "train_station", "theatre", "museum", "fire_station"]);
+function nutzungAusOsm(bau) {
+  if (OSM_WOHNEN.has(bau)) return "Wohnen";
+  if (OSM_GEWERBE.has(bau)) return "Gewerbe, Handel, Dienstleistung";
+  if (OSM_OEFFENTLICH.has(bau)) return "Öffentliche Zwecke";
+  if (!bau || bau === "yes") return "Unbekannt";
+  return "Sonstige";
+}
+
+// Geschosse eines Gebäudes: 1. aus OSM, 2. aus der LoD2-Traufhöhe, 3. Ersatzwert
+function geschosseVon(p) {
+  if (p.ebenen) return { n: p.ebenen, quelle: "osm" };
+  let hoehe = null;
+  if (p.trauf != null && p.boden != null) hoehe = p.trauf - p.boden;   // Traufhöhe über Gelände
+  if (!(hoehe > 0) && p.hoehe > 0) hoehe = p.hoehe;                     // sonst Gebäudehöhe
+  if (hoehe > 0) return { n: Math.max(1, Math.round(hoehe / GESCHOSSHOEHE_M)), quelle: "lod2" };
+  return { n: GESCHOSSE_ERSATZ, quelle: "ersatz" };
+}
+
+// ----- Raster-Helfer -----
+function zeichneFlaeche(ctx, pt, geom) {
+  const polygone = geom.type === "Polygon" ? [geom.coordinates] : geom.type === "MultiPolygon" ? geom.coordinates : [];
+  for (const polygon of polygone) {
+    ctx.beginPath();
+    for (const ring of polygon) ring.forEach((p, i) => { const [x, y] = pt(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.fill("evenodd");   // Löcher (Innenhöfe) bleiben frei
+  }
+}
+function zeichneLinie(ctx, pt, geom) {
+  const linien = geom.type === "LineString" ? [geom.coordinates] : geom.type === "MultiLineString" ? geom.coordinates : [];
+  for (const linie of linien) {
+    ctx.beginPath();
+    linie.forEach((p, i) => { const [x, y] = pt(p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.stroke();
+  }
+}
+// Zeichnet etwas in ein unsichtbares Bild und gibt zurück, welche Pixel bedeckt sind (1) oder frei (0)
+function malRaster(bbox, w, h, zeichner) {
+  const [west, sued, ost, nord] = bbox;
+  const leinwand = document.createElement("canvas");
+  leinwand.width = w; leinwand.height = h;
+  const ctx = leinwand.getContext("2d", { willReadFrequently: true });
+  ctx.fillStyle = "#000"; ctx.strokeStyle = "#000"; ctx.lineJoin = "round"; ctx.lineCap = "butt";
+  zeichner(ctx, ([lon, lat]) => [((lon - west) / (ost - west)) * w, ((nord - lat) / (nord - sued)) * h]);
+  const pixel = ctx.getImageData(0, 0, w, h).data;
+  const maske = new Uint8Array(w * h);
+  for (let i = 0; i < maske.length; i++) maske[i] = pixel[i * 4 + 3] > 127 ? 1 : 0;
+  return maske;
+}
+const zaehlePixel = (m) => { let n = 0; for (let i = 0; i < m.length; i++) n += m[i]; return n; };
+function vereine(masken) {
+  const aus = new Uint8Array(masken[0].length);
+  for (const m of masken) for (let i = 0; i < aus.length; i++) if (m[i]) aus[i] = 1;
+  return aus;
+}
+function flaecheImRechteck(f, bbox) {
+  try {
+    const c = turf.bboxClip(f, bbox);
+    return c.geometry.coordinates.length ? turf.area(c) : 0;
+  } catch (_) { return 0; }
+}
+function laengeImRechteck(f, bbox) {
+  try {
+    const c = turf.bboxClip(f, bbox);
+    return c.geometry.coordinates.length ? turf.length(c, { units: "meters" }) : 0;
+  } catch (_) { return 0; }
+}
+
+// ----- Berechnung -----
+function berechneKennzahlen() {
+  const bbox = turf.bbox(gebiet);
+  const [west, sued, ost, nord] = bbox;
+  const flaeche = turf.area(gebiet);
+  const breiteM = turf.distance([west, sued], [ost, sued], { units: "meters" });
+  const hoeheM = turf.distance([west, sued], [west, nord], { units: "meters" });
+  const w = Math.min(1500, Math.max(50, Math.round(breiteM)));
+  const h = Math.min(1500, Math.max(50, Math.round(hoeheM)));
+  const pxProM = w / breiteM;
+  const m2JePixel = flaeche / (w * h);
+  const hatOsm = osmFeatures.length > 0;
+  const hinweise = [];
+  const imRahmen = (f) => {
+    const b = turf.bbox(f);
+    const x = (b[0] + b[2]) / 2, y = (b[1] + b[3]) / 2;
+    return x >= west && x <= ost && y >= sued && y <= nord;
+  };
+  const osm = (kat) => osmFeatures.filter((f) => f.properties.kat === kat);
+
+  const k = { flaeche, breiteM, hoeheM, hatOsm, hatAlkis: alkisVorhanden, hatLod2: lod2Vorhanden };
+
+  // Gebäude (aus OSM; Grundfläche am Rechteck abgeschnitten)
+  if (hatOsm) {
+    const haupt = osm("gebaeude").filter(imRahmen);
+    const neben = osm("nebengebaeude").filter(imRahmen);
+    k.anzahlHaupt = haupt.length;
+    k.anzahlNeben = neben.length;
+    k.nebenFlaeche = neben.reduce((s, f) => s + flaecheImRechteck(f, bbox), 0);
+    k.gebaeude = haupt.map((f) => ({ f, flaeche: flaecheImRechteck(f, bbox), geschosse: geschosseVon(f.properties) }));
+    k.grundflaeche = k.gebaeude.reduce((s, g) => s + g.flaeche, 0);
+    k.geschossflaeche = k.gebaeude.reduce((s, g) => s + g.flaeche * g.geschosse.n, 0);
+    k.mittlereGeschosse = k.gebaeude.length ? k.gebaeude.reduce((s, g) => s + g.geschosse.n, 0) / k.gebaeude.length : 0;
+    k.geschosseQuellen = { osm: 0, lod2: 0, ersatz: 0 };
+    k.gebaeude.forEach((g) => k.geschosseQuellen[g.geschosse.quelle]++);
+  }
+
+  // Verkehrsflächen: amtliche Flächen, sonst Straßenlinien mal geschätzte Breite
+  let verkehr = null;
+  if (alkisVorhanden) {
+    verkehr = malRaster(bbox, w, h, (ctx, pt) => alkisFlaechen.forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
+    k.alkisTeile = { strasse: 0, weg: 0, platz: 0 };
+    alkisFlaechen.forEach((f) => { k.alkisTeile[f.properties.kat] += flaecheImRechteck(f, bbox); });
+  } else if (hatOsm) {
+    verkehr = malRaster(bbox, w, h, (ctx, pt) => osm("strasse").forEach((f) => {
+      ctx.lineWidth = (STRASSENBREITE_SCHAETZUNG[f.properties.typ] || 4) * pxProM;
+      zeichneLinie(ctx, pt, f.geometry);
+    }));
+    k.verkehrGeschaetzt = true;
+    hinweise.push("Verkehrsflächen sind geschätzt (Straßenlinien aus OpenStreetMap mal angenommene Breite), weil keine amtlichen Flächen geladen sind.");
+  }
+  k.verkehrFlaeche = verkehr ? zaehlePixel(verkehr) * m2JePixel : null;
+
+  // Straßenlänge aus OSM-Linien
+  if (hatOsm) {
+    k.laenge = {};
+    osm("strasse").forEach((f) => { k.laenge[f.properties.typ] = (k.laenge[f.properties.typ] || 0) + laengeImRechteck(f, bbox); });
+    k.laengeGesamt = Object.values(k.laenge).reduce((s, v) => s + v, 0);
+  }
+
+  // Grün und Wasser (aus OSM)
+  let gruen = null, wasser = null;
+  if (hatOsm) {
+    gruen = malRaster(bbox, w, h, (ctx, pt) => osm("gruen").forEach((f) => zeichneFlaeche(ctx, pt, f.geometry)));
+    wasser = malRaster(bbox, w, h, (ctx, pt) => {
+      osm("wasser").forEach((f) => zeichneFlaeche(ctx, pt, f.geometry));
+      osm("wasserlinie").forEach((f) => {
+        ctx.lineWidth = (WASSER_BREITE_SCHAETZUNG[f.properties.typ] || 2) * pxProM;
+        zeichneLinie(ctx, pt, f.geometry);
+      });
+    });
+    k.gruenFlaeche = zaehlePixel(gruen) * m2JePixel;
+    k.wasserFlaeche = zaehlePixel(wasser) * m2JePixel;
+    k.gruenWasserFlaeche = zaehlePixel(vereine([gruen, wasser])) * m2JePixel;
+    k.baeume = osm("baum").filter((f) => {
+      const [x, y] = f.geometry.coordinates;
+      return x >= west && x <= ost && y >= sued && y <= nord;
+    }).length;
+  }
+
+  // Bauland (netto): Gebiet ohne Verkehr, Grün und Wasser
+  const abzug = [verkehr, gruen, wasser].filter(Boolean);
+  if (hatOsm && verkehr) {
+    k.baulandFlaeche = flaeche - zaehlePixel(vereine(abzug)) * m2JePixel;
+  } else if (hatOsm) {
+    hinweise.push("Netto-Werte (Bauland ohne Verkehr, Grün, Wasser) fehlen, weil keine Verkehrsflächen vorliegen.");
+  }
+  hinweise.push("Bahnflächen und Flurstücke (Parzellen) sind noch nicht erfasst. Das Bauland ist daher eher zu groß, die Netto-Werte eher zu klein.");
+
+  // Nutzung (LoD2-Code, sonst OSM-Gebäudeart) und Dachformen (nur LoD2)
+  const nutzung = {};
+  const zaehleNutzung = (name) => { nutzung[name] = (nutzung[name] || 0) + 1; };
+  if (hatOsm) {
+    k.gebaeude.forEach((g) => {
+      const p = g.f.properties;
+      zaehleNutzung((p.funktion && nutzungAusCode(p.funktion)) || nutzungAusOsm(p.bau));
+    });
+    k.nutzungQuelle = "LoD2-Gebäudecode, wo vorhanden, sonst OpenStreetMap-Gebäudeart";
+  }
+  const metaImRahmen = lod2Meta.filter((m) => m.punkt && m.punkt[0] >= west && m.punkt[0] <= ost && m.punkt[1] >= sued && m.punkt[1] <= nord);
+  if (!hatOsm && metaImRahmen.length) {
+    metaImRahmen.forEach((m) => zaehleNutzung(nutzungAusCode(m.funktion) || "Unbekannt"));
+    k.nutzungQuelle = "LoD2-Gebäudecode";
+  }
+  k.nutzung = nutzung;
+  k.dachformen = {};
+  metaImRahmen.forEach((m) => { const n = DACHFORMEN[m.dachtyp] || "Unbekannt"; k.dachformen[n] = (k.dachformen[n] || 0) + 1; });
+  k.anzahlLod2 = metaImRahmen.length;
+
+  // Hinweise zur Vollständigkeit
+  if (!hatOsm) hinweise.unshift("OpenStreetMap ist nicht geladen: Gebäudeflächen, Dichte, Grün, Wasser, Bäume und Straßenlängen fehlen.");
+  if (!alkisVorhanden && hatOsm) hinweise.push("Keine amtlichen Straßenflächen geladen (außerhalb Niedersachsens oder Dienst nicht erreichbar).");
+  if (!lod2Vorhanden) hinweise.push("Keine LoD2-Daten geladen: Geschosse stammen aus OpenStreetMap oder sind Ersatzwerte, Dachformen fehlen.");
+  if (k.geschosseQuellen && k.gebaeude.length) {
+    const q = k.geschosseQuellen;
+    hinweise.push(`Geschosse: ${zahl(q.osm)} aus OpenStreetMap, ${zahl(q.lod2)} aus LoD2-Höhe (Traufhöhe geteilt durch ${GESCHOSSHOEHE_M} m), ` +
+      `${zahl(q.ersatz)} Ersatzwert ${GESCHOSSE_ERSATZ}. Die Geschossfläche ist eine Schätzung.`);
+  }
+  hinweise.push("Daten sind nicht vermessungsgenau. Die Zuordnung der Nutzung und der Dachformen zu den Schlüsselnummern ist grob und nicht gegen die offiziellen Listen geprüft.");
+  k.hinweise = hinweise;
+  return k;
+}
+
+// ----- Darstellung -----
+const fm2 = (m2) => (m2 >= 10_000 ? `${zahl(m2)} m² (${zahl(m2 / 10_000, 2)} ha)` : `${zahl(m2)} m²`);
+const prozent = (anteil) => `${zahl(anteil * 100, 1)} %`;
+const zahl2 = (x) => zahl(x, 2);
+const nichtDa = "–";
+
+function baueAbschnitte(k) {
+  const A = k.flaeche;
+  const abschnitte = [];
+
+  abschnitte.push({ titel: "Gebiet", zeilen: [
+    ["Fläche", fm2(A), "Größe des gewählten Rechtecks"],
+    ["Breite × Höhe", `${zahl(k.breiteM)} × ${zahl(k.hoeheM)} m`, ""]
+  ] });
+
+  if (k.hatOsm) {
+    abschnitte.push({ titel: "Gebäude", intro: "Aus OpenStreetMap. Nebengebäude (Garagen, Schuppen, Carports) sind getrennt und nicht in der bebauten Fläche enthalten.", zeilen: [
+      ["Gebäude (ohne Nebengebäude)", zahl(k.anzahlHaupt), "Gezählt nach ihrem Mittelpunkt im Gebiet"],
+      ["Bebaute Fläche", fm2(k.grundflaeche), "Summe der Grundflächen, am Rand abgeschnitten"],
+      ["Bebauungsanteil brutto", prozent(k.grundflaeche / A), "Bebaute Fläche geteilt durch das ganze Gebiet"],
+      ["Nebengebäude", `${zahl(k.anzahlNeben)} · ${fm2(k.nebenFlaeche)}`, "Anzahl und Fläche"]
+    ] });
+
+    const gfzBrutto = k.geschossflaeche / A;
+    const hatNetto = k.baulandFlaeche > 1;
+    abschnitte.push({ titel: "Dichte", intro: "Brutto bezieht sich auf das ganze Gebiet, netto nur auf das Bauland (ohne Verkehr, Grün, Wasser). Netto liegt näher an den Werten eines Bebauungsplans.", zeilen: [
+      ["Bauland (netto)", k.baulandFlaeche != null ? fm2(k.baulandFlaeche) : nichtDa, "Gebiet ohne Verkehrs-, Grün- und Wasserflächen"],
+      ["GRZ brutto", zahl2(k.grundflaeche / A), "Grundflächenzahl des Quartiers, ganzes Gebiet"],
+      ["GRZ netto", hatNetto ? zahl2(k.grundflaeche / k.baulandFlaeche) : nichtDa, "Grundflächenzahl bezogen auf das Bauland"],
+      ["Mittlere Geschosszahl", zahl(k.mittlereGeschosse, 1), "Mittelwert der Gebäude, teils geschätzt (siehe Hinweise)"],
+      ["Geschossfläche (geschätzt)", fm2(k.geschossflaeche), "Grundfläche mal Geschosse, je Gebäude"],
+      ["GFZ brutto", zahl2(gfzBrutto), "Geschossflächenzahl des Quartiers, ganzes Gebiet"],
+      ["GFZ netto", hatNetto ? zahl2(k.geschossflaeche / k.baulandFlaeche) : nichtDa, "Geschossflächenzahl bezogen auf das Bauland"]
+    ] });
+  }
+
+  const verkehr = { titel: "Verkehr", zeilen: [] };
+  if (k.verkehrFlaeche != null) {
+    verkehr.zeilen.push([k.verkehrGeschaetzt ? "Verkehrsfläche (geschätzt)" : "Verkehrsfläche", `${fm2(k.verkehrFlaeche)} · ${prozent(k.verkehrFlaeche / A)}`,
+      k.verkehrGeschaetzt ? "Straßenlinien mal angenommene Breite" : "Amtliche Straßen-, Weg- und Platzflächen zusammen"]);
+  }
+  if (k.alkisTeile) {
+    verkehr.zeilen.push(["davon Straßenraum (Fahrbahn)", fm2(k.alkisTeile.strasse), "Amtliche Fläche „Straßenverkehr“"]);
+    verkehr.zeilen.push(["davon Wege (auch Gehwege)", fm2(k.alkisTeile.weg), "Amtliche Fläche „Weg“"]);
+    verkehr.zeilen.push(["davon Plätze und Fußgängerzonen", fm2(k.alkisTeile.platz), "Amtliche Fläche „Platz“, Code 5130 wie Platz gezählt"]);
+  }
+  if (k.laenge) {
+    verkehr.zeilen.push(["Straßenlänge gesamt", `${zahl(k.laengeGesamt)} m`, "Aus OpenStreetMap-Linien, am Rand abgeschnitten"]);
+    Object.keys(STRASSENARTEN).forEach((art) => {
+      if (k.laenge[art]) verkehr.zeilen.push([`davon ${STRASSENARTEN[art]}`, `${zahl(k.laenge[art])} m`, ""]);
+    });
+  }
+  if (verkehr.zeilen.length) abschnitte.push(verkehr);
+
+  if (k.hatOsm) {
+    abschnitte.push({ titel: "Grün und Wasser", intro: "Aus OpenStreetMap. Überlappende Flächen sind nicht doppelt gezählt.", zeilen: [
+      ["Grünfläche", `${fm2(k.gruenFlaeche)} · ${prozent(k.gruenFlaeche / A)}`, "Parks, Wiesen, Wald, Gärten, Spielplätze …"],
+      ["Wasserfläche", `${fm2(k.wasserFlaeche)} · ${prozent(k.wasserFlaeche / A)}`, "Gewässerflächen und Flüsse (Linien mit geschätzter Breite)"],
+      ["Grün + Wasser", prozent(k.gruenWasserFlaeche / A), "Anteil am Gebiet"],
+      ["Einzelbäume", zahl(k.baeume), "In OpenStreetMap eingetragene Bäume (die Datenlage ist lückenhaft)"]
+    ] });
+
+    abschnitte.push({ titel: "Flächenanteile", intro: "Anteil am Gebiet. Die Werte können sich minimal überschneiden.", balken: [
+      { label: "Bebaute Fläche", wert: k.grundflaeche / A },
+      ...(k.verkehrFlaeche != null ? [{ label: "Verkehr", wert: k.verkehrFlaeche / A }] : []),
+      { label: "Grün", wert: k.gruenFlaeche / A },
+      { label: "Wasser", wert: k.wasserFlaeche / A }
+    ].map((b) => ({ ...b, text: prozent(b.wert) })) });
+  }
+
+  const nutzungSumme = Object.values(k.nutzung).reduce((s, v) => s + v, 0);
+  if (nutzungSumme) {
+    abschnitte.push({ titel: "Gebäude nach Nutzung", intro: `Anzahl der Gebäude. Quelle: ${k.nutzungQuelle}. Grobe Zuordnung.`,
+      balken: Object.entries(k.nutzung).sort((a, b) => b[1] - a[1]).map(([name, n]) => ({ label: name, wert: n / nutzungSumme, text: `${zahl(n)} · ${prozent(n / nutzungSumme)}` })) });
+  }
+  if (k.anzahlLod2) {
+    abschnitte.push({ titel: "Dachlandschaft", intro: `Dachformen der ${zahl(k.anzahlLod2)} Gebäude aus den amtlichen LoD2-Daten.`,
+      balken: Object.entries(k.dachformen).sort((a, b) => b[1] - a[1]).map(([name, n]) => ({ label: name, wert: n / k.anzahlLod2, text: `${zahl(n)} · ${prozent(n / k.anzahlLod2)}` })) });
+  }
+  return abschnitte;
+}
+
+function kennzahlenAlsHtml(k, abschnitte) {
+  const chip = (an, text) => `<span class="${an ? "ja" : "nein"}">${an ? "✓" : "✗"} ${text}</span>`;
+  let html = `<div class="kz-stand">${chip(k.hatOsm, "OpenStreetMap")}${chip(k.hatAlkis, "Amtliche Straßenflächen")}${chip(k.hatLod2, "LoD2-Gebäude")}</div>`;
+  for (const a of abschnitte) {
+    html += `<h3>${a.titel}</h3>`;
+    if (a.intro) html += `<p class="kz-intro">${a.intro}</p>`;
+    if (a.zeilen) html += `<table class="kz-tabelle">${a.zeilen.map((z) => `<tr><td>${z[0]}</td><td>${z[1]}</td><td>${z[2]}</td></tr>`).join("")}</table>`;
+    if (a.balken) html += `<div class="kz-balken">${a.balken.map((b) =>
+      `<div><span>${b.label}</span><span class="leiste"><i style="width:${Math.min(100, Math.max(0, b.wert * 100)).toFixed(1)}%"></i></span><span class="zahl">${b.text}</span></div>`).join("")}</div>`;
+  }
+  html += `<div class="kz-hinweise"><strong>Hinweise zur Genauigkeit</strong><ul>${k.hinweise.map((h) => `<li>${h}</li>`).join("")}</ul></div>`;
+  html += `<button class="btn kz-knopf" id="kz-kopieren">Kennzahlen als Text kopieren</button>`;
+  return html;
+}
+
+function kennzahlenAlsText(k, abschnitte) {
+  const zeilen = ["Ortsanalyse – Kennzahlen", ""];
+  for (const a of abschnitte) {
+    zeilen.push(a.titel.toUpperCase());
+    (a.zeilen || []).forEach((z) => zeilen.push(`${z[0]}: ${z[1]}`));
+    (a.balken || []).forEach((b) => zeilen.push(`${b.label}: ${b.text}`));
+    zeilen.push("");
+  }
+  zeilen.push("Hinweise:", ...k.hinweise.map((h) => `- ${h}`), "");
+  zeilen.push("Quellen: © OpenStreetMap-Mitwirkende (ODbL)" + (k.hatAlkis ? "; Straßenflächen © GeoBasis-DE/LGLN, Daten geändert" : "") + (k.hatLod2 ? "; LoD2 © GeoBasis-DE/LGLN, Daten geändert" : ""));
+  return zeilen.join("\n");
+}
+
+function aktualisiereKennzahlen() {
+  if (!gebiet || !datenVorhanden) {
+    kzFeld.innerHTML = `<div class="kz-leer"><h3>Noch keine Kennzahlen</h3><p>Wähle im Reiter „Karte“ ein Gebiet und klicke auf „Analysieren“. Die Kennzahlen erscheinen, sobald Daten geladen sind.</p></div>`;
+    return;
+  }
+  kzFeld.innerHTML = "<p>Kennzahlen werden berechnet …</p>";
+  setTimeout(() => {   // erst die Meldung zeigen, dann rechnen
+    try {
+      const k = berechneKennzahlen();
+      const abschnitte = baueAbschnitte(k);
+      kzFeld.innerHTML = kennzahlenAlsHtml(k, abschnitte);
+      const text = kennzahlenAlsText(k, abschnitte);
+      document.getElementById("kz-kopieren").addEventListener("click", async (e) => {
+        try { await navigator.clipboard.writeText(text); e.target.textContent = "Kopiert ✓"; }
+        catch (_) { e.target.textContent = "Kopieren nicht möglich"; }
+      });
+    } catch (fehler) {
+      console.error(fehler);
+      kzFeld.innerHTML = `<div class="kz-leer"><h3>Kennzahlen nicht berechenbar</h3><p>${fehler.message}</p></div>`;
+    }
+  }, 30);
 }

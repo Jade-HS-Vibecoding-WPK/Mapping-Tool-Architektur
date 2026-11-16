@@ -207,6 +207,31 @@ html, body {
 .placeholder h3 { margin: 0 0 8px; font-size: 18px; }
 .placeholder p { margin: 0; color: var(--ink-soft); }
 
+/* ---------- Kennzahlen ---------- */
+.kz { overflow-y: auto; background: var(--paper); }
+.kz-inhalt { max-width: 920px; padding: 24px 32px 48px; }
+.kz-inhalt h3 { margin: 28px 0 4px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--ink); padding-bottom: 6px; }
+.kz-inhalt h3:first-child { margin-top: 0; }
+.kz-intro { margin: 6px 0 10px; color: var(--ink-soft); }
+.kz-tabelle { width: 100%; border-collapse: collapse; }
+.kz-tabelle td { padding: 6px 0; border-bottom: 1px dotted var(--line); vertical-align: top; }
+.kz-tabelle td:nth-child(1) { width: 34%; padding-right: 12px; }
+.kz-tabelle td:nth-child(2) { width: 22%; font-family: var(--mono); text-align: right; padding-right: 16px; white-space: nowrap; }
+.kz-tabelle td:nth-child(3) { color: var(--ink-soft); font-size: 12px; }
+.kz-balken { margin: 12px 0 0; display: grid; gap: 4px; }
+.kz-balken div { display: grid; grid-template-columns: 34% 1fr 72px; gap: 10px; align-items: center; font-size: 12px; }
+.kz-balken .leiste { background: var(--paper-soft); height: 12px; position: relative; }
+.kz-balken .leiste i { position: absolute; inset: 0 auto 0 0; background: var(--ink); }
+.kz-balken .zahl { font-family: var(--mono); text-align: right; }
+.kz-stand { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.kz-stand span { border: 1px solid var(--line); padding: 2px 8px; font-size: 12px; }
+.kz-stand .ja { border-color: var(--ink); }
+.kz-stand .nein { color: var(--accent); border-color: var(--accent); }
+.kz-hinweise { margin: 24px 0 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--paper-soft); font-size: 12px; }
+.kz-hinweise ul { margin: 4px 0 0; padding-left: 18px; }
+.kz-leer { padding: 32px; border: 1px solid var(--line); max-width: 420px; }
+.kz-knopf { margin-top: 18px; }
+
 /* Hinweis im Zeichenmodus */
 .map-mode {
   position: absolute;

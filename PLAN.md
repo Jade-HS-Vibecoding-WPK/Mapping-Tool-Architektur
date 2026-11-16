@@ -608,6 +608,22 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   nach ca. 8 s da wäre. (2) Der Plan zeigt LoD2 erst, wenn OSM fertig ist. Idee: Mit LoD2-Grundrissen schon nach wenigen Sekunden
   einen Schwarzplan zeigen (nur Niedersachsen) und OSM danach ergänzen. (3) Kacheln könnten im Browser zwischengespeichert werden.
   **Hinweis zum Start:** Das Hintergrundprogramm läuft nur über einen Webserver (GitHub Pages oder lokal), nicht per Doppelklick auf `index.html`.
-- [ ] **Nächster Schritt:** topoexport-Datei-Import (DXF), Kennzahlen, 3D mit den LoD2-Daten (die Dachflächen sind schon da)
+- [x] **Genaue Straßen aus amtlichen Flächen (ALKIS)** (Branch `feature-osm-2d-plaene`, nur lokal):
+  Nach „Analysieren“ fragt das Tool den offenen LGLN-Abrufdienst (WFS `alkis_wfs_sf`) nach `AX_Strassenverkehr`
+  (Fahrbahn), `AX_Weg` (Wege, Gehwege) und `AX_Platz` (Plätze) ab, liest die GML-Antwort im Browser und zeichnet
+  nachgezeichnete Flächen statt dünner Linien (Straßennetz: Fahrbahn dunkel, Wege/Plätze hell; Lageplan: ruhige Grautöne).
+  Wo ALKIS-Flächen da sind, verschwinden die OSM-Straßenlinien. Außerhalb Niedersachsens oder bei Ausfall bleiben die Linien.
+  **Abweichung vom Plan:** Die OSM-Gehwege als Flächen waren nicht nötig. Das Kataster trennt Fahrbahn und Gehweg
+  (`AX_Weg`) selbst (im Test sichtbar). Fußgängerzonen (Funktionscode 5130 laut ATKIS-Katalog, für ALKIS **nicht bestätigt**)
+  zeichnen wir wie Plätze. Die Bedeutung weiterer Codes (2312, 5220 bis 5250) ist **nicht entschlüsselt**.
+  **Zusätzlich umgebaut:** Amtliche Straßenflächen, LoD2-Dächer und OSM werden jetzt unabhängig voneinander angezeigt, sobald
+  jede Quelle fertig ist. Im Test standen Straßen und Dächer nach ca. 9 Sekunden, während Overpass noch lud (oder ausfiel).
+  **Getestet** (echte Daten, Oldenburg Innenstadt, zwei Gebiete à 7 bis 8 ha): Fahrbahn und Gehwege getrennt sichtbar in
+  Straßennetz und Lageplan; Gebiet in Hamburg meldet „keine Daten“. ALKIS-Abfrage dauert unter 1 s je Art.
+  **Nicht getestet:** 1 km² (Obergrenze 3000 Flächen je Art: bei Erreichen Hinweis), Handy, andere Browser,
+  Ausfall des LGLN-Dienstes (nur Code-Pfad), gesamter Ablauf mit OSM zusammen für das neue Gebiet (Overpass war wieder
+  überlastet, 502). Der Quellenvermerk nennt als Jahr das Abrufjahr (2026), nicht das Stand-Jahr der Flächen.
+- [ ] **Nächster Schritt:** Bäume genauer (OSM mit Kronengröße, Gehölzflächen aus ALKIS), danach 3D mit three.js
+  (LoD2-Dächer, dafür auch Wände einlesen), dann topoexport-Import und Kennzahlen
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

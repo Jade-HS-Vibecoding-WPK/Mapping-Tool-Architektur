@@ -16,6 +16,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Reine Website (HTML, CSS, JavaScript), läuft auf GitHub Pages, kein eigener Server.
 - Bibliotheken per CDN: MapLibre GL JS (Karte, 3D), Turf.js (Flächen/Längen), Chart.js (Diagramme),
   osmtogeojson (OSM-Rohdaten in Flächen und Linien umwandeln), proj4 (UTM 32 ↔ Längen/Breitengrad).
+- Amtliche Straßen-/Wegflächen (ALKIS: AX_Strassenverkehr, AX_Weg, AX_Platz) kommen automatisch per WFS vom LGLN
+  (https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wfs_sf). Fahrbahn und Gehweg sind dort getrennt.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km².

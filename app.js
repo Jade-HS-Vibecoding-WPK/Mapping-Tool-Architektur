@@ -6,6 +6,7 @@
    4. OpenStreetMap-Daten laden (Overpass) und einsortieren
    5. Pläne zeichnen: Schwarzplan, Straßennetz, Grün, Lageplan
    6. LoD2-Dachformen vom LGLN laden (Hintergrundprogramm lod2-worker.js) und im Lageplan zeigen
+   7. Amtliche Straßen-, Weg- und Platzflächen (ALKIS, LGLN) als nachgezeichnete Flächen
    ============================================================ */
 
 const MAX_FLAECHE_M2 = 1_000_000; // höchstens 1 km²
@@ -381,7 +382,8 @@ const EBENEN = {
   baeume: ["baeume"],
   gebaeude: ["gebaeude-flaeche"],
   umriss: ["gebaeude-umriss"],
-  dach: ["dach-flaeche", "dach-umriss"]   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
+  dach: ["dach-flaeche", "dach-umriss"],   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
+  alkis: ["alkis-strasse", "alkis-weg", "alkis-platz", "alkis-kante"]   // amtliche Flächen (nur wenn geladen)
 };
 
 // Was zeigt welcher Reiter?
@@ -389,11 +391,13 @@ const ANSICHTEN = {
   karte:       { basiskarte: true,  ebenen: [] },
   schwarzplan: { basiskarte: false, ebenen: ["gebaeude"], gebaeude: FARBE.gebaeudeSchwarzplan,
                  text: "Schwarzplan: Gebäude schwarz, Nebengebäude grau." },
-  strassen:    { basiskarte: false, ebenen: ["kontext", "strassen"], strasse: FARBE.strasseSchwarz,
+  strassen:    { basiskarte: false, ebenen: ["kontext", "strassen", "alkis"], strasse: FARBE.strasseSchwarz,
+                 alkis: { strasse: "#3b3b3b", weg: "#c9c9c9", platz: "#e6e6e6", kante: "#111111" },
                  text: "Straßennetz: Linienstärke nach Straßenart." },
   gruen:       { basiskarte: false, ebenen: ["kontext", "gruen", "wasser", "baeume"],
                  text: "Grün und Wasser: Parks, Wiesen, Wald, Bäume, Gewässer." },
-  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "baeume", "gebaeude", "umriss", "dach"],
+  lageplan:    { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "alkis", "baeume", "gebaeude", "umriss", "dach"],
+                 alkis: { strasse: "#cfcfcf", weg: "#ebe7df", platz: "#f3f0ea", kante: "#8a8a8a" },
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Lageplan: alle Ebenen übereinander." }
 };
@@ -402,6 +406,8 @@ let datenVorhanden = false;
 let lod2Vorhanden = false;   // sind LoD2-Dachflächen geladen?
 let osmFeatures = [];        // die einsortierten OSM-Objekte des aktuellen Gebiets
 let lod2Quelle = "";         // Quellenvermerk für die geladenen LoD2-Daten
+let alkisVorhanden = false;  // sind amtliche Straßenflächen geladen?
+let alkisQuelle = "";        // Quellenvermerk dafür
 
 function legePlanEbenenAn() {
   map.addSource("osm-daten", { type: "geojson", data: leer });
@@ -418,6 +424,14 @@ function legePlanEbenenAn() {
     filter: istKat("wasser"), paint: { "fill-color": FARBE.wasser } });
   map.addLayer({ id: "wasser-linie", type: "line", source: quelle, layout: unsichtbar,
     filter: istKat("wasserlinie"), paint: { "line-color": FARBE.wasser, "line-width": inMetern(WASSERLINIE_M) } });
+  // Amtliche Straßen-, Weg- und Platzflächen (ALKIS). Reihenfolge: Straße unten, dann Weg (Gehweg), dann Platz.
+  map.addSource("alkis-flaechen", { type: "geojson", data: leer });
+  for (const art of ["strasse", "weg", "platz"]) {
+    map.addLayer({ id: `alkis-${art}`, type: "fill", source: "alkis-flaechen", layout: unsichtbar,
+      filter: ["==", ["get", "kat"], art], paint: { "fill-color": "#cccccc" } });
+  }
+  map.addLayer({ id: "alkis-kante", type: "line", source: "alkis-flaechen", layout: unsichtbar,
+    paint: { "line-color": "#8a8a8a", "line-width": 0.4 } });
   map.addLayer({ id: "strassen-linie", type: "line", source: quelle,
     layout: { visibility: "none", "line-join": "round", "line-cap": "butt" },
     filter: istKat("strasse"), paint: { "line-color": FARBE.strasseSchwarz, "line-width": inMetern(STRASSENBREITE_M) } });
@@ -456,14 +470,19 @@ function verwerfeDaten() {
   stoppeLod2();
   lod2Vorhanden = false;
   lod2Quelle = "";
+  lod2Mittelpunkte = [];
+  alkisVorhanden = false;
+  alkisQuelle = "";
   osmFeatures = [];
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
+    map.getSource("alkis-flaechen").setData(leer);
     map.getSource("maske").setData(leer);
   }
   zeigeFehler("");
   zeigeLod2Status("");
+  zeigeAlkisStatus("");
 }
 
 // Stellt die Karte passend zum aktuellen Reiter ein
@@ -476,7 +495,8 @@ function wendeAnsichtAn() {
 
   map.setLayoutProperty("osm", "visibility", sichtbar(einstellung.basiskarte));
   for (const [gruppe, ids] of Object.entries(EBENEN)) {
-    const an = datenVorhanden && einstellung.ebenen.includes(gruppe);
+    let an = datenVorhanden && einstellung.ebenen.includes(gruppe);
+    if (gruppe === "strassen" && alkisVorhanden) an = false; // wo amtliche Flächen da sind, brauchen wir die dünnen Linien nicht
     ids.forEach((id) => map.setLayoutProperty(id, "visibility", sichtbar(an)));
   }
   map.setLayoutProperty("maske", "visibility", sichtbar(imPlan && datenVorhanden));
@@ -485,6 +505,14 @@ function wendeAnsichtAn() {
   map.setPaintProperty("strassen-linie", "line-color", einstellung.strasse || FARBE.strasseSchwarz);
   map.setPaintProperty("gebaeude-flaeche", "fill-color",
     ["match", ["get", "kat"], "nebengebaeude", einstellung.neben || FARBE.nebengebaeude, einstellung.gebaeude || FARBE.gebaeudeSchwarzplan]);
+
+  // Farben der amtlichen Straßenflächen je Plan
+  if (einstellung.alkis) {
+    map.setPaintProperty("alkis-strasse", "fill-color", einstellung.alkis.strasse);
+    map.setPaintProperty("alkis-weg", "fill-color", einstellung.alkis.weg);
+    map.setPaintProperty("alkis-platz", "fill-color", einstellung.alkis.platz);
+    map.setPaintProperty("alkis-kante", "line-color", einstellung.alkis.kante);
+  }
 
   // Im Lageplan zeichnen wir Gebäude, für die LoD2-Dächer da sind, nicht doppelt (als OSM-Fläche).
   // In den anderen Plänen bleiben alle OSM-Gebäude.
@@ -509,7 +537,7 @@ function wendeAnsichtAn() {
   }
   hinweis.hidden = !(imPlan && !datenVorhanden);
   const quellen = document.getElementById("map-source");
-  quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "");
+  quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "");
   quellen.hidden = !(imPlan && datenVorhanden);
 }
 
@@ -522,30 +550,54 @@ function zeigeFehler(text) {
   analyseFehler.hidden = !text;
 }
 
+// Sobald irgendeine Datenquelle etwas geliefert hat, zeigen wir die Pläne (Maske, Ebenen).
+// So erscheinen Straßen und Dächer schon nach wenigen Sekunden, auch wenn OpenStreetMap noch lädt.
+function zeigePlaene(rahmen, bevorzugteAnsicht) {
+  if (!datenVorhanden) {
+    map.getSource("maske").setData(maskeFuer(rahmen));
+    datenVorhanden = true;
+  }
+  if (aktuelleAnsicht === "karte") zeigeAnsicht(bevorzugteAnsicht);
+  else wendeAnsichtAn();
+}
+
 btnAnalyse.addEventListener("click", async () => {
   if (!gebiet || turf.area(gebiet) > MAX_FLAECHE_M2) return;
   const meineNummer = ++ladeNummer;
   stoppeLod2(); // ein noch laufender LoD2-Abruf vom letzten Mal wird beendet
   const [west, sued, ost, nord] = turf.bbox(gebiet);
   const rahmen = gebiet;
+  const aktuell = () => meineNummer === ladeNummer; // gilt diese Abfrage noch?
 
   zeigeFehler("");
   zeigeLod2Status("");
+  zeigeAlkisStatus("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
-  analyseHint.textContent = "Daten werden von OpenStreetMap geladen. Das kann bis zu einer Minute dauern.";
+  analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
 
-  // Die LoD2-Dachformen laden wir gleichzeitig mit den OSM-Daten, das spart Wartezeit.
-  const lod2Ergebnis = chkLod2.checked ? starteLod2(rahmen, meineNummer) : null;
+  // Amtliche Straßenflächen und LoD2-Dächer laden gleichzeitig mit OpenStreetMap.
+  // Jede Quelle zeigt ihr Ergebnis, sobald sie fertig ist, ohne auf die anderen zu warten.
+  starteAlkis(rahmen, meineNummer).then((ergebnis) => {
+    if (!aktuell()) return;
+    if (ergebnis.features) zeigePlaene(rahmen, "lageplan");
+    wendeAlkisAn(ergebnis);
+  });
+  if (chkLod2.checked) {
+    starteLod2(rahmen, meineNummer).then((ergebnis) => {
+      if (!aktuell()) return;
+      if (ergebnis.gebaeude && ergebnis.gebaeude.length) zeigePlaene(rahmen, "lageplan");
+      wendeLod2An(ergebnis);
+    });
+  }
 
-  let features;
   try {
     const roh = await holeOsmDaten(sued, west, nord, ost);
-    if (meineNummer !== ladeNummer) return; // inzwischen anderes Gebiet gewählt oder gelöscht
+    if (!aktuell()) return; // inzwischen anderes Gebiet gewählt oder gelöscht
 
     const umgewandelt = osmtogeojson(roh);
     const zaehler = { gebaeude: 0, nebengebaeude: 0, strasse: 0, gruen: 0, wasser: 0, wasserlinie: 0, baum: 0 };
-    features = [];
+    const features = [];
     for (const f of umgewandelt.features) {
       const k = kategorisiere(f);
       if (!k) continue;
@@ -554,41 +606,30 @@ btnAnalyse.addEventListener("click", async () => {
     }
     if (!features.length) {
       analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
-      zeigeFehler("In diesem Gebiet gibt es in OpenStreetMap keine passenden Daten. Wähle ein anderes Gebiet.");
-      stoppeLod2();
-      zeigeLod2Status("");
+      zeigeFehler("In diesem Gebiet gibt es in OpenStreetMap keine passenden Daten.");
       return;
     }
 
     osmFeatures = features;
+    markiereOsmGebaeude(lod2Mittelpunkte); // falls LoD2 schon da war
     map.getSource("osm-daten").setData({ type: "FeatureCollection", features });
-    map.getSource("maske").setData(maskeFuer(rahmen));
-    datenVorhanden = true;
     analyseHint.textContent =
-      `Geladen: ${zahl(zaehler.gebaeude + zaehler.nebengebaeude)} Gebäude (davon ${zahl(zaehler.nebengebaeude)} Nebengebäude), ` +
+      `OpenStreetMap geladen: ${zahl(zaehler.gebaeude + zaehler.nebengebaeude)} Gebäude (davon ${zahl(zaehler.nebengebaeude)} Nebengebäude), ` +
       `${zahl(zaehler.strasse)} Straßenabschnitte, ${zahl(zaehler.gruen)} Grünflächen, ` +
       `${zahl(zaehler.wasser + zaehler.wasserlinie)} Gewässer, ${zahl(zaehler.baum)} Einzelbäume. ` +
       "Zählung inklusive Objekten, die über den Rand hinausragen.";
-    zeigeAnsicht("schwarzplan");
+    zeigePlaene(rahmen, "schwarzplan");
   } catch (fehler) {
-    if (meineNummer !== ladeNummer) return;
-    analyseHint.textContent = "Bereit. Klicke auf „Analysieren“.";
+    if (!aktuell()) return;
+    analyseHint.textContent = datenVorhanden
+      ? "OpenStreetMap fehlt (Schwarzplan, Grün und Bäume bleiben leer). Die amtlichen Daten sind geladen."
+      : "Bereit. Klicke auf „Analysieren“.";
     zeigeFehler(fehler.message);
-    stoppeLod2();
-    zeigeLod2Status("");
-    return;
   } finally {
-    if (meineNummer === ladeNummer) {
+    if (aktuell()) {
       btnAnalyse.textContent = "Analysieren";
       btnAnalyse.disabled = !gebiet || turf.area(gebiet) > MAX_FLAECHE_M2;
     }
-  }
-
-  // OSM steht. Jetzt auf die LoD2-Dachformen warten (falls gewünscht) und im Lageplan ergänzen.
-  if (lod2Ergebnis) {
-    const ergebnis = await lod2Ergebnis;
-    if (meineNummer !== ladeNummer) return;
-    wendeLod2An(ergebnis);
   }
 });
 
@@ -725,8 +766,11 @@ function baueDachflaechen(gebaeudeListe) {
   return { features, mittelpunkte };
 }
 
-// Markiert OSM-Gebäude, auf denen mindestens eine LoD2-Dachfläche liegt, mit lod2 = 1
+// Markiert OSM-Gebäude, auf denen mindestens eine LoD2-Dachfläche liegt, mit lod2 = 1.
+// Wird aufgerufen, sobald beides da ist (egal, was zuerst fertig wurde).
+let lod2Mittelpunkte = [];
 function markiereOsmGebaeude(mittelpunkte) {
+  if (!mittelpunkte.length || !osmFeatures.length) return 0;
   const gebaeude = osmFeatures
     .filter((f) => f.properties.kat === "gebaeude" || f.properties.kat === "nebengebaeude")
     .map((f) => ({ f, bb: turf.bbox(f) }));
@@ -757,13 +801,117 @@ function wendeLod2An(ergebnis) {
     return;
   }
   const { features, mittelpunkte } = baueDachflaechen(ergebnis.gebaeude);
+  lod2Mittelpunkte = mittelpunkte;
   const ersetzt = markiereOsmGebaeude(mittelpunkte);
   map.getSource("lod2-dach").setData({ type: "FeatureCollection", features });
-  map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
+  if (osmFeatures.length) map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
   lod2Vorhanden = true;
   lod2Quelle = `LoD2: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
   zeigeLod2Status(
-    `LoD2 geladen: ${zahl(ergebnis.gebaeude.length)} Gebäude mit ${zahl(features.length)} Dachflächen, ` +
-    `davon ersetzen ${zahl(ersetzt)} OSM-Gebäude im Lageplan. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
+    `LoD2 geladen: ${zahl(ergebnis.gebaeude.length)} Gebäude mit ${zahl(features.length)} Dachflächen` +
+    (osmFeatures.length ? `, davon ersetzen ${zahl(ersetzt)} OSM-Gebäude im Lageplan` : "") +
+    `. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
+  wendeAnsichtAn();
+}
+
+// ---------- 7. Amtliche Straßen-, Weg- und Platzflächen (ALKIS) ----------
+// ALKIS ist das amtliche Liegenschaftskataster. Der LGLN stellt daraus frei Flächen bereit, die genau
+// nachgezeichnet sind (nicht nur eine Linie je Straße). Wir fragen drei Flächenarten ab:
+//   AX_Strassenverkehr = Straßenraum (Fahrbahn), AX_Weg = Wege (auch Gehwege), AX_Platz = Plätze.
+// Der Dienst liefert GML (XML) in UTM-Koordinaten; wir wandeln es in Karten-Flächen um.
+const ALKIS_WFS = "https://opendata.lgln.niedersachsen.de/doorman/noauth/alkis_wfs_sf";
+const ALKIS_ARTEN = { AX_Strassenverkehr: "strasse", AX_Weg: "weg", AX_Platz: "platz" };
+const ALKIS_MAX = 3000;               // höchstens so viele Flächen je Art pro Abfrage
+const alkisStatusFeld = document.getElementById("alkis-status");
+
+function zeigeAlkisStatus(text) {
+  alkisStatusFeld.textContent = text;
+  alkisStatusFeld.hidden = !text;
+}
+
+// Liest die Flächen einer Art aus der GML-Antwort
+function leseAlkisGml(text, art) {
+  const doc = new DOMParser().parseFromString(text, "application/xml");
+  if (doc.getElementsByTagName("parsererror").length) throw new Error("Antwort des LGLN nicht lesbar");
+  const meldung = doc.getElementsByTagNameNS("*", "ExceptionText")[0];
+  if (meldung) throw new Error("LGLN meldet: " + meldung.textContent.trim().slice(0, 120));
+
+  const wurzel = doc.documentElement;
+  const features = [];
+  for (const objekt of doc.getElementsByTagNameNS("*", art)) {
+    const fktElement = objekt.getElementsByTagNameNS("*", "funktion")[0];
+    const funktion = fktElement ? fktElement.textContent.trim() : "";
+    // Code 5130 ist im ATKIS-Katalog "Fußgängerzone" (für ALKIS nicht bestätigt): wir zeichnen sie wie einen Platz
+    let kat = ALKIS_ARTEN[art];
+    if (art === "AX_Strassenverkehr" && funktion === "5130") kat = "platz";
+
+    for (const polygon of objekt.getElementsByTagNameNS("*", "Polygon")) {
+      const ringe = [];
+      const hinein = (element) => {
+        const pos = element.getElementsByTagNameNS("*", "posList")[0];
+        if (!pos) return;
+        const z = pos.textContent.trim().split(/\s+/).map(Number);
+        const ring = [];
+        for (let i = 0; i + 1 < z.length; i += 2) ring.push(utmWandler.inverse([z[i], z[i + 1]]));
+        if (ring.length >= 4) ringe.push(ring);
+      };
+      for (const e of polygon.getElementsByTagNameNS("*", "exterior")) hinein(e);
+      for (const i of polygon.getElementsByTagNameNS("*", "interior")) hinein(i);
+      if (ringe.length) features.push({ type: "Feature", properties: { kat, art: funktion },
+        geometry: { type: "Polygon", coordinates: ringe } });
+    }
+  }
+  return {
+    features,
+    stand: (wurzel.getAttribute("timeStamp") || "").slice(0, 4),
+    abgeschnitten: Number(wurzel.getAttribute("numberReturned")) >= ALKIS_MAX
+  };
+}
+
+// Fragt die drei Flächenarten gleichzeitig ab. Liefert { features, jahr, abgeschnitten } oder { fehler } oder { keine }.
+async function starteAlkis(rahmen, nummer) {
+  try {
+    zeigeAlkisStatus("Amtliche Straßenflächen werden beim LGLN geladen …");
+    const [west, sued, ost, nord] = turf.bbox(rahmen);
+    const ecken = [[west, sued], [west, nord], [ost, sued], [ost, nord]].map((e) => utmWandler.forward(e));
+    const xs = ecken.map((e) => e[0]), ys = ecken.map((e) => e[1]);
+    const box = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)].map((z) => z.toFixed(1)).join(",");
+
+    const teile = await Promise.all(Object.keys(ALKIS_ARTEN).map(async (art) => {
+      const url = `${ALKIS_WFS}?SERVICE=WFS&VERSION=2.0.0&REQUEST=GetFeature&TYPENAMES=adv:${art}` +
+        `&SRSNAME=urn:ogc:def:crs:EPSG::25832&BBOX=${box},urn:ogc:def:crs:EPSG::25832&COUNT=${ALKIS_MAX}`;
+      const antwort = await fetch(url);
+      if (!antwort.ok) throw new Error(`Der LGLN-Dienst meldet Fehler ${antwort.status}`);
+      return leseAlkisGml(await antwort.text(), art);
+    }));
+    if (nummer !== ladeNummer) return { abgebrochen: true };
+
+    const features = teile.flatMap((t) => t.features);
+    if (!features.length) return { keine: true };
+    return { features, jahr: teile.map((t) => t.stand).find(Boolean) || "", abgeschnitten: teile.some((t) => t.abgeschnitten) };
+  } catch (fehler) {
+    return { fehler: fehler.message };
+  }
+}
+
+function wendeAlkisAn(ergebnis) {
+  if (ergebnis.abgebrochen) return;
+  if (ergebnis.fehler) {
+    zeigeAlkisStatus(`Amtliche Straßenflächen konnten nicht geladen werden (${ergebnis.fehler}). Die Pläne zeigen die Straßenlinien aus OpenStreetMap.`);
+    return;
+  }
+  if (ergebnis.keine) {
+    zeigeAlkisStatus("Amtliche Straßenflächen: Für dieses Gebiet gibt es keine Daten (nur Niedersachsen). Es bleibt bei den Linien aus OpenStreetMap.");
+    return;
+  }
+  map.getSource("alkis-flaechen").setData({ type: "FeatureCollection", features: ergebnis.features });
+  alkisVorhanden = true;
+  alkisQuelle = `Straßenflächen: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert`;
+  const zaehler = { strasse: 0, weg: 0, platz: 0 };
+  ergebnis.features.forEach((f) => zaehler[f.properties.kat]++);
+  zeigeAlkisStatus(
+    `Amtliche Straßenflächen geladen: ${zahl(zaehler.strasse)} Straßenflächen, ${zahl(zaehler.weg)} Wege, ${zahl(zaehler.platz)} Plätze` +
+    (ergebnis.abgeschnitten ? " (Achtung: Obergrenze erreicht, nicht alle Flächen geladen)" : "") +
+    `. Quelle: © GeoBasis-DE/LGLN ${ergebnis.jahr}, Daten geändert.`);
   wendeAnsichtAn();
 }

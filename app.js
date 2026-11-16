@@ -120,6 +120,16 @@ function aktualisiereAngaben(feature) {
   btnClear.disabled = false;
   btnAnalyse.disabled = zuGross;
   analyseHint.textContent = zuGross ? "Gebiet zu groß (höchstens ca. 1 km²)." : "Bereit. Klicke auf „Analysieren“.";
+  if (typeof zeigeKachelStatus === "function") zeigeKachelStatus(); // benötigte LoD2-Kacheln (import.js)
+}
+
+// Ein Gebiet von außen setzen (z. B. nach dem Import der topoexport-Ausschnitt), bbox = [W, S, O, N]
+function setzeGebiet(bbox) {
+  if (zeichnen) zeichenmodus(false);
+  gebiet = turf.bboxPolygon(bbox);
+  const zeige = () => { zeigeRechteck(gebiet); map.fitBounds(bbox, { padding: 60, duration: 0 }); };
+  map.getSource("gebiet") ? zeige() : map.once("load", zeige); // erst zeichnen, wenn die Karte bereit ist
+  aktualisiereAngaben(gebiet);
 }
 
 btnDraw.addEventListener("click", () => zeichenmodus(!zeichnen));
@@ -248,25 +258,21 @@ async function analysiere(nurBeispiel = false) {
     const daten = bereiteAuf(rohdaten, bbox);
     const quelleText = `Quelle: © OpenStreetMap-Mitwirkende (ODbL), Datenstand ${datumText(daten.datenstand)} (${herkunft})`;
 
-    // Amtliche Daten (LoD2-Gebäude, Straßenflächen), wenn das Gebiet im Oldenburger Beispiel liegt
+    // Amtliche Daten (LoD2-Gebäude, Gelände, Straßenflächen): aus dem Import oder dem Oldenburger Beispiel
     let lod2Daten = null, lod2 = null, daecher = null;
-    if (beruehrtBeispielgebiet(bbox)) {
-      meldung("Lade amtliche 3D-Gebäude und Straßenflächen …");
-      try {
-        lod2Daten = await ladeBeispielLod2();
-        lod2 = lod2Gebaeude(lod2Daten, bbox);
-        daecher = dachflaechenGeoJSON(lod2Daten, lod2, bbox);
-      } catch (fehler) {
-        console.warn("LoD2-Daten nicht verfügbar:", fehler);
-      }
-      try {
-        const amtlich = await ladeBeispielStrassen();
-        daten.strassenAmtlich = strassenflaechenGeoJSON(amtlich, bbox);
-        // OSM-Straßen nur dort als Fläche zeichnen, wo keine amtliche Straßenfläche liegt
-        daten.strassenAussen = strassenAusserhalb(daten.strassen, daten.strassenAmtlich);
-      } catch (fehler) {
-        console.warn("Amtliche Straßenflächen nicht verfügbar:", fehler);
-      }
+    meldung("Lade amtliche 3D-Gebäude und Straßenflächen …");
+    const amtlich = await amtlicheDaten(bbox, nurBeispiel);
+    if (amtlich && amtlich.lod2Daten) {
+      lod2Daten = amtlich.lod2Daten;
+      lod2 = lod2Gebaeude(lod2Daten, bbox);
+      daecher = dachflaechenGeoJSON(lod2Daten, lod2, bbox);
+      // Detailstufen-Regel für die Eigenschaften: Höhe/Geschosse und Nutzung aus LoD2, wo vorhanden
+      ergaenzeAusLod2(daten.gebaeude, lod2);
+    }
+    if (amtlich && amtlich.strassenDaten) {
+      daten.strassenAmtlich = strassenflaechenGeoJSON(amtlich.strassenDaten, bbox);
+      // OSM-Straßen nur dort als Fläche, wo keine amtliche Straßenfläche liegt (für die Netto-Rechnung)
+      daten.strassenAussen = strassenAusserhalb(daten.strassen, daten.strassenAmtlich);
     }
     const kennzahlen = berechneKennzahlen(daten, bbox);
     const lgln = (lod2 && lod2.length) || daten.strassenAmtlich
@@ -295,10 +301,6 @@ btnAnalyse.addEventListener("click", () => analysiere(false));
 
 // „Beispiel Oldenburg laden“: Testgebiet wählen und mit den eingebauten Daten analysieren
 btnBeispiel.addEventListener("click", () => {
-  if (zeichnen) zeichenmodus(false);
-  gebiet = turf.bboxPolygon(BEISPIEL_GEBIET);
-  const zeige = () => { zeigeRechteck(gebiet); map.fitBounds(BEISPIEL_GEBIET, { padding: 60, duration: 0 }); };
-  map.getSource("gebiet") ? zeige() : map.once("load", zeige); // erst zeichnen, wenn die Karte bereit ist
-  aktualisiereAngaben(gebiet);
+  setzeGebiet(BEISPIEL_GEBIET);
   analysiere(true);
 });

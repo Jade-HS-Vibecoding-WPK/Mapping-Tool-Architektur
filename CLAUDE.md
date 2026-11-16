@@ -24,6 +24,10 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Richtige topoexport-Daten = Inhalt von `topoexport-D8F988.zip`. Die losen DXF-Dateien in Downloads zeigen einen
   anderen Ort. Amtliche Straßenflächen enthalten nur das Hauptstraßennetz, Rest aus OSM.
 - Keine Daten aus Google Maps oder Apple Karten (Nutzungsbedingungen verbieten das Abzeichnen, API-Key nötig).
+- Datei-Import: `import.js` (Ablagefeld, Datenliste, Kachel-Anzeige, Verortung, Zusammenfassen im Format der
+  Beispieldaten mit Einheit 1 m) und `import-worker.js` (Web Worker: CityGML per Textsuche, DXF binär/Text,
+  topoexport-Auswertung). JSZip für ZIP. Importe gehen vor die Beispieldaten (`amtlicheDaten` in import.js).
+  Testdateien lokal in `_testdaten/` (in .gitignore).
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).
 - topoexport-DXF: binär, AC1024, Meter, LOKALE Koordinaten (Nullpunkt unten links, keine Georeferenz),

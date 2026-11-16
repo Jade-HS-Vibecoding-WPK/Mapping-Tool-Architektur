@@ -103,6 +103,8 @@ function berechneKennzahlen(daten, bbox) {
   const geschossflaeche = summe(haupt, (f) => f.properties.flaeche * f.properties.geschosse);
   const geschaetzt = haupt.filter((f) => f.properties.geschosseQuelle === "ersatz").length;
   const ausHoehe = haupt.filter((f) => f.properties.geschosseQuelle === "hoehe").length;
+  const ausLod2 = haupt.filter((f) => f.properties.geschosseQuelle === "lod2").length;
+  const nutzungAmtlich = haupt.filter((f) => f.properties.nutzungQuelle === "lod2").length;
 
   const anteile = flaechenAnteile(daten, bbox, gebietM2);
   // Bauland (netto) = Gebiet ohne Straßen, Bahn, Grün und Wasser
@@ -130,7 +132,7 @@ function berechneKennzahlen(daten, bbox) {
     nebenAnzahl: neben.length,
     nebenFlaeche: summe(neben, (f) => f.properties.flaeche),
     mittlereGeschosse: haupt.length ? summe(haupt, (f) => f.properties.geschosse) / haupt.length : 0,
-    geschaetzt, ausHoehe,
+    geschaetzt, ausHoehe, ausLod2, nutzungAmtlich,
     geschossflaeche,
     gfzBrutto: geschossflaeche / gebietM2,
     gfzNetto: nettoM2 > 0 ? geschossflaeche / nettoM2 : null,
@@ -210,8 +212,9 @@ function zeigeKennzahlen(k, quelle) {
       <h4>Dichte</h4>
       <dl>
         ${zeile("Mittlere Geschosszahl", fmt(k.mittlereGeschosse, 1),
+          (k.ausLod2 ? `${fmt(k.ausLod2)} Gebäude aus der amtlichen Traufhöhe (LoD2) ÷ 3 m; ` : "") +
           `${fmt(k.geschaetzt)} von ${fmt(k.gebaeudeAnzahl)} Gebäuden (${prozent(k.gebaeudeAnzahl ? k.geschaetzt / k.gebaeudeAnzahl : 0, 0)}) ohne Angabe: geschätzt mit ${ERSATZ_GESCHOSSE} Geschossen` +
-          (k.ausHoehe ? `; ${fmt(k.ausHoehe)} aus der Höhe ÷ 3 m` : ""))}
+          (k.ausHoehe ? `; ${fmt(k.ausHoehe)} aus der OSM-Höhe ÷ 3 m` : ""))}
         ${zeile("Geschossfläche (geschätzt)", flaecheText(k.geschossflaeche), "Grundfläche × Geschosse")}
         ${zeile("Dichte („GFZ“) brutto", fmt(k.gfzBrutto, 2), "Geschossfläche ÷ Gebietsfläche")}
         ${zeile("Dichte („GFZ“) netto", fmt(k.gfzNetto, 2), "Geschossfläche ÷ Bauland")}
@@ -247,8 +250,9 @@ function zeigeKennzahlen(k, quelle) {
     <section class="kz-block kz-breit">
       <h4>Gebäude nach Nutzung <small>(Grundfläche, Anzahl in Klammern)</small></h4>
       ${balken(nutzungsListe, k.bebaut, flaecheText)}
-      <p class="kz-hinweis">Die Nutzung stammt aus den OSM-Gebäudeangaben. Viele Gebäude sind dort nur als
-        „Gebäude“ ohne Nutzung erfasst. Genauere Werte kommen später aus den amtlichen LoD2-Daten (Gebäudefunktion).</p>
+      <p class="kz-hinweis">${k.nutzungAmtlich
+        ? `Bei ${fmt(k.nutzungAmtlich)} von ${fmt(k.gebaeudeAnzahl)} Gebäuden stammt die Nutzung aus der amtlichen Gebäudefunktion (ALKIS, über LoD2), sonst aus OSM.`
+        : "Die Nutzung stammt aus den OSM-Gebäudeangaben. Viele Gebäude sind dort nur als „Gebäude“ ohne Nutzung erfasst. Genauere Werte liefern amtliche LoD2-Daten (Gebäudefunktion)."}</p>
     </section>
   `;
 }

@@ -17,6 +17,8 @@
   <!-- 3D-Darstellung (three.js) mit Maussteuerung (OrbitControls) -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Packt ZIP-Dateien im Browser aus -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -49,9 +51,31 @@
       <section class="step">
         <h2><span class="num">02</span> Daten</h2>
         <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
-        <div class="dropzone is-disabled" aria-disabled="true">
-          Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Dateien importieren">
+          Dateien hier ablegen oder klicken<br><small>CityGML-Kacheln (LoD2) · topoexport (DXF) · auch als ZIP</small>
         </div>
+        <input type="file" id="datei-wahl" multiple accept=".gml,.xml,.dxf,.zip" hidden>
+        <p class="hint hint-klein import-status" id="import-status" hidden></p>
+        <ul class="import-liste" id="import-liste" hidden></ul>
+        <button class="btn btn-klein btn-ghost" id="verortung-oeffnen" hidden>topoexport neu verorten</button>
+
+        <!-- Verortung der topoexport-Dateien (erscheint nach dem Import) -->
+        <div class="verortung" id="verortung" hidden>
+          <p class="verortung-titel"><strong>topoexport verorten</strong></p>
+          <p class="hint hint-klein" id="verortung-text"></p>
+          <div class="verortung-felder">
+            <label>Ost <input id="verortung-ost" inputmode="decimal"></label>
+            <label>Nord <input id="verortung-nord" inputmode="decimal"></label>
+          </div>
+          <p class="hint hint-klein">Linke untere Ecke des Ausschnitts in UTM 32 (Meter)</p>
+          <div class="row">
+            <button class="btn btn-klein" id="verortung-auto">Automatisch einpassen</button>
+            <button class="btn btn-klein btn-ghost" id="verortung-uebernehmen">Koordinate übernehmen</button>
+          </div>
+          <button class="btn btn-block" id="verortung-ok">Lage bestätigen</button>
+        </div>
+
+        <div class="kachel-status" id="kachel-status" hidden></div>
         <button id="btn-beispiel" class="btn btn-ghost btn-block">Beispiel Oldenburg laden</button>
         <p class="hint hint-klein">Wählt das Oldenburger Testgebiet und analysiert es mit eingebauten OSM-Daten, auch ohne Internetverbindung zum OSM-Dienst.</p>
       </section>
@@ -123,5 +147,6 @@
   <script src="lod2.js"></script>
   <script src="dreid.js"></script>
   <script src="app.js"></script>
+  <script src="import.js"></script>
 </body>
 </html>

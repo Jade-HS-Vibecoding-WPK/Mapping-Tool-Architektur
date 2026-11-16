@@ -634,9 +634,28 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   einheitlich hellgrau mit dünnem grauem Rand, ohne Farbunterscheidung nach Kategorie; Fußwege als feine graue
   Linie. Straßen überdecken keine Gebäude mehr: Grundrisse und Dachaufsichten werden mit schmalem weißem Saum
   ausgespart. Das Straßennetz behält die breiten Flächen nach Kategorie.
-- [ ] **Nächster Schritt:** Datei-Import und Detailstufen-Regel (Schritt 5): CityGML (ZIP, mehrere Kacheln,
-  Anzeige der benötigten Kacheln) und topoexport-DXF im Browser (binär), Verortung von Hand.
-  Idee: die topoexport-Bäume (2756–4401, mit Kronengröße) statt der OSM-Bäume für Grün und 3D nutzen.
+- [x] **Datei-Import (Schritt 5, Teil 1)** (16.11.2026):
+  - Ablagefeld aktiv (Ziehen oder Klicken): **CityGML** (.gml/.xml, mehrere Kacheln, auch in ZIP) und
+    **topoexport** (2D- und 3D-DXF, binär oder Text, auch als ZIP). Lesen im Hintergrund (`import-worker.js`,
+    Web Worker) mit eigenem kleinen DXF-Leser für LWPOLYLINE und MESH. Test: 4 Kacheln (~110 MB) in ca. 4 s,
+    topoexport-ZIP in ca. 2 s. ZIP über JSZip. RAR und DWG: Hinweis statt Import.
+  - Datenliste mit Entfernen-Knopf; **Anzeige der benötigten LoD2-Kacheln** fürs gewählte Gebiet
+    (✓ geladen, – fehlt in Rot, „nicht nötig“).
+  - **Verortung topoexport:** automatisch über Grundriss-Vergleich (mit CityGML ohne Vorarbeit; sonst mit
+    OSM-Gebäuden im Umkreis von 500 m um die grob gezogene Lage), Korrektur durch Verschieben des Rahmens
+    oder Eingabe der UTM-Koordinate der linken unteren Ecke. Test: über OSM 0,4 m, über CityGML 0,3 m
+    Abweichung zum bekannten Nullpunkt (730 bzw. 1.081 passende Gebäude). Nach „Lage bestätigen“ ist der
+    topoexport-Ausschnitt als Gebiet voreingestellt.
+  - **Detailstufen-Regel:** Importe gehen vor das Beispiel. Gebäude-3D: CityGML, dann topoexport-3D (nur wo
+    keine Kachel und kein CityGML-Gebäude), dann OSM-Klötze. Gelände und Straßenflächen aus topoexport.
+  - **Kennzahlen mit amtlichen Eigenschaften** (Import und Beispiel): Geschosse = Traufhöhe (tiefster Punkt
+    der größten Dachfläche) ÷ 3 m, Nutzung aus der ALKIS-Gebäudefunktion (`alkisNutzung` in `lod2.js`),
+    51009 = Überdachung → Nebengebäude. Zuordnung: LoD2-Mittelpunkt liegt im OSM-Grundriss (einfacher als
+    die geplanten > 50 % Überlappung). Ergebnis Oldenburg: 1.075 Gebäude mit amtlicher Höhe (nur noch 6 %
+    geschätzt), mittlere Geschosszahl 3,3, GFZ 1,49 brutto / 2,25 netto, „unbekannte“ Nutzung 191 statt 724.
+- [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
+  (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
+  OSM-Bäume für Grün, Kronenüberdeckung und 3D.
 - [ ] Offen aus Schritt 3: Datenquellen prüfen (topoexport: Koordinaten des Ausschnitts, UTM-32-Export, Kosten)
 - [x] Legende ein- und ausklappbar
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

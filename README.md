@@ -8,7 +8,10 @@ und netto, Grünanteil, Straßenlängen, Nutzungen). Der Knopf „Beispiel Olden
 eingebaute OSM-Daten der Oldenburger Innenstadt (`data/beispiel-oldenburg-osm.js`) und zeigt
 dazu ein 3D-Modell mit den amtlichen LoD2-Gebäuden (echte Dachformen) und Bäumen. Im Lageplan
 erscheinen die Dächer als schattierte Dachaufsicht, Straßen als Flächen mit Rand.
-Datei-Import und Export folgen.
+Eigene Daten lassen sich per Drag & Drop importieren: amtliche LoD2-Kacheln (CityGML, auch als ZIP)
+und topoexport-Dateien (DXF, auch als ZIP). Das Tool zeigt an, welche Kacheln für das Gebiet nötig
+sind, verortet topoexport automatisch und nutzt amtliche Höhen und Gebäudefunktionen für die Kennzahlen.
+Diagramme und Export folgen.
 
 **Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
 `python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.
@@ -16,7 +19,7 @@ Datei-Import und Export folgen.
 **Quellen:** Kartendaten © OpenStreetMap-Mitwirkende, Lizenz ODbL
 (https://www.openstreetmap.org/copyright), abgefragt über die Overpass-API.
 3D-Gebäude: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN),
-3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js.
+3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)
 - [`UEBERGABE.md`](UEBERGABE.md): Zusammenfassung der bisherigen Sitzung für die Weiterarbeit in einem neuen Chat

@@ -33,7 +33,7 @@ function lod2Gebaeude(daten, bbox) {
   const k = daten.einheit;
   const [w, s, o, n] = bbox;
   const ergebnis = [];
-  for (const [id, funktion, dachform, hoehe, basis, flaechen, herkunft] of daten.gebaeude) {
+  for (const [id, funktion, dachform, hoehe, basis, flaechen, herkunft, grund] of daten.gebaeude) {
     const f = flaechen.map(([typ, ...ringe]) => ({
       typ,
       ringe: ringe.map((r) => {
@@ -43,17 +43,70 @@ function lod2Gebaeude(daten, bbox) {
       })
     }));
     // Mittelpunkt des Gebäudes (aus den Dachpunkten) muss im Rechteck liegen
+    // (bei importiertem CityGML aus der Bodenfläche, sonst aus den Dachpunkten)
+    const boden = grund && grund.length ? grund[0].map(([x, y]) => [x * k, y * k]) : [];
     const dach = f.filter((x) => x.typ === "R").flatMap((x) => x.ringe[0]);
-    const punkte = dach.length ? dach : f.flatMap((x) => x.ringe[0]);
+    const punkte = boden.length ? boden : dach.length ? dach : f.flatMap((x) => x.ringe[0]);
     if (!punkte.length) continue;
     const mx = punkte.reduce((a, p) => a + p[0], 0) / punkte.length;
     const my = punkte.reduce((a, p) => a + p[1], 0) / punkte.length;
     const [lon, lat] = utmZuGrad(e0 + mx, n0 + my);
     if (lon < w || lon > o || lat < s || lat > n) continue;
+    // Traufhöhe (für die Geschosszahl): tiefster Punkt der größten Dachfläche, über dem Boden
+    let groessteFlaeche = 0, traufe = null;
+    for (const x of f) {
+      if (x.typ !== "R") continue;
+      const r = x.ringe[0];
+      let a = 0;
+      for (let i = 0; i < r.length; i++) { const p = r[i], q = r[(i + 1) % r.length]; a += p[0] * q[1] - q[0] * p[1]; }
+      a = Math.abs(a / 2);
+      if (a > groessteFlaeche) { groessteFlaeche = a; traufe = Math.min(...r.map((p) => p[2])); }
+    }
     // herkunft "T" = aus topoexport (Dreiecksnetz), sonst CityGML
-    ergebnis.push({ id, funktion, dachform, hoehe, basis, flaechen: f, quelle: herkunft === "T" ? "topoexport" : "citygml" });
+    ergebnis.push({ id, funktion, dachform, hoehe, basis, flaechen: f, quelle: herkunft === "T" ? "topoexport" : "citygml",
+      mitte: [lon, lat], traufe });
   }
   return ergebnis;
+}
+
+// Amtliche Gebäudefunktion (ALKIS-Code, z. B. „31001_1000“) → unsere Nutzungskategorien
+function alkisNutzung(code) {
+  if (!code) return null;
+  const [art, nr] = code.split("_");
+  const n = parseInt(nr, 10);
+  if (art === "51009") return "neben";            // Überdachungen, Carports …
+  if (art !== "31001" || isNaN(n) || n >= 9998) return null; // nicht näher bestimmt
+  if (n < 2000) return "wohnen";                   // 1000–1999 Wohngebäude, auch mit Gewerbe
+  if (n >= 2460 && n <= 2469) return "sonstige";   // Parkhäuser, Garagen (Verkehr)
+  if (n >= 2500 && n < 3000) return "sonstige";    // Versorgung, Entsorgung, Land- und Forstwirtschaft
+  if (n < 3000) return "gewerbe";                  // 2000–2499 Wirtschaft, Handel, Dienstleistung, Büro
+  if (n >= 3040 && n < 3050) return "kirche";      // religiöse Zwecke
+  if (n < 4000) return "oeffentlich";              // 3000–3999 öffentliche Zwecke, Bildung, Kultur …
+  return "sonstige";
+}
+
+// Detailstufen-Regel für Eigenschaften: Jedes OSM-Gebäude übernimmt Geschosse und Nutzung vom LoD2-Gebäude,
+// dessen Mittelpunkt in ihm liegt (bei mehreren: das höchste). Form und Fläche bleiben aus OSM.
+function ergaenzeAusLod2(gebaeude, lod2) {
+  const osm = gebaeude.features.map((f) => ({ f, box: turf.bbox(f), lod2: [] }));
+  for (const g of lod2) {
+    const [x, y] = g.mitte;
+    const treffer = osm.find(({ f, box }) => x >= box[0] && x <= box[2] && y >= box[1] && y <= box[3] && turf.booleanPointInPolygon(g.mitte, f));
+    if (treffer) treffer.lod2.push(g);
+  }
+  for (const { f, lod2: liste } of osm) {
+    if (!liste.length) continue;
+    const p = f.properties;
+    const hoch = liste.reduce((a, b) => ((b.traufe || 0) > (a.traufe || 0) ? b : a));
+    if (p.art === "haupt" && hoch.traufe > 1.5) {
+      p.geschosse = Math.max(1, Math.round(hoch.traufe / 3));
+      p.geschosseQuelle = "lod2";
+    }
+    const nutzung = liste.map((g) => alkisNutzung(g.funktion)).find((x) => x && x !== "neben") ||
+      (liste.every((g) => alkisNutzung(g.funktion) === "neben") ? "neben" : null);
+    if (nutzung === "neben" && p.art === "haupt") { p.art = "neben"; p.nutzung = "neben"; p.geschosse = 1; p.nutzungQuelle = "lod2"; }
+    else if (nutzung && p.art === "haupt") { p.nutzung = nutzung; p.nutzungQuelle = "lod2"; }
+  }
 }
 
 // Liegt ein Punkt (lon/lat) dort, wo LoD2-Gebäude vorliegen (CityGML-Kachel oder topoexport-Ausschnitt)?

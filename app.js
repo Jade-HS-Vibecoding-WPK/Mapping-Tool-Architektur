@@ -76,6 +76,7 @@ map.on("load", () => {
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
     paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
   legeWirtEbenenAn();       // Reiter Wirtschaftlichkeit (wirtschaft.js)
+  legeSchnittEbenenAn();    // Reiter Schnitt (schnitt.js): die gezogene Linie
   legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
   legeInfoEbenenAn();       // Reiter Infos (infos.js)
   kartenBereit = true;
@@ -199,7 +200,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos", "wirtschaft"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos", "wirtschaft", "schnitt"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -458,6 +459,11 @@ const ANSICHTEN = {
                  text: "Mietpreise aus dem Zensus-Raster." },
   wirtschaft:  { basiskarte: false, ebenen: ["kontext", "wirtschaft"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
                  text: "Flurstücke mit Steckbrief und Wirtschaftlichkeitsrechnung." },
+  // Schnitt und Ansicht: Lageplan-Grundlage (Gebäude, LoD2-Dächer, Straßenflächen, Grün), darüber die gezogene Linie (siehe schnitt.js)
+  schnitt:     { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "alkis", "gebaeude", "umriss", "dach"],
+                 alkis: { strasse: FARBE.plan.fahrbahn, weg: FARBE.plan.weg, platz: FARBE.plan.platz, kante: FARBE.plan.kante },
+                 gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
+                 text: "Linie ziehen, Schnitt und Straßenansicht." },
   // Luftbild und Infos: Rechteck wie im Reiter "Karte" (rot gestrichelt), keine weiße Maske, Quellenangabe immer sichtbar
   luftbild:    { basiskarte: false, ebenen: [], rahmenWieKarte: true, rahmenFuellung: 0, quelleImmer: true,
                  text: "Luftbild des LGLN mit Überlagerungen." },
@@ -577,6 +583,7 @@ function verwerfeDaten() {
   verwerfeMieten();
   verwerfeInfos();
   verwerfeWirtschaft();
+  verwerfeSchnitt();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -629,7 +636,7 @@ function wendeAnsichtAn() {
 
   // Im Lageplan zeichnen wir Gebäude, für die LoD2-Dächer da sind, nicht doppelt (als OSM-Fläche).
   // In den anderen Plänen bleiben alle OSM-Gebäude.
-  const gebaeudeFilter = aktuelleAnsicht === "lageplan" && lod2Vorhanden
+  const gebaeudeFilter = (aktuelleAnsicht === "lageplan" || aktuelleAnsicht === "schnitt") && lod2Vorhanden
     ? ["all", istKat("gebaeude", "nebengebaeude"), ["==", ["coalesce", ["get", "lod2"], 0], 0]]
     : istKat("gebaeude", "nebengebaeude");
   map.setFilter("gebaeude-flaeche", gebaeudeFilter);
@@ -657,6 +664,7 @@ function wendeAnsichtAn() {
   quellen.hidden = !((imPlan && datenVorhanden) || einstellung.quelleImmer);
   aktualisiereFlurstuecke();   // rechnet und zeichnet nur im Reiter "Flurstücke"
   aktualisiereMieten();        // dito für "Mietpreise"
+  aktualisiereSchnitt();       // Schnitt und Ansicht: Zeichnung und Linie
   aktualisiereWirtschaft();    // Wirtschaftlichkeit: Bestand rechnen, Karte, Panel
   aktualisiereLuftbild();      // Luftbild und seine Linien
   aktualisiereInfos();         // Infos: Schalter und Ebenen

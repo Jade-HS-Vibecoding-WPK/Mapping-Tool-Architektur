@@ -72,6 +72,9 @@ function farbschluessel(ansicht) {
     case "flurstuecke":
       e.push(flurstueckeVorhanden ? flstLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
+    case "schnitt":
+      e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"), schnittLegendeEintraege());
+      break;
     case "wirtschaft":
       e.push(flurstueckeVorhanden ? wirtLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
@@ -120,6 +123,7 @@ function eckdaten(ansicht) {
   if (ansicht === "mieten") return zeilen.concat(mietEckdaten());
   if (ansicht === "infos") return zeilen.concat(infoEckdaten());
   if (ansicht === "wirtschaft") return zeilen.concat(wirtEckdaten());
+  if (ansicht === "schnitt") return zeilen.concat(schnittEckdaten());
   if (ansicht === "luftbild") return zeilen;
   const k = kennzahlenMitMerker();
   const A = k.flaeche;

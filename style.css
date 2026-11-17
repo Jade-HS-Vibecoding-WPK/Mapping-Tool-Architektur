@@ -433,3 +433,25 @@ html, body {
 .info-bereich label { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
 .info-bereich input { margin: 0; }
 .info-bereich .info-zahl { font-weight: 400; }
+
+/* ---------- Reiter "Schnitt": Zeichnung unten, Linie oben auf der Karte ---------- */
+.schnitt-panel { position: absolute; left: 0; right: 0; bottom: 0; height: 52%; min-height: 300px; max-height: 100%; z-index: 4; display: flex; flex-direction: column;
+  background: var(--paper); border-top: 2px solid var(--ink); font-size: 12px; }
+.schnitt-panel[hidden] { display: none; }
+.schnitt-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+.schnitt-leiste label { display: inline-flex; align-items: center; gap: 4px; }
+.schnitt-leiste input[type="number"] { width: 56px; font: inherit; font-family: var(--mono); padding: 1px 3px; border: 1px solid var(--ink); }
+.schnitt-leiste select { font: inherit; padding: 1px 3px; border: 1px solid var(--ink); background: var(--paper); }
+.schnitt-leiste .btn { padding: 3px 10px; font-size: 12px; }
+.schnitt-leiste .btn.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.schnitt-umschalter { display: inline-flex; border: 1px solid var(--ink); }
+.schnitt-umschalter button { font: inherit; padding: 3px 10px; background: none; border: 0; cursor: pointer; }
+.schnitt-umschalter button + button { border-left: 1px solid var(--ink); }
+.schnitt-umschalter button.is-active { background: var(--ink); color: var(--paper); }
+.schnitt-info { padding: 3px 10px; font-family: var(--mono); color: var(--ink-soft); }
+.schnitt-hinweis { padding: 2px 10px; color: var(--accent); }
+.schnitt-hinweis[hidden] { display: none; }
+#schnitt-svg { flex: 1; min-height: 0; width: 100%; touch-action: none; cursor: grab; background: #fff; }
+#schnitt-svg:active { cursor: grabbing; }
+.schnitt-klein { margin: 0; padding: 3px 10px; font-size: 10px; color: var(--ink-soft); border-top: 1px solid var(--line); }
+@media (max-width: 760px) { .schnitt-panel { height: 62%; } }

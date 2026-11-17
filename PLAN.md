@@ -830,6 +830,26 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   (4) Liegenschaftszins gilt laut Quelle bei 35 Jahren Restnutzungsdauer. (5) Abbruch, Notar und Grundbuch sind Marktangaben ohne amtliche Zahl. (6) Wohnfläche aus Geschossfläche durch 1,55 ist eine
   Näherung. (7) Die Verbraucherpreisindex-Werte (99,9 und 123,0) und der Baupreisindex-Jahresschnitt 2010 stammen von Seiten, die Destatis zitieren, nicht direkt von Destatis.
   **Nicht getestet:** Gebiete außerhalb von Oldenburg (dort passen Zins und Mietspiegel nicht), Handy, andere Browser, Vergleich mit einem echten Gutachten oder Marktdaten.
+- [x] **Reiter „Schnitt“: Linie ziehen, Schnitt und Straßenansicht, DXF-Export** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Neue Datei `schnitt.js`.
+  Man zieht auf der Karte (Lageplan-Grundlage) mit gedrückter Maustaste eine gerade Linie (mindestens 5 m, im gewählten Rechteck; roter Strich mit Pfeil für die Blickrichtung, A weiß, B
+  schwarz). Darunter entsteht eine Zeichnung in Metern 1:1 (SVG, Mausrad = Zoom, Ziehen = Verschieben, „Einpassen“). Umschalter: **Schnitt** und **Straßenansicht**; Blick nach links oder
+  rechts; Tiefe der Ansicht (Standard 30 m); Schalter für Ansicht dahinter, Straßenflächen, Flurstücksgrenzen, Bemaßung.
+  **Schnitt:** Gelände aus dem Höhenmodell DGM1 (Abstand ca. 0,25 m entlang der Linie), geschnittene Gebäude **schwarz als Vollkörper (Poché)**, gerechnet aus den echten LoD2-Dachflächen: jede
+  Dachfläche wird mit der senkrechten Ebene durch die Linie geschnitten, daraus die Dachlinie (Abtastung alle 0,1 m) und der Fuß (LoD2-Geländehöhe am Gebäude); Beschriftung Firsthöhe in m ü. NHN
+  und Gebäudehöhe. Dahinter in Blickrichtung die Gebäude grau (Ansicht). Straßenflächen aus den amtlichen Flächen (Fahrbahn, Weg, Platz) als Maßkette mit Breiten (benachbarte Flächen gleicher Art
+  werden zusammengefasst), Flurstücksgrenzen als gestrichelte Linien, Länge, Höhenkoten an A und B, Höhenraster, Maßstabsbalken.
+  **Straßenansicht:** alle Dach- und Wandflächen in Blickrichtung (an der Ebene abgeschnitten, bis zur gewählten Tiefe), nach Entfernung sortiert gemalt (Maleralgorithmus), Tönung nach Entfernung.
+  **Ohne LoD2:** OSM-Gebäude als Blöcke (Höhe = Geschosse mal 3 m, im Schnitt als „geschätzt“ beschriftet; im Test 19,5 m statt LoD2 15,3 m).
+  **DXF-Export** (nur DXF, wie gewünscht; kein PNG oder SVG): AutoCAD **R12 (AC1009)**, ASCII, 1 Einheit = 1 m, X = Abstand entlang der Linie in Blickrichtung (links nach rechts), Y = Höhe über NHN.
+  Layer: GELAENDE, GEBAEUDE_SCHNITT, ANSICHT_NAH/MITTE/FERN (Entfernungsdrittel der Tiefe, damit man Strichstärken je Ebene wählen kann), STRASSE_FAHRBAHN/WEG/PLATZ, GRENZEN, BEMASSUNG,
+  BESCHRIFTUNG (Text mit Linie A und B in UTM 32 und Quellen). Nur Linien, Polylinien und Text, **keine Füllungen oder Schraffuren**; ohne Verdeckung der Ansichtslinien (alle Kanten).
+  Umlaute werden in der DXF umschrieben (R12 kennt kein Unicode).
+  **Getestet** (echte Daten, Oldenburg Innenstadt, mit LoD2): Linie 186 m über Straße und Wege: 2 Gebäude geschnitten (16,1 m und 15,3 m), 267 Flächen in Blickrichtung, 8 Flurstücksgrenzen, Fahrbahn
+  38,02 m, Gelände 1,5 bis 4,5 m NHN; beide Modi, Blick links und rechts (Spiegelung), Rückfall auf OSM-Blöcke, alle dreizehn Reiter ohne Fehlermeldung; Zeichnung am Bildschirm gesehen. **DXF mit einem
+  unabhängigen Leseprogramm (ezdxf 1.4.5) eingelesen und geprüft: drei Dateien, 0 Fehler, 0 Warnungen**, Ebenen und Wertebereiche stimmen.
+  **Nicht getestet / Grenzen:** DXF in Allplan und ArchiCAD (das müsstest du prüfen), sehr lange Linien (über 1 km), Gebäude mit Innenhöfen oder Durchfahrten (LoD2 hat keine Innenräume, werden zu
+  Vollkörpern), Dachüberstände (können im Schnitt als Vollkörper zu breit wirken), Bäume (fehlen), Maleralgorithmus bei stark verschachtelten Dächern, Genauigkeit der Maße gegen Aufmaß (Gelände DGM1
+  1 m Raster, Gebäude LoD2; nicht vermessungsgenau), Handy, andere Browser. Die Linie lässt sich nicht nachträglich an den Enden ziehen (neue Linie ziehen).
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

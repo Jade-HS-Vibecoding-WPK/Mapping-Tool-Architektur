@@ -95,12 +95,13 @@
         <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
         <button class="tab" data-view="infos" role="tab">Infos</button>
         <button class="tab" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
+        <button class="tab" data-view="schnitt" role="tab">Schnitt</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für zehn Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise, Infos und Wirtschaftlichkeit.
+        <!-- Eine Karte für elf Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise, Infos, Wirtschaftlichkeit und Schnitt.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -145,6 +146,27 @@
               <p class="flst-hinweis">Jeder Wert zeigt seine Quelle. „amtlich“ = Gesetz, Verordnung, Gutachterausschuss oder Statistik, „Marktangabe“ = Ratgeber oder Anbieter ohne amtliche Zahl, „Annahme“ = meine eigene Annahme. Ändere sie nach deiner Aufgabe.</p>
               <div id="wirt-annahmen-felder"></div>
             </details>
+          </div>
+          <!-- Nur im Reiter "Schnitt": Linie ziehen, Zeichnung von Schnitt oder Straßenansicht, DXF-Export (siehe schnitt.js) -->
+          <div class="schnitt-panel" id="schnitt-panel" hidden>
+            <div class="schnitt-leiste">
+              <button type="button" class="btn schnitt-neu" id="schnitt-linie-neu">Linie ziehen</button>
+              <span class="schnitt-umschalter" id="schnitt-umschalter">
+                <button type="button" data-modus="schnitt" class="is-active">Schnitt</button><button type="button" data-modus="ansicht">Straßenansicht</button>
+              </span>
+              <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
+              <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
+              <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
+              <label><input type="checkbox" id="schnitt-strasse" checked> Straßenflächen</label>
+              <label><input type="checkbox" id="schnitt-grenzen" checked> Flurstücksgrenzen</label>
+              <label><input type="checkbox" id="schnitt-mass" checked> Bemaßung</label>
+              <button type="button" class="btn" id="schnitt-fit">Einpassen</button>
+              <button type="button" class="btn" id="schnitt-dxf">DXF speichern</button>
+            </div>
+            <div class="schnitt-info" id="schnitt-info"></div>
+            <div class="schnitt-hinweis" id="schnitt-hinweis"></div>
+            <svg id="schnitt-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schnitt oder Straßenansicht"></svg>
+            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume fehlen. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben.</p>
           </div>
           <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
           <div class="flst-info" id="luft-info" hidden>
@@ -213,6 +235,7 @@
   <script src="luftbild.js"></script>
   <script src="infos.js"></script>
   <script src="wirtschaft.js"></script>
+  <script src="schnitt.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

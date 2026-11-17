@@ -20,12 +20,26 @@ const mmZuPx = (mm, dpi) => (mm / 25.4) * dpi;
 const z2 = (v) => (Math.round(v * 100) / 100).toString();
 const dateiDatum = () => new Date().toISOString().slice(0, 10);
 
+// Fertige Dateien: erscheinen im Reiter „Export“ mit einem Knopf „Herunterladen“ (nichts wird automatisch gespeichert)
+let fertigeDateien = []; // { name, groesse, url }
+const FERTIG_MAX = 8;    // so viele bleiben in der Liste, ältere werden freigegeben
+
 function herunterladen(blob, name) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  fertigeDateien.unshift({ name, groesse: blob.size, url: URL.createObjectURL(blob) });
+  for (const alt of fertigeDateien.splice(FERTIG_MAX)) URL.revokeObjectURL(alt.url);
+  zeigeFertigeDateien(true);
+}
+
+const groesseText = (bytes) => (bytes >= 1e6 ? `${fmt(bytes / 1e6, 1)} MB` : `${fmt(Math.max(1, Math.round(bytes / 1e3)))} kB`);
+
+function zeigeFertigeDateien(hinscrollen) {
+  const box = document.getElementById("export-fertig");
+  if (!box) return;
+  box.hidden = !fertigeDateien.length;
+  box.innerHTML = `<h4>Fertige Dateien</h4><ul>${fertigeDateien.map((d, i) => `<li class="${i === 0 ? "ist-neu" : ""}">
+      <span class="export-datei">${htmlSicher(d.name)}</span><span class="export-groesse">${groesseText(d.groesse)}</span>
+      <a class="btn btn-klein${i === 0 ? " btn-primary" : ""}" href="${d.url}" download="${htmlSicher(d.name)}">Herunterladen</a></li>`).join("")}</ul>`;
+  if (hinscrollen) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 const canvasAlsPng = (canvas) => new Promise((ok) => canvas.toBlob(ok, "image/png"));
 
@@ -476,6 +490,7 @@ function zeigeExportReiter() {
       <button class="btn" id="export-png">Ausgewählte als PNG (ZIP)</button>
     </div>
     <p class="export-status" id="export-status"></p>
+    <div class="export-fertig" id="export-fertig" hidden></div>
     <section class="export-dxf">
       <h4>DXF für CAD</h4>
       <p>Pläne, Schnitt und das komplette 3D-Modell als DXF (AutoCAD 2013, Einheit 1 m, je Kategorie ein Layer, Farben wie in der App).
@@ -489,6 +504,8 @@ function zeigeExportReiter() {
         gewählten Maßstab. Das 3D-Modell kann je nach Gebiet 20–60 MB groß werden.</p>
     </section>`;
 
+  zeigeFertigeDateien(false);
+
   // Einstellungen ändern
   ziel.querySelectorAll("tbody select, tbody input").forEach((el) => el.addEventListener("change", () => {
     const st = exportStand[el.closest("tr").dataset.id];
@@ -497,7 +514,7 @@ function zeigeExportReiter() {
     zeigeExportReiter();
   }));
   const status = (t) => { document.getElementById("export-status").textContent = t; };
-  const sperren = (an) => ziel.querySelectorAll("button, select, input").forEach((el) => { if (an) el.dataset.war = el.disabled; el.disabled = an || el.dataset.war === "true"; });
+  const sperren = (an) => ziel.querySelectorAll("tbody button, tbody select, tbody input, .export-knoepfe button, .export-dxf button, .export-dxf select").forEach((el) => { if (an) el.dataset.war = el.disabled; el.disabled = an || el.dataset.war === "true"; });
   const ausfuehren = async (aufgabe) => {
     sperren(true);
     try { await aufgabe(); } catch (fehler) { console.error(fehler); status(`Export fehlgeschlagen: ${fehler.message}`); }

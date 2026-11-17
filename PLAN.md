@@ -794,6 +794,8 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     Gebäude stehen auf dem Gelände (Median 2 cm); DXF wieder eingelesen und aus derselben Kamera gerendert = gleiches
     Bild wie die App (nur zusätzliche Kanten zwischen LoD2-Wandteilen).
   - **Offen:** Test in Allplan 2024 und ArchiCAD 29 durch die Nutzerin / den Nutzer (Screenshots).
+  - Nachtrag: Exporte werden nicht mehr automatisch gespeichert. Fertige Dateien (DXF, PDF, PNG, ZIP) erscheinen im
+    Reiter „Export“ in der Liste „Fertige Dateien“ mit Größe und Knopf „Herunterladen“ (die letzten 8 bleiben).
 - [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

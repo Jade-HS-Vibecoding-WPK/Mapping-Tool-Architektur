@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ortsanalyse</title>
+  <meta name="description" content="Städtebauliche Ortsanalyse: Schwarzplan, Straßennetz, Grün, Lageplan und 3D-Modell für ein frei gewähltes Gebiet.">
+
+  <!-- Karten-Bibliothek (MapLibre) und Rechen-Bibliothek (Turf) aus dem Internet laden -->
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+  <!-- Wandelt die Rohdaten von OpenStreetMap in Flächen und Linien um, die die Karte zeichnen kann -->
+  <script src="https://cdn.jsdelivr.net/npm/osmtogeojson@3.0.0-beta.5/osmtogeojson.js"></script>
+  <!-- Rechnet zwischen Längen/Breitengrad und den UTM-Koordinaten der amtlichen Daten um -->
+  <script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ===== Seitenleiste links: Arbeitsschritte ===== -->
+    <aside class="sidebar">
+      <header class="brand">
+        <h1>Ortsanalyse</h1>
+        <p class="subtitle">Städtebauliche Strukturen eines Untersuchungsgebiets erfassen, auswerten und darstellen</p>
+      </header>
+
+      <!-- Schritt 1: Gebiet -->
+      <section class="step">
+        <h2><span class="num">01</span> Gebiet wählen</h2>
+        <p class="hint">Klicke auf „Rechteck zeichnen“ und ziehe dann mit gedrückter Maustaste einen Ausschnitt auf der Karte auf.</p>
+        <div class="row">
+          <button id="btn-draw" class="btn">Rechteck zeichnen</button>
+          <button id="btn-clear" class="btn btn-ghost" disabled>Löschen</button>
+        </div>
+        <dl class="area-info" id="area-info" hidden>
+          <div><dt>Breite × Höhe</dt><dd id="area-dims">–</dd></div>
+          <div><dt>Fläche</dt><dd id="area-size">–</dd></div>
+        </dl>
+        <p class="warning" id="area-warning" hidden>Das Gebiet ist größer als 1 km². Bitte wähle einen kleineren Ausschnitt, damit die Daten schnell geladen werden.</p>
+      </section>
+
+      <!-- Schritt 2: Daten (kommt später) -->
+      <section class="step">
+        <h2><span class="num">02</span> Daten</h2>
+        <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
+        <label class="check" for="chk-lod2">
+          <input type="checkbox" id="chk-lod2" checked>
+          <span>LoD2-Dachformen laden <small>(amtliche 3D-Gebäude des LGLN, nur Niedersachsen, ca. 60 bis 230 MB Download)</small></span>
+        </label>
+        <div class="dropzone is-disabled" aria-disabled="true">
+          Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
+        </div>
+        <div class="ladeleiste" id="ladeleiste" hidden>
+          <h3 class="lade-titel">Ladestand: was gerade geholt wird</h3>
+          <ul class="lade-liste" id="lade-liste"></ul>
+        </div>
+        <button class="btn btn-ghost btn-block" disabled>Beispiel Oldenburg laden <small>(folgt)</small></button>
+      </section>
+
+      <!-- Hauptbutton -->
+      <section class="step step-main">
+        <button id="btn-analyse" class="btn btn-primary btn-block" disabled>Analysieren</button>
+        <p class="hint" id="analyse-hint">Zuerst ein Gebiet wählen.</p>
+        <p class="hint" id="dgm-status" hidden></p>
+        <p class="hint" id="alkis-status" hidden></p>
+        <p class="hint" id="lod2-status" hidden></p>
+        <p class="hint" id="flst-status" hidden></p>
+        <p class="hint" id="miet-status" hidden></p>
+        <p class="hint" id="info-status-seite" hidden></p>
+        <p class="warning" id="analyse-fehler" role="alert" hidden></p>
+      </section>
+
+      <footer class="sources">
+        Kartengrundlage © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap-Mitwirkende</a> (ODbL).
+        Weitere Quellen: LGLN Niedersachsen (CC BY 4.0), Overture Maps (ODbL). Daten nicht vermessungsgenau.
+      </footer>
+    </aside>
+
+    <!-- ===== Hauptbereich rechts: Ansichten ===== -->
+    <main class="main">
+      <div class="lade-streifen" id="lade-streifen" role="progressbar" aria-label="Daten werden geladen" aria-valuemin="0" aria-valuemax="100" hidden>
+        <div id="lade-streifen-balken"></div>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Ansichten">
+        <button class="tab is-active" data-view="karte" role="tab">Karte</button>
+        <!-- Reihenfolge nach Arbeitsablauf: 1 Orientierung, 2 Pläne, 3 Grundstück und Markt, 4 Darstellung, 5 Zahlen. Trennstrich = Gruppenende. -->
+        <button class="tab" data-view="luftbild" role="tab">Luftbild</button>
+        <button class="tab tab-trenner" data-view="infos" role="tab">Umgebung</button>
+        <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
+        <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
+        <button class="tab" data-view="gruen" role="tab">Grün &amp; Wasser</button>
+        <button class="tab tab-trenner" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
+        <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
+        <button class="tab tab-trenner" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
+        <button class="tab" data-view="schnitt" role="tab">Schnitt &amp; Ansicht</button>
+        <button class="tab tab-trenner" data-view="3d" role="tab">3D-Modell</button>
+        <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
+      </nav>
+
+      <div class="views">
+        <!-- Eine Karte für elf Reiter: Karte, Luftbild, Umgebung (data-view infos), Schwarzplan, Straßennetz, Grün &amp; Wasser, Lageplan, Flurstücke, Mietpreise, Wirtschaftlichkeit und Schnitt &amp; Ansicht.
+             Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
+        <section class="view is-active" data-view="karte">
+          <div id="map"></div>
+          <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
+          <div class="map-hint" id="plan-hint" hidden></div>
+          <div class="legende" id="legende-karte"></div>
+          <!-- Nur im Reiter "Flurstücke": Einfärbung wählen und Infofeld zum gewählten Flurstück (siehe flurstuecke.js) -->
+          <div class="flst-modus" id="flst-modus" hidden>
+            <span>Einfärben nach</span>
+            <button type="button" data-modus="brw" class="is-active">Bodenrichtwert</button>
+            <button type="button" data-modus="grz">GRZ Bestand</button>
+            <button type="button" data-modus="gfz">GFZ Bestand</button>
+          </div>
+          <div class="flst-info" id="flst-info" hidden></div>
+          <!-- Nur im Reiter "Mietpreise": Infofeld zur gewählten Rasterzelle (siehe mieten.js) -->
+          <div class="flst-info" id="miet-info" hidden></div>
+          <!-- Nur im Reiter "Wirtschaftlichkeit": Einfärbung wählen, Steckbrief und Rechnung zum gewählten Flurstück (siehe wirtschaft.js) -->
+          <div class="flst-modus" id="wirt-modus" hidden>
+            <span>Einfärben nach</span>
+            <button type="button" data-modus="ergebnis" class="is-active">Neubau-Ergebnis</button>
+            <button type="button" data-modus="rendite">Rendite Bestand</button>
+            <button type="button" data-modus="ausnutzung">Ausnutzung</button>
+          </div>
+          <div class="flst-info wirt-panel" id="wirt-panel" hidden>
+            <p class="flst-leer" id="wirt-leer"></p>
+            <div id="wirt-detail" hidden>
+              <button type="button" class="flst-zu" id="wirt-zu" aria-label="Schließen">×</button>
+              <div id="wirt-steckbrief"></div>
+              <div id="wirt-ueber">
+                <h4>Für dieses Flurstück anpassen <small>(leer = Wert aus den Daten)</small></h4>
+                <label class="wirt-feld"><span>Miete Bestand</span><input type="number" step="0.1" min="0" id="wirt-in-miete"><span class="wirt-einheit">€/m²</span></label>
+                <label class="wirt-feld"><span>Vermietbare Fläche Bestand</span><input type="number" step="10" min="0" id="wirt-in-wfl"><span class="wirt-einheit">m²</span></label>
+                <label class="wirt-feld"><span>Baujahr Bestand</span><input type="number" step="1" min="1000" id="wirt-in-bj"><span class="wirt-einheit"></span></label>
+                <label class="wirt-feld"><span>GFZ für den Neubau</span><input type="number" step="0.1" min="0" id="wirt-in-gfz"><span class="wirt-einheit"></span></label>
+                <label class="wirt-feld"><span>Neubaumiete</span><input type="number" step="0.1" min="0" id="wirt-in-nmiete"><span class="wirt-einheit">€/m²</span></label>
+                <button type="button" class="wirt-knopf" id="wirt-zuruecksetzen">Zurücksetzen</button>
+              </div>
+              <div id="wirt-ergebnis"></div>
+            </div>
+            <details class="wirt-annahmen" id="wirt-annahmen">
+              <summary>Allgemeine Annahmen (gelten für alle Flurstücke)</summary>
+              <p class="flst-hinweis">Jeder Wert zeigt seine Quelle. „amtlich“ = Gesetz, Verordnung, Gutachterausschuss oder Statistik, „Marktangabe“ = Ratgeber oder Anbieter ohne amtliche Zahl, „Annahme“ = meine eigene Annahme. Ändere sie nach deiner Aufgabe.</p>
+              <div id="wirt-annahmen-felder"></div>
+            </details>
+          </div>
+          <!-- Nur im Reiter "Schnitt": Linie ziehen, Zeichnung von Schnitt oder Straßenansicht, DXF-Export (siehe schnitt.js) -->
+          <div class="schnitt-panel" id="schnitt-panel" hidden>
+            <div class="schnitt-leiste">
+              <button type="button" class="btn schnitt-neu" id="schnitt-linie-neu">Linie ziehen</button>
+              <span class="schnitt-umschalter" id="schnitt-umschalter">
+                <button type="button" data-modus="schnitt" class="is-active">Schnitt</button><button type="button" data-modus="ansicht">Straßenansicht</button>
+              </span>
+              <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
+              <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
+              <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
+              <label><input type="checkbox" id="schnitt-gelaende" checked> Gelände dahinter</label>
+              <label><input type="checkbox" id="schnitt-baeume" checked> Bäume</label>
+              <label><input type="checkbox" id="schnitt-wasser" checked> Wasser</label>
+              <label><input type="checkbox" id="schnitt-strasse" checked> Straßenflächen</label>
+              <label><input type="checkbox" id="schnitt-grenzen" checked> Flurstücksgrenzen</label>
+              <label><input type="checkbox" id="schnitt-mass" checked> Bemaßung</label>
+              <button type="button" class="btn" id="schnitt-fit">Einpassen</button>
+              <button type="button" class="btn" id="schnitt-dxf">DXF speichern</button>
+            </div>
+            <div class="schnitt-info" id="schnitt-info"></div>
+            <div class="schnitt-hinweis" id="schnitt-hinweis"></div>
+            <svg id="schnitt-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schnitt oder Straßenansicht"></svg>
+            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume sind aus OpenStreetMap, die Höhe ist meist geschätzt; die Gewässertiefe ist unbekannt. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben.</p>
+          </div>
+          <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
+          <div class="flst-info" id="luft-info" hidden>
+            <h3>Luftbild</h3>
+            <p class="flst-sub">Digitales Orthophoto (DOP20), 20 cm, Flugzeugaufnahme</p>
+            <label class="schalter-regler">Deckkraft
+              <input type="range" id="luft-deckkraft" min="0.2" max="1" step="0.05" value="1"> <span id="luft-deckkraft-wert">100 %</span></label>
+            <label class="schalter"><input type="checkbox" id="luft-sw"> Schwarz-Weiß</label>
+            <h4>Darüberlegen</h4>
+            <label class="schalter"><input type="checkbox" id="luft-gebaeude" checked disabled> <span class="linien-marke" style="border-color:#ffd43b"></span> Gebäudeumrisse (OSM)</label>
+            <label class="schalter"><input type="checkbox" id="luft-flst" disabled> <span class="linien-marke gestrichelt" style="border-color:#5fd4ff"></span> Flurstücksgrenzen</label>
+            <label class="schalter"><input type="checkbox" id="luft-strassen" disabled> <span class="linien-marke" style="border-color:#ff9ec0"></span> Straßen, Wege, Plätze (amtlich)</label>
+            <p class="flst-hinweis" id="luft-hinweis" hidden></p>
+            <p class="flst-klein">Luftbild: LGLN, CC BY 4.0, nur Niedersachsen. Es sind Flugzeugaufnahmen, keine Satellitenbilder; Aufnahmejahr je nach Ort verschieden. Linien: OpenStreetMap und LGLN.</p>
+          </div>
+          <!-- Nur im Reiter "Infos": einzeln schaltbare Orte aus OpenStreetMap (siehe infos.js) -->
+          <div class="flst-info info-panel" id="info-panel" hidden>
+            <h3>Infos im Gebiet</h3>
+            <p class="flst-sub">Orte aus OpenStreetMap, einzeln schaltbar. Klick auf einen Punkt zeigt Einzelheiten.</p>
+            <p class="flst-hinweis" id="info-status"></p>
+            <div class="info-kopf">
+              <button type="button" data-aktion="standard">Standard</button>
+              <button type="button" data-aktion="alle">Alle an</button>
+              <button type="button" data-aktion="keine">Alle aus</button>
+            </div>
+            <div id="info-gruppen"></div>
+          </div>
+          <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
+        </section>
+
+        <!-- Platzhalter für die späteren Ansichten -->
+        <!-- 3D-Modell: wird von ansicht3d.js gebaut (three.js) -->
+        <section class="view view3d" data-view="3d">
+          <div id="d3-buehne"></div>
+          <div class="d3-leiste">
+            <button class="btn" id="d3-reset" type="button">Ansicht zurücksetzen</button>
+            <button class="btn" id="d3-oben" type="button">Draufsicht</button>
+            <label class="d3-check"><input type="checkbox" id="d3-baeume" checked> Bäume</label>
+            <label class="d3-check" id="d3-hoehenlinien-feld" hidden><input type="checkbox" id="d3-hoehenlinien" checked> Höhenlinien</label>
+            <label class="d3-check" id="d3-ueberhoehung-feld" hidden title="Überhöht nur das Gelände, Gebäude behalten ihre Höhe">Überhöhung
+              <input type="range" id="d3-ueberhoehung" min="1" max="5" step="0.5" value="1"> <span id="d3-ueberhoehung-wert">1×</span></label>
+            <button class="btn" id="d3-png" type="button">Bild speichern</button>
+          </div>
+          <div class="legende legende-3d" id="legende-3d" hidden></div>
+          <div class="map-hint" id="d3-hinweis" hidden></div>
+          <div class="d3-info" id="d3-info"></div>
+        </section>
+        <!-- Kennzahlen: wird von app.js (Abschnitt 8) befüllt -->
+        <section class="view kz" data-view="kennzahlen">
+          <div class="kz-inhalt" id="kz-inhalt"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- 3D: three.js (ältere Version ohne Modul-Technik) und Maussteuerung zum Drehen -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Liest die Höhenmodell-Dateien des LGLN (GeoTIFF), nur das benötigte Stück -->
+  <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+  <script src="app.js"></script>
+  <script src="ladeleiste.js"></script>
+  <script src="gelaende.js"></script>
+  <script src="flurstuecke.js"></script>
+  <script src="mieten.js"></script>
+  <script src="luftbild.js"></script>
+  <script src="infos.js"></script>
+  <script src="wirtschaft.js"></script>
+  <script src="schnitt.js"></script>
+  <script src="ansicht3d.js"></script>
+  <script src="legende.js"></script>
+</body>
+</html>

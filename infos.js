@@ -251,14 +251,32 @@ function baueInfoPanel() {
       `<label class="info-zeile"><input type="checkbox" data-g="${x.id}"${infoAn.has(x.id) ? " checked" : ""}>` +
       (x.linie ? `<span class="info-marke info-linie" style="border-color:${farbeVon(x)}"></span>` : `<span class="info-marke" style="background:${farbeVon(x)}">${x.kurz}</span>`) +
       `<span class="info-name">${x.name}</span><span class="info-zahl" data-z="${x.id}">–</span></label>`).join("");
-    return `<h4 style="color:${b.farbe}">${b.name}</h4>${zeilen}`;
+    // Die Überschrift hat einen eigenen Schalter: schaltet alle Gruppen des Bereichs auf einmal ein oder aus
+    return `<h4 class="info-bereich" style="color:${b.farbe}"><label title="Alle Gruppen dieses Bereichs ein- oder ausschalten">` +
+      `<input type="checkbox" data-bereich="${bid}"><span>${b.name}</span></label><span class="info-zahl" data-bz="${bid}">–</span></h4>${zeilen}`;
   }).join("");
   document.getElementById("info-gruppen").innerHTML = bereiche;
+  aktualisiereBereichsSchalter();
+}
+
+// Stellt die Bereichsschalter passend zu den einzelnen Gruppen: an (alle an), aus (alle aus) oder halb (einige an)
+function aktualisiereBereichsSchalter() {
+  infoPanel.querySelectorAll("input[data-bereich]").forEach((feld) => {
+    const gruppen = INFO_GRUPPEN.filter((x) => x.bereich === feld.dataset.bereich);
+    const an = gruppen.filter((x) => infoAn.has(x.id)).length;
+    feld.checked = an === gruppen.length;
+    feld.indeterminate = an > 0 && an < gruppen.length;
+  });
 }
 
 function zeichneInfoZahlen() {
   infoPanel.querySelectorAll("[data-z]").forEach((e) => {
     e.textContent = infoVorhanden ? zahl(infoZaehler[e.dataset.z] || 0) : "–";
+  });
+  // Summe je Bereich hinter der Überschrift
+  infoPanel.querySelectorAll("[data-bz]").forEach((e) => {
+    const summe = INFO_GRUPPEN.filter((x) => x.bereich === e.dataset.bz).reduce((s, x) => s + (infoZaehler[x.id] || 0), 0);
+    e.textContent = infoVorhanden ? zahl(summe) : "–";
   });
 }
 
@@ -282,9 +300,23 @@ function speichereInfoAuswahl() {
 }
 
 infoPanel.addEventListener("change", (e) => {
+  // Schalter einer Überschrift: alle Gruppen dieses Bereichs mitschalten
+  const bereichFeld = e.target.closest("input[data-bereich]");
+  if (bereichFeld) {
+    for (const x of INFO_GRUPPEN.filter((y) => y.bereich === bereichFeld.dataset.bereich)) {
+      if (bereichFeld.checked) infoAn.add(x.id); else infoAn.delete(x.id);
+    }
+    infoPanel.querySelectorAll("input[data-g]").forEach((f) => { f.checked = infoAn.has(f.dataset.g); });
+    aktualisiereBereichsSchalter();
+    speichereInfoAuswahl();
+    setzeInfoFilter();
+    if (typeof aktualisiereLegende === "function") aktualisiereLegende();
+    return;
+  }
   const feld = e.target.closest("input[data-g]");
   if (!feld) return;
   if (feld.checked) infoAn.add(feld.dataset.g); else infoAn.delete(feld.dataset.g);
+  aktualisiereBereichsSchalter();
   speichereInfoAuswahl();
   setzeInfoFilter();
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
@@ -296,6 +328,7 @@ infoPanel.addEventListener("click", (e) => {
   const a = knopf.dataset.aktion;
   infoAn = new Set(a === "alle" ? INFO_GRUPPEN.map((x) => x.id) : a === "standard" ? INFO_GRUPPEN.filter((x) => x.an).map((x) => x.id) : []);
   infoPanel.querySelectorAll("input[data-g]").forEach((f) => { f.checked = infoAn.has(f.dataset.g); });
+  aktualisiereBereichsSchalter();
   speichereInfoAuswahl();
   setzeInfoFilter();
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();

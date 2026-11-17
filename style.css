@@ -427,3 +427,9 @@ html, body {
 .wirt-art-amtlich { background: #1f5f94; }
 .wirt-art-markt { background: #b27a00; }
 .wirt-art-annahme { background: #8a8a8a; }
+
+/* Überschrift mit Schalter für einen ganzen Bereich (Infos) */
+.flst-info h4.info-bereich { display: flex; align-items: center; gap: 8px; }
+.info-bereich label { display: flex; align-items: center; gap: 8px; flex: 1; cursor: pointer; }
+.info-bereich input { margin: 0; }
+.info-bereich .info-zahl { font-weight: 400; }

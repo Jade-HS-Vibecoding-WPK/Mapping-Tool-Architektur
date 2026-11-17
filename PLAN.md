@@ -758,7 +758,11 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Straßenbahn- und Stadtbahngleise, Fahrradverleih, Fahrradabstellanlagen, Parken, Ladesäulen, Carsharing), Gesundheit (Ärzte, Apotheken, Krankenhäuser),
   Essen, Kultur, Freizeit (Gastronomie, Kultur, Sport, Kirchen), Öffentliche Einrichtungen (Ämter/Polizei/Feuerwehr/Post, Toiletten). Am Anfang an:
   Kitas, Schulen, Spielplätze, Lebensmittel, Einkaufszentren, Bushaltestellen, Straßenbahnhaltestellen, Bahnhöfe, Bahnstrecken, Straßenbahngleise.
-  Infofeld mit Kästchen je Gruppe (Anzahl dahinter), „Standard“, „Alle an“, „Alle aus“; die Auswahl wird im Browser gemerkt. Orte als farbige Kreise mit
+  Infofeld mit Kästchen je Gruppe (Anzahl dahinter), „Standard“, „Alle an“, „Alle aus“; die Auswahl wird im Browser gemerkt. **Oberkategorien schaltbar:** Jede der sechs
+  Überschriften (Kinder und Bildung, Einkaufen, Verkehr, Gesundheit, Essen/Kultur/Freizeit, Öffentliche Einrichtungen) hat einen eigenen Schalter, der alle Gruppen des Bereichs
+  auf einmal ein- oder ausschaltet; „halb“ (Strich) heißt: nur einige Gruppen an; ein Klick auf „halb“ schaltet den ganzen Bereich ein; die Summe der Orte steht hinter der Überschrift.
+  Getestet (echte Daten): Bereich ein, aus, über einzelne Gruppe halb, Alle an, Alle aus, Standard, Karte zeigt jeweils nur die gewählten Bereiche (z. B. nur Gesundheit 18 Orte,
+  plus Einkaufen 341), Summe der Bereiche = 809 Orte. Orte als farbige Kreise mit
   Kürzel (ohne Beschriftung auf der Karte), Bahnstrecken als Band mit hellen Strichen; Klick auf einen Ort öffnet ein Fenster mit Name, Art, Adresse,
   Betreiber, Öffnungszeiten (soweit in OSM eingetragen). **Ablauf:** zweite Overpass-Abfrage, die erst startet, wenn die Hauptabfrage von OSM durch ist (damit
   sie sich nicht ausbremsen); im Ladestand als „Infos“ sichtbar. Nur das gewählte Rechteck; Orte knapp außerhalb (z. B. Bahnhof am Rand) fehlen.

@@ -34,6 +34,7 @@ function farbschluessel(ansicht) {
       e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
     case "schwarzplan":
+      if (schwarzModus === "hoehe") e.push(hoehenLegendeEintraege()); else
       e.push(eintrag(farbfeld(FARBE.gebaeudeSchwarzplan), "Gebäude"));
       e.push(eintrag(farbfeld(FARBE.nebengebaeude), "Nebengebäude, Überdachung"));
       break;

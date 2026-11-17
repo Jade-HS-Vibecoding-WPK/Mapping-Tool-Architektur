@@ -60,7 +60,9 @@ const INFO_GRUPPEN = [
 
   grp("amt", "oeffentlich", "Ämter, Polizei, Feuerwehr, Post", "Am", false,
     [["amenity", ["townhall", "police", "fire_station", "post_office", "courthouse"]]]),
-  grp("toilette", "oeffentlich", "Öffentliche Toiletten", "WC", false, [["amenity", ["toilets"]]])
+  grp("toilette", "oeffentlich", "Öffentliche Toiletten", "WC", false, [["amenity", ["toilets"]]]),
+  // Denkmal: alles mit dem OSM-Merkmal "heritage". Steht zuletzt; Orte, die auch in eine andere Gruppe passen (z. B. Kirchen), kommen zusätzlich hierher (siehe leseInfos).
+  grp("denkmal", "oeffentlich", "Denkmal (OSM, unvollständig)", "D", false, [["heritage", null]], { farbe: "#8c5a2b" })
 ];
 const infoGruppe = Object.fromEntries(INFO_GRUPPEN.map((x) => [x.id, x]));
 const farbeVon = (x) => x.farbe || INFO_BEREICHE[x.bereich].farbe;
@@ -148,6 +150,10 @@ function leseInfos(daten, bbox) {
       art: t[gr.spec[0][0]] || "", betreiber: t.operator || ""
     } });
     zaehler[gr.id] = (zaehler[gr.id] || 0) + 1;
+    if (t.heritage && t.heritage !== "no" && gr.id !== "denkmal") {                    // Kirche, Museum usw. mit Denkmalstatus: zusätzlich als Denkmal zählen
+      features.push({ type: "Feature", geometry: { type: "Point", coordinates: [lon, lat] }, properties: { g: "denkmal", name: t.name || "", adr: adresse(t), zeiten: "", art: t.heritage, betreiber: "" } });
+      zaehler.denkmal = (zaehler.denkmal || 0) + 1;
+    }
   }
   return { features, zaehler };
 }

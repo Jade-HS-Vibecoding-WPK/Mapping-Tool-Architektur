@@ -36,6 +36,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   geprüft, in Allplan/ArchiCAD ungetestet (das macht die Nutzerin / der Nutzer).
 - Sonne & Schatten (Reiter „Sonne & Schatten“, `sonne.js`, Schatten auch in `ansicht3d.js`): Höhenraster 2 m aus LoD2-Dächern/OSM-Blöcken, Bäumen (Krone mit Unterkante) und DGM1, Sonnenstand astronomisch
   (NOAA-Formel, Zeit MEZ/MESZ nach EU-Regel), Schattenstrahlen je Zelle; Besonnungsdauer alle 15 Minuten. Mögliche Sonnenscheindauer bei klarem Himmel, kein Normnachweis, Schatten von außerhalb des Rechtecks fehlen.
+- Zusatzfunktionen: Schwarzplan nach Höhe (`hoehe.js`), Gehzeit-Kreise als Luftlinie 80 m/min (`erreichbar.js`), Projekt automatisch im Browser merken (`projekt.js`), Datei-Import GeoJSON, Text-DXF und CityGML (`import.js`; binäres DXF und DWG nicht lesbar), mehrere Schnittlinien (`schnitt.js`), Denkmal-Gruppe aus OSM `heritage` (`infos.js`).
 - Umgebung (Reiter „Umgebung“, früher „Infos“, intern `infos`, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.

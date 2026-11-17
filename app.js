@@ -79,6 +79,8 @@ map.on("load", () => {
   legeSchnittEbenenAn();    // Reiter Schnitt (schnitt.js): die gezogene Linie
   legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
   legeInfoEbenenAn();       // Reiter Infos (infos.js)
+  legeErreichEbenenAn();    // Gehzeit-Kreise im Reiter Umgebung (erreichbar.js)
+  legeImportEbenenAn();     // importierte Dateien (import.js)
   kartenBereit = true;
   wendeAnsichtAn();
 });
@@ -593,6 +595,9 @@ function verwerfeDaten() {
   verwerfeWirtschaft();
   verwerfeSchnitt();
   verwerfeSonne();
+  verwerfeHoehe();
+  verwerfeErreich();
+  verwerfeImport();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -678,6 +683,9 @@ function wendeAnsichtAn() {
   aktualisiereLuftbild();      // Luftbild und seine Linien
   aktualisiereInfos();         // Infos: Schalter und Ebenen
   aktualisiereSonne();         // Sonne und Schatten: Bild und Panel
+  aktualisiereHoehe();         // Schwarzplan: Schalter und Einfärbung nach Höhe
+  aktualisiereErreich();       // Umgebung: Gehzeit-Kreise
+  aktualisiereImport();        // importierte Dateien als Überlagerung
   aktualisiereExport();        // Knopf "Exportieren" nur in den Plan-Reitern
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }

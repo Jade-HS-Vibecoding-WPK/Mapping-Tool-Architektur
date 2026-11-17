@@ -39,6 +39,11 @@
           <div><dt>Breite × Höhe</dt><dd id="area-dims">–</dd></div>
           <div><dt>Fläche</dt><dd id="area-size">–</dd></div>
         </dl>
+        <div class="projekt-merk" id="projekt-merk" hidden>
+          <p class="hint">Letzter Stand von <strong id="projekt-zeit"></strong> (Gebiet und Einstellungen, nur in diesem Browser).</p>
+          <button type="button" class="btn" id="projekt-laden">Wiederherstellen</button>
+          <button type="button" class="btn btn-ghost" id="projekt-vergessen">Vergessen</button>
+        </div>
         <p class="warning" id="area-warning" hidden>Das Gebiet ist größer als 1 km². Bitte wähle einen kleineren Ausschnitt, damit die Daten schnell geladen werden.</p>
       </section>
 
@@ -50,9 +55,12 @@
           <input type="checkbox" id="chk-lod2" checked>
           <span>LoD2-Dachformen laden <small>(amtliche 3D-Gebäude des LGLN, nur Niedersachsen, ca. 60 bis 230 MB Download)</small></span>
         </label>
-        <div class="dropzone is-disabled" aria-disabled="true">
-          Dateien hier ablegen<br><small>DXF · DWG · CityGML · ZIP (folgt in einem späteren Schritt)</small>
-        </div>
+        <label class="dropzone" id="import-zone" for="import-datei">
+          Dateien hier ablegen oder klicken<br><small>GeoJSON · DXF (Text) · CityGML</small>
+          <input type="file" id="import-datei" multiple accept=".geojson,.json,.dxf,.gml,.xml,.dwg" hidden>
+        </label>
+        <p class="hint" id="import-status" hidden></p>
+        <ul class="import-liste" id="import-liste"></ul>
         <div class="ladeleiste" id="ladeleiste" hidden>
           <h3 class="lade-titel">Ladestand: was gerade geholt wird</h3>
           <ul class="lade-liste" id="lade-liste"></ul>
@@ -110,6 +118,12 @@
           <div class="map-mode" id="map-mode" hidden>Zeichenmodus: Rechteck mit gedrückter Maustaste aufziehen · <kbd>Esc</kbd> bricht ab</div>
           <div class="map-hint" id="plan-hint" hidden></div>
           <div class="legende" id="legende-karte"></div>
+          <!-- Nur im Reiter "Schwarzplan": Gebäude schwarz oder nach Höhe eingefärbt (siehe hoehe.js) -->
+          <div class="flst-modus" id="schwarz-modus" hidden>
+            <span>Gebäude</span>
+            <button type="button" data-modus="schwarz" class="is-active">Schwarz</button>
+            <button type="button" data-modus="hoehe">Nach Höhe</button>
+          </div>
           <!-- Nur im Reiter "Flurstücke": Einfärbung wählen und Infofeld zum gewählten Flurstück (siehe flurstuecke.js) -->
           <div class="flst-modus" id="flst-modus" hidden>
             <span>Einfärben nach</span>
@@ -156,6 +170,8 @@
               <span class="schnitt-umschalter" id="schnitt-umschalter">
                 <button type="button" data-modus="schnitt" class="is-active">Schnitt</button><button type="button" data-modus="ansicht">Straßenansicht</button>
               </span>
+              <label id="schnitt-liste-feld" hidden>Linie <select id="schnitt-liste"></select></label>
+              <button type="button" class="btn" id="schnitt-loeschen" hidden>Linie löschen</button>
               <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
               <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
               <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
@@ -196,6 +212,13 @@
               <button type="button" data-aktion="standard">Standard</button>
               <button type="button" data-aktion="alle">Alle an</button>
               <button type="button" data-aktion="keine">Alle aus</button>
+            </div>
+            <div class="erreich" id="erreich-feld">
+              <h4>Erreichbarkeit zu Fuß</h4>
+              <label class="schalter"><input type="checkbox" id="er-an"> Gehzeit-Kreise zeigen</label>
+              <div class="erreich-zeiten"><label><input type="checkbox" id="er-5" checked> 5 min</label><label><input type="checkbox" id="er-10" checked> 10 min</label><label><input type="checkbox" id="er-15"> 15 min</label></div>
+              <div class="erreich-knoepfe"><button type="button" class="btn ex-klein" id="er-waehlen">Mittelpunkt wählen</button><button type="button" class="btn ex-klein" id="er-loeschen" hidden>Entfernen</button></div>
+              <p class="flst-klein" id="er-text"></p>
             </div>
             <div id="info-gruppen"></div>
           </div>
@@ -324,6 +347,10 @@
   <script src="wirtschaft.js"></script>
   <script src="schnitt.js"></script>
   <script src="sonne.js"></script>
+  <script src="hoehe.js"></script>
+  <script src="erreichbar.js"></script>
+  <script src="import.js"></script>
+  <script src="projekt.js"></script>
   <script src="export.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>

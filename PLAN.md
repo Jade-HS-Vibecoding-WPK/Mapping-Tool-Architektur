@@ -894,9 +894,16 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Geprüft** (Oldenburg Innenstadt): PDF mit pdf.js gerendert (auch der Ausschnitt-Modus, Klemmen ok), PNG von allen Arten angesehen, DXF 2D und 3D mit ezdxf (AC1009, 0 Fehler; 3D: 96.000 Flächen, 16 MB), Schnitt mit Maßstabs-abhängiger Beschriftung, Kennzahlen CSV (49 Zeilen) und PDF erzeugt.
   **Nicht geprüft:** Download im echten Browser, DXF in Allplan/ArchiCAD, PDF/SVG von Schnitt und 3D visuell (nur PNG gesehen), Kennzahlen-PDF visuell, sehr große 3D-DXF in CAD (16 MB).
   **Noch offen:** Schwarzplan nach Höhe, Erreichbarkeit zu Fuß, Denkmal, mehrere Schnittlinien, Projekt speichern/laden, Datei-Import.
-- [ ] **Vereinbarte Reihenfolge (Nutzerin / Nutzer, Stand 17.11.2026):** (1) README (gemacht, Platzhalter offen), (2) **Sonnen- und Verschattungsstudie** (gemacht, Schatten + Besonnungsdauer + 3D), (3) **Export** in allen Reitern:
-  maßstäblich mit Plankopf, als PDF und PNG, und vor allem **DXF für Allplan 2024 und ArchiCAD 29** (Test in den Programmen macht die Nutzerin / der Nutzer), (4) **Schwarzplan nach Höhe
-  einfärben, ein- und ausschaltbar**, (5) Erreichbarkeit zu Fuß, Denkmalgeschützte Gebäude, mehrere Schnittlinien speichern, Projekt speichern/laden, Datei-Import mit Qualitätsvergleich
-  (ohne Beispieldateien nur nach Spezifikation, **ungetestet**). **Nicht gewünscht:** Knopf „Beispiel Oldenburg laden“. Danach Poster und GitHub Pages prüfen.
+- [~] **Restliche Funktionen** (nur lokal, **nicht committet**; Entscheidungen der Nutzerin / des Nutzers: Kreise statt Wegenetz, Projekt nur im Browser merken, Import GeoJSON + Text-DXF + CityGML):
+  (1) **Schwarzplan nach Höhe** (`hoehe.js`): Schalter „Schwarz / Nach Höhe“, fünf Grautöne (bis 6, 12, 18, 25 m, darüber), Höhe aus LoD2, OSM-Höhe, Geschosse mal 3 m oder Annahme; Legende, Export (DXF-Layer je Klasse).
+  (2) **Denkmal** (`infos.js`): neue Gruppe aus OSM-Merkmal `heritage` (im Test 5 Objekte, OSM unvollständig); Kirchen u. ä. mit Denkmalstatus zählen zusätzlich.
+  (3) **Erreichbarkeit zu Fuß** (`erreichbar.js`, Reiter Umgebung): Mittelpunkt klicken, Kreise 5/10/15 min = 400/800/1200 m Luftlinie (80 m/min, Annahme, kein Wegenetz); im Export mit Beschriftung und Legende.
+  (4) **Mehrere Schnittlinien** (`schnitt.js`): Auswahlfeld „Linie“, Löschen, andere Linien grau gestrichelt auf der Karte.
+  (5) **Projekt im Browser merken** (`projekt.js`): automatisch (localStorage): Gebiet, Reiter, Sonne, Einfärbungen, Luftbild, Kreise, Schnittlinien, LoD2 an/aus; Kasten „Wiederherstellen“ in der Seitenleiste; Daten werden neu geladen.
+  (6) **Datei-Import** (`import.js`): GeoJSON, Text-DXF (UTM erkannt oder Bezugspunkt abgefragt), CityGML (ersetzt LoD2 über das LoD2-Hintergrundprogramm); orange Überlagerung und im Plan-Export als Ebene IMPORT_<Name>.
+  **Getestet** (Oldenburg Innenstadt): Höhe (814 Gebäude klassiert, PNG), Denkmal, Kreise (Karte, PNG, DXF ezdxf 0 Fehler), zwei Schnittlinien (wechseln, löschen), Projekt speichern und wiederherstellen nach Neuladen, GeoJSON- und DXF-Import (eigenes UTM-DXF: 827 Objekte), binäres DXF abgelehnt mit Anleitung, alle 14 Reiter ohne Fehler.
+  **Nicht getestet:** CityGML-Import (nur Programmweg, keine Beispieldatei), Text-DXF mit lokalen Koordinaten (Abfrage des Bezugspunkts per Eingabefenster), Import sehr großer Dateien, Projekt-Wiederherstellung mit allen Reitern einzeln.
+  **Grenzen:** Kreise sind Luftlinie; Denkmal nur aus OSM; DXF-Import ohne Blöcke, Texte, Schraffuren; GeoJSON/DXF-Import nicht zwischen Sitzungen gemerkt.
+- [ ] **Noch offen:** Poster, README-Platzhalter ausfüllen, Test der DXF-Dateien in Allplan/ArchiCAD (macht die Nutzerin / der Nutzer), Abstimmung der zwei Versionen (`entwicklung`).
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

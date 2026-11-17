@@ -1,10 +1,12 @@
 # Ortsanalyse – Mapping-Tool für Architektur
 
 Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
-**Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonne und Schatten, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
-Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt.
+**Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonnen- und Schattenstudie, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
+Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt. Alle Pläne lassen sich **maßstäblich mit Plankopf als PDF, PNG, SVG und
+als DXF für Allplan 2024 und ArchiCAD 29** exportieren.
+
 Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen automatisch aus offenen Quellen
-(OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start.
+(OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start, oder man nutzt die Live-Demo.
 
 ![Lageplan der Oldenburger Innenstadt, erzeugt mit dem Tool](docs/bilder/lageplan.jpg)
 
@@ -23,20 +25,44 @@ Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen auto
 
 ## Inhalt
 
-1. [Schnellstart](#schnellstart)
-2. [Was das Tool kann (alle Reiter)](#was-das-tool-kann)
-3. [Export](#export)
-4. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
-5. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
-6. [Technik und Aufbau](#technik-und-aufbau)
-7. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
-8. [Geplant](#geplant)
+1. [Auf einen Blick](#auf-einen-blick)
+2. [Schnellstart](#schnellstart)
+3. [Die Reiter im Einzelnen](#die-reiter-im-einzelnen)
+4. [Export](#export)
+5. [Datei-Import und Projekt merken](#datei-import-und-projekt-merken)
+6. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
+7. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
+8. [Technik und Aufbau](#technik-und-aufbau)
+9. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
+10. [Offen](#offen)
+
+---
+
+## Auf einen Blick
+
+| Gruppe | Reiter | Was man bekommt |
+|---|---|---|
+| Orientierung | **Luftbild**, **Umgebung** | amtliche Luftbilder mit Linien; Kitas, Schulen, Läden, Haltestellen, Denkmäler und Gehzeit-Kreise |
+| Pläne und Sonne | **Schwarzplan** (auch nach Höhe), **Straßennetz**, **Grün & Wasser**, **Lageplan**, **Sonne & Schatten** | Pläne wie im Entwurfsstudio; Schattenplan und Besonnungsdauer für jedes Datum |
+| Grundstück und Markt | **Flurstücke**, **Mietpreise**, **Wirtschaftlichkeit** | Bodenrichtwert, GRZ/GFZ, Miete, Ertragswert und Neubau-Potenzial je Flurstück, jede Zahl mit Quelle |
+| Darstellung | **Schnitt & Ansicht**, **3D-Modell** | Schnitt und Straßenansicht entlang einer gezogenen Linie (mehrere Linien); 3D mit Dachformen, Gelände und Schatten |
+| Zahlen | **Kennzahlen** | GRZ/GFZ brutto und netto, Dichte, Grün, Verkehr und mehr |
+
+**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML) und automatisches Merken des letzten Stands im Browser.
 
 ---
 
 ## Schnellstart
 
-**Variante A: lokal auf dem eigenen Rechner (Windows)**
+**Variante A: Live-Demo im Browser (nichts installieren)**
+
+**https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/**
+
+Die Seite läuft über GitHub Pages direkt aus diesem Repository, es ist kein eigener Server nötig. Die Datendienste sind bei den ersten Aufrufen manchmal überlastet
+(Overpass meldet gelegentlich Fehler 502); das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB, bei schwacher Leitung das
+Häkchen „LoD2-Dachformen laden“ abschalten.
+
+**Variante B: lokal auf dem eigenen Rechner (Windows)**
 
 1. [Python](https://www.python.org/downloads/) installieren (einmalig). Beim Installieren „Add python.exe to PATH“ anhaken.
 2. Dieses Repository herunterladen (grüner Knopf „Code“ → „Download ZIP“) und entpacken.
@@ -49,50 +75,46 @@ Ohne Windows reicht im Ordner dieser Befehl, danach `http://localhost:8765/index
 python server.py 8765
 ```
 
-**Variante B: Live-Demo im Browser (nichts installieren)**
-
-**https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/**
-
-Die Seite läuft über GitHub Pages direkt aus diesem Repository, es ist kein eigener Server nötig. Getestet am 17.11.2026 im Chromium-Browser mit dem Testgebiet
-Oldenburg Innenstadt (Analyse mit LoD2, alle Reiter, 3D-Modell). Die Datendienste sind bei den ersten Aufrufen manchmal überlastet (Overpass meldet gelegentlich Fehler 502);
-das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB, bei schwacher Leitung das Häkchen „LoD2-Dachformen laden“ abschalten.
-
-**Benutzung in vier Schritten**
+**Benutzung in fünf Schritten**
 
 1. **Gebiet wählen:** „Rechteck zeichnen“ klicken und mit gedrückter Maustaste auf der Karte ein Rechteck aufziehen (höchstens 1 km²).
 2. **Analysieren:** Den Knopf „Analysieren“ klicken. Das Tool lädt die Daten (mit den 3D-Dachformen etwa 40 Sekunden, ohne LoD2 deutlich schneller).
    Der Ladestand zeigt, welche Quelle gerade geholt wird.
-3. **Reiter durchklicken:** Alle Ansichten benutzen dieselben Daten. Oben die Reiter wechseln.
-4. **Exportieren:** Unten rechts auf „Exportieren …“ klicken, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern (siehe [Export](#export)).
+3. **Reiter durchklicken:** Alle Ansichten benutzen dieselben Daten.
+4. **Einstellen:** zum Beispiel Datum und Uhrzeit der Sonne, Einfärbung der Flurstücke, Orte der Umgebung, eine Schnittlinie.
+5. **Exportieren:** Unten rechts auf „Exportieren …“ klicken, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern (siehe [Export](#export)).
 
-Die Dachformen (LoD2) gibt es nur in Niedersachsen. Wer das Häkchen „LoD2-Dachformen laden“ wegnimmt, bekommt
-eine schnellere Analyse mit einfachen Gebäudeblöcken.
+Die Dachformen (LoD2), das Gelände, Luftbilder, Flurstücke und Bodenrichtwerte gibt es nur in Niedersachsen. Außerhalb arbeitet das Tool mit OpenStreetMap-Daten.
 
 ---
 
-## Was das Tool kann
+## Die Reiter im Einzelnen
 
 Die Reiter sind nach Arbeitsablauf geordnet: **Orientierung → Pläne und Sonne → Grundstück und Markt → Darstellung → Zahlen.**
 
 ### 1. Orientierung
 
-**Luftbild** – amtliche Orthofotos (DOP20, 20 cm) mit schaltbaren Überlagerungen (Gebäudeumrisse, Flurstücksgrenzen, Straßen) und Deckkraft-Regler.
+**Luftbild** – amtliche Orthofotos (DOP20, 20 cm) mit schaltbaren Überlagerungen (Gebäudeumrisse, Flurstücksgrenzen, Straßen), Deckkraft-Regler und Schwarz-Weiß-Schalter.
 Nur Niedersachsen; es sind Flugzeugaufnahmen, keine Satellitenbilder.
 
 ![Luftbild mit Gebäudeumrissen](docs/bilder/luftbild.jpg)
 
-**Umgebung** – Orte aus OpenStreetMap, einzeln ein- und ausschaltbar: Kindergärten, Schulen, Spielplätze, Läden, Haltestellen, Bahnhöfe, Bahnstrecken und mehr.
-Die Oberkategorien lassen sich auch als Ganzes schalten. Ein Klick auf einen Punkt zeigt Einzelheiten.
+**Umgebung** – Orte aus OpenStreetMap, einzeln ein- und ausschaltbar, in Oberkategorien geordnet: Kinder und Bildung, Einkaufen, Verkehr (mit Bahnstrecken und Gleisen),
+Gesundheit, Essen/Kultur/Freizeit, Öffentliche Einrichtungen. Ein Klick auf einen Punkt zeigt Einzelheiten. Zusätzlich:
+
+- **Denkmalgeschützte Gebäude** (aus OpenStreetMap, unvollständig),
+- **Erreichbarkeit zu Fuß:** Mittelpunkt anklicken, dann erscheinen Kreise für 5, 10 und 15 Minuten (400, 800, 1.200 m Luftlinie bei 4,8 km/h, **ohne echtes Wegenetz**).
 
 ![Umgebung mit schaltbaren Orten](docs/bilder/umgebung.jpg)
 
 ### 2. Pläne und Sonne
 
-**Schwarzplan** – Gebäude schwarz auf weiß (Figur-Grund), Nebengebäude getrennt in Grau.
+**Schwarzplan** – Gebäude schwarz auf weiß (Figur-Grund), Nebengebäude getrennt in Grau. Der Schalter **„Nach Höhe“** färbt die Gebäude in fünf Grautönen nach Höhe
+(bis 6, 12, 18 und 25 m, darüber). Die Höhe stammt aus LoD2, sonst aus OpenStreetMap (Höhe oder Geschosse mal 3 m), sonst ist sie angenommen.
 
 ![Schwarzplan](docs/bilder/schwarzplan.jpg)
 
-**Straßennetz** – amtliche Straßenflächen aus ALKIS (Fahrbahn, Weg, Platz getrennt) und Linienstärke nach Straßenart.
+**Straßennetz** – amtliche Straßenflächen aus ALKIS (Fahrbahn, Weg, Platz getrennt) und Straßenbreite nach Straßenart.
 
 ![Straßennetz](docs/bilder/strassennetz.jpg)
 
@@ -143,6 +165,7 @@ Standardwerte u. a. aus den Landesgrundstücksmarktdaten Niedersachsen, der Immo
 **Schnitt & Ansicht** – Linie auf der Karte ziehen, dann entsteht ein **senkrechter Schnitt** durch Gelände (DGM1), Gebäude (LoD2), Straßenflächen,
 Flurstücksgrenzen, Bäume und Wasser, mit Maßketten und Gebäudehöhen. Die **Tiefe** (wie weit man hinter die Linie schaut) ist als Band auf der Karte
 und als Skala in der Zeichnung zu sehen. „Blick nach links/rechts“ wechselt die Seite. Geschnittene Gebäude erscheinen schwarz als Vollkörper (Poché).
+Es lassen sich **mehrere Linien** ziehen und über das Feld „Linie“ wechseln; die anderen Linien stehen grau gestrichelt auf der Karte.
 
 ![Schnitt durch Gelände und Gebäude](docs/bilder/schnitt.jpg)
 
@@ -159,7 +182,7 @@ Mit dem Haken **„Sonne“** werfen alle Gebäude und Bäume Schatten nach Datu
 ### 5. Zahlen
 
 **Kennzahlen** – Fläche, Gebäudezahl, bebaute Fläche, **GRZ und GFZ brutto (ganzes Gebiet) und netto (nur Bauland ohne Verkehr, Grün, Wasser)**,
-Grünanteil, Kronenüberdeckung u. a. Mit Hinweisen zur Genauigkeit und Knopf „Kennzahlen als Text kopieren“.
+Grünanteil, Kronenüberdeckung u. a. Mit Hinweisen zur Genauigkeit, Knopf „Kennzahlen als Text kopieren“ und Export als PDF und CSV.
 
 ![Kennzahlen](docs/bilder/kennzahlen.jpg)
 
@@ -170,9 +193,12 @@ Grünanteil, Kronenüberdeckung u. a. Mit Hinweisen zur Genauigkeit und Knopf �
 Unten rechts im Tool steht in jedem Reiter der Knopf **„Exportieren …“**. In Karte ist er ausgegraut, in allen anderen Reitern gilt er für die gerade offene Ansicht.
 Es öffnet sich ein Fenster mit **Vorschau**:
 
+![Export-Fenster mit Vorschau, Blatt, Maßstab und Plankopf](docs/bilder/export-fenster.jpg)
+
 - **Blatt:** A4 bis A0, quer, hoch oder automatisch.
 - **Maßstab:** frei wählbar (1 : beliebige Zahl). Der Knopf „Ganzes Gebiet aufs Blatt“ wählt den kleinsten runden Maßstab, bei dem alles passt.
-  Ist das Gebiet größer als das Blatt, zeigt das Blatt einen **Ausschnitt**, den man im Vorschaubild **mit der Maus verschiebt**. Nichts ragt über das Planfeld hinaus.
+  Ist das Gebiet größer als das Blatt, zeigt das Blatt einen **Ausschnitt**, den man im Vorschaubild **mit der Maus verschiebt** („Ausschnitt zentrieren“ stellt die Mitte wieder ein).
+  Nichts ragt über das Planfeld hinaus.
 - **Plankopf:** Titel, Untertitel, Maßstab, Datum, Verfasser, Kurs/Dozent, Legende, Nordpfeil, Maßstabsleiste, Quellen und Lizenzen.
   Verfasser und Kurs bleiben nur in deinem Browser gespeichert.
 
@@ -186,11 +212,36 @@ Es öffnet sich ein Fenster mit **Vorschau**:
 | 3D-Modell | PDF, PNG, SVG (Bild mit Plankopf, ohne Maßstab); **3D-DXF für Allplan und ArchiCAD** mit LoD2-Wänden und -Dächern als 3D-Flächen und dem Gelände als 5-m-Netz (Höhen über NHN) |
 | Kennzahlen | PDF (A4-Seiten) und CSV |
 
+**Beispiele für exportierte Blätter** (PNG, A3):
+
+![Export: Schwarzplan nach Höhe](docs/bilder/export-schwarzplan-hoehe.png)
+![Export: Umgebung mit Orten, Denkmälern und Gehzeit-Kreisen](docs/bilder/export-umgebung.png)
+![Export: Luftbild mit Linien](docs/bilder/export-luftbild.png)
+![Export: Schnitt im Maßstab 1:1.200](docs/bilder/export-schnitt.png)
+![Export: 3D-Modell](docs/bilder/export-3d.png)
+
 **DXF-Dateien:** Version R12 (AC1009), Einheit Meter, ein Layer je Kategorie (ohne Umlaute und Leerzeichen), Flächen als geschlossene Linien **ohne Füllung**, Quellenangabe als Text im Layer `BESCHRIFTUNG`.
 Allplan bekommt absolute UTM-32-Koordinaten, ArchiCAD einen lokalen Nullpunkt (UTM minus Bezugspunkt, die Bezugskoordinaten stehen als Text in der Datei).
 Alle DXF-Dateien wurden mit der Python-Bibliothek ezdxf auf Gültigkeit geprüft. **In Allplan und ArchiCAD sind sie noch nicht getestet.**
 
 Der Maßstab stimmt auf dem Papier nur, wenn beim Drucken „tatsächliche Größe“ (100 %) gewählt wird.
+
+---
+
+## Datei-Import und Projekt merken
+
+**Import** (Feld „Dateien hier ablegen“ in der Seitenleiste, oder klicken):
+
+| Datei | Was passiert |
+|---|---|
+| **GeoJSON** (`.geojson`, `.json`) | Flächen, Linien, Punkte erscheinen orange über den Karten-Reitern und im Plan-Export als Ebene `IMPORT_<Name>`. Länge/Breite oder UTM 32 wird erkannt. |
+| **DXF im Text-Format** (`.dxf`) | LINE, LWPOLYLINE, POLYLINE, CIRCLE, POINT, 3DFACE werden gelesen. Sind die Koordinaten UTM, wird das erkannt; sonst fragt das Tool nach dem **Bezugspunkt** (Ost, Nord in UTM 32) des Nullpunkts. |
+| **CityGML** (`.gml`, `.xml`) | LoD2-Gebäude einer eigenen Datei **ersetzen** die vom LGLN geladenen (neu „Analysieren“ stellt die LGLN-Daten wieder her). Quelle und Lizenz der Datei muss man selbst prüfen. |
+| binäres DXF (topoexport), DWG | werden abgelehnt, mit Anleitung, die Datei im CAD-Programm als Text-DXF zu speichern |
+
+**Projekt merken:** Das Tool merkt sich automatisch den letzten Stand **in diesem Browser**: Gebiet, offenen Reiter, Sonnen-Einstellungen, Einfärbungen, Luftbild-Einstellungen,
+Gehzeit-Kreise, Schnittlinien, LoD2 an/aus. Beim nächsten Öffnen erscheint links der Kasten **„Wiederherstellen“**; die Geodaten werden dabei neu geladen.
+Die Orte der Umgebung, die Werte der Wirtschaftlichkeit und die Export-Angaben merken sich ihre Reiter selbst. Das Merken gilt nur für diesen Rechner und diesen Browser.
 
 ---
 
@@ -201,7 +252,7 @@ sichtbar unten auf der Karte und in den Exporten.**
 
 | Was | Quelle | Lizenz / Hinweis |
 |---|---|---|
-| Kartengrundlage, Gebäude, Grün, Wasser, Bäume, Orte (Umgebung) | © OpenStreetMap-Mitwirkende, über die Overpass-API | ODbL |
+| Kartengrundlage, Gebäude, Grün, Wasser, Bäume, Orte (Umgebung), Denkmäler | © OpenStreetMap-Mitwirkende, über die Overpass-API | ODbL |
 | Straßen-, Wege-, Platzflächen und Flurstücke | LGLN, ALKIS (WFS `alkis_wfs_sf`) | CC BY 4.0, „Daten geändert“ |
 | Bodenrichtwerte | LGLN, BORIS (WFS `boris_wfs`), Stichtag 01.01.2026 | CC BY 4.0 |
 | Gebäude mit Dachformen (LoD2) | LGLN, Kachelsuche über den STAC-Dienst | © GeoBasis-DE/LGLN, „Daten geändert“ (CC BY 4.0) |
@@ -222,11 +273,12 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 - **Nur Niedersachsen** hat Dachformen (LoD2), Gelände, Luftbilder, Flurstücke und Bodenrichtwerte. Außerhalb liefert das Tool vor allem OpenStreetMap-Daten
   (Gebäude als Blöcke); die Zensus-Mieten gibt es bundesweit. Entwickelt und getestet wurde in Oldenburg.
 - **Höchstens 1 km²** pro Analyse.
-- **OpenStreetMap ist von Freiwilligen gepflegt** und nicht überall vollständig. Gebäudehöhen und Geschosse fehlen oft und werden dann geschätzt.
+- **OpenStreetMap ist von Freiwilligen gepflegt** und nicht überall vollständig. Gebäudehöhen und Geschosse fehlen oft und werden dann geschätzt. Denkmäler sind nur die, die in OpenStreetMap eingetragen sind.
 - **Bäume:** Position aus OpenStreetMap; die Höhe ist meist geschätzt (zweifache Kronenbreite), die Kronenform ist schematisch.
 - **Sonne und Schatten:** Nur Gebäude und Bäume im gewählten Rechteck werfen Schatten, am Rand sind die Flächen daher zu sonnig. Bäume zählen im Winter wie im Sommer als undurchsichtig
   (zu viel Schatten bei Laubbäumen im Winter), ihre Höhe ist meist geschätzt. Dachüberstände, Balkone und Zäune fehlen, das Raster ist 0,5 bis 1 m fein. Es ist die mögliche Sonnenscheindauer bei klarem
   Himmel, **kein Nachweis nach Norm** (DIN 5034) und kein Gutachten.
+- **Erreichbarkeit zu Fuß:** Die Kreise sind Luftlinie (80 m je Minute), keine echten Fußwege. Umwege, Gebäude und Bahnlinien zählen nicht.
 - **Schnitt:** LoD2 hat keine Innenräume, geschnittene Gebäude sind deshalb Vollkörper. Die Gewässertiefe ist unbekannt (nur Wasserlinie dargestellt). Das Gelände hinter der Linie
   ist nur im Höhenraster vorhanden.
 - **Mieten** sind Bestandsmieten 2022 im 100-m-Raster, keine aktuellen Angebotsmieten. Je Flurstück sind sie eine Schätzung aus dem Raster.
@@ -234,8 +286,8 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 - **Fremdserver:** Fällt einer der Datendienste aus (z. B. ein Overpass-Server), erscheint eine Meldung im Ladestand; das Tool probiert mehrere Overpass-Server nacheinander.
 - **Export:** Das DXF kennt keine Füllungen und keine Pixelbilder (Schatten, Luftbild). Die 3D-DXF ist groß (etwa 16 MB für 62 ha). Sehr große Blätter (A0 als PNG) werden automatisch in der Auflösung verringert.
   Das Luftbild lädt das Tool beim Export neu vom Dienst des LGLN, dazu braucht es Internet.
-- **Nicht getestet:** Smartphone, andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, sehr große oder dicht bebaute Gebiete.
-- Der **Datei-Import** (topoexport-DXF, CityGML) ist in der Oberfläche nur angedeutet und noch nicht gebaut.
+- **Import:** DWG und das binäre topoexport-DXF kann der Browser nicht lesen (als Text-DXF speichern). Beim DXF-Import fehlen Blöcke, Texte, Bemaßungen und Schraffuren. Importierte GeoJSON- und DXF-Dateien bleiben nicht über das Neuladen der Seite hinaus erhalten.
+- **Nicht getestet:** Smartphone, andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, CityGML-Import mit einer echten Datei, Text-DXF mit lokalen Koordinaten, sehr große oder dicht bebaute Gebiete.
 
 ---
 
@@ -255,11 +307,15 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `gelaende.js` | Geländemodell DGM1 |
 | `flurstuecke.js`, `mieten.js`, `wirtschaft.js` | Flurstücke und Bodenrichtwert, Mietraster, Wirtschaftlichkeit |
 | `luftbild.js`, `infos.js` | Luftbild und Umgebung |
-| `schnitt.js` | Schnitt, Straßenansicht, DXF-Export |
+| `erreichbar.js` | Gehzeit-Kreise |
+| `schnitt.js` | Schnitt, Straßenansicht, mehrere Linien, DXF des Schnitts |
 | `sonne.js` | Sonnenstand, Schattenplan, Besonnungsdauer |
+| `hoehe.js` | Schwarzplan nach Höhe |
 | `export.js` | Export-Fenster: Blatt, Maßstab, Plankopf, PDF/PNG/SVG/DXF/GeoJSON/CSV |
+| `import.js`, `projekt.js` | Datei-Import, Projekt im Browser merken |
 | `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
+| `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
 | `docs/bilder/` | Screenshots für diese README |
@@ -279,12 +335,10 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 
 ---
 
-## Geplant
+## Offen
 
-- Schwarzplan nach Gebäudehöhe einfärbbar (ein- und ausschaltbar)
-- Erreichbarkeit zu Fuß, denkmalgeschützte Gebäude in der Umgebung
-- Mehrere Schnittlinien speichern, Projekt speichern und laden
-- Datei-Import (topoexport-DXF, CityGML) mit Qualitätsvergleich
+Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Programmen oder Geräten gehen: die DXF-Dateien in Allplan und ArchiCAD öffnen, der CityGML-Import
+mit einer echten Datei, Smartphone und andere Browser.
 
 ---
 

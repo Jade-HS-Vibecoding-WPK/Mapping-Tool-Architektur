@@ -94,6 +94,13 @@ function expTextBreite(text, pt, fett) {
   return (expMessLeinwand.measureText(text).width / 100) * pt * PT_MM;
 }
 // Text in Zeilen umbrechen, die höchstens "breite" mm lang sind
+// Text auf höchstens "max" mm kürzen (mit …)
+function expKuerzen(text, pt, max) {
+  if (expTextBreite(text, pt, false) <= max) return text;
+  let t = String(text);
+  while (t.length > 1 && expTextBreite(t + "…", pt, false) > max) t = t.slice(0, -1);
+  return t + "…";
+}
 function expUmbruch(text, pt, fett, breite) {
   const zeilen = [];
   for (const absatz of String(text).split("\n")) {
@@ -355,8 +362,9 @@ function expSzene(ansicht) {
     linien(osm("strasse"), "STRASSE_ACHSE", (f) => ({ stroke: e.strasse || FARBE.strasseSchwarz, swM: sb[f.properties.typ] || 2, cap: "butt" }));
   }
   if (hat("gebaeude")) {
-    flaechen(gebaeudeSatz(), (f) => (f.properties.kat === "nebengebaeude" ? "NEBENGEBAEUDE" : "GEBAEUDE"),
-      (f) => ({ fill: f.properties.kat === "nebengebaeude" ? e.neben || FARBE.nebengebaeude : e.gebaeude || FARBE.gebaeudeSchwarzplan }));
+    const nachHoehe = ansicht === "schwarzplan" && schwarzModus === "hoehe";
+    flaechen(gebaeudeSatz(), (f) => (f.properties.kat === "nebengebaeude" ? "NEBENGEBAEUDE" : nachHoehe ? "GEBAEUDE_H_" + hoehenKlasse(gebaeudeHoehe(f.properties)).kurz : "GEBAEUDE"),
+      (f) => ({ fill: f.properties.kat === "nebengebaeude" ? (nachHoehe ? "#c9c9c9" : e.neben || FARBE.nebengebaeude) : nachHoehe ? hoehenKlasse(gebaeudeHoehe(f.properties)).farbe : e.gebaeude || FARBE.gebaeudeSchwarzplan, ...(nachHoehe ? { stroke: "#6a6a6a", sw: 0.06 } : {}) }));
   }
   if (hat("umriss")) flaechen(gebaeudeSatz(), "GEBAEUDE_UMRISS", { stroke: FARBE.umriss, sw: haarlinie });
   if (hat("dach") && lod2Vorhanden) {
@@ -372,6 +380,18 @@ function expSzene(ansicht) {
       geo.push({ type: "Feature", properties: { ebene: "BAUM_STAMM", kronendurchmesser_m: f.properties.d }, geometry: f.geometry });
     }
   }
+  // Importierte Dateien (GeoJSON, DXF) als orange Ebene "IMPORT_<Name>"
+  if (EXP_PLAENE[ansicht].art === "plan") {
+    for (const f of importAktive()) {
+      const ebene = "IMPORT_" + f.properties.dxfName, t = f.geometry.type;
+      if (t === "Polygon" || t === "MultiPolygon") flaechen([f], ebene, { fill: IMPORT_FARBE, fo: 0.3, stroke: IMPORT_FARBE, sw: 0.15 });
+      else if (t === "LineString" || t === "MultiLineString") linien([f], ebene, { stroke: IMPORT_FARBE, sw: 0.25 });
+      else if (t === "Point") {
+        const [lon, lat] = f.geometry.coordinates;
+        if (lon >= bbox[0] && lon <= bbox[2] && lat >= bbox[1] && lat <= bbox[3]) befehle.push({ t: "marke", dxf: ebene, c: expUtm([lon, lat]), fill: IMPORT_FARBE, kurz: "" });
+      }
+    }
+  }
   // Umgebung: Gleise und Orte (nur die Gruppen, die im Reiter angehakt sind)
   if (ansicht === "infos" && infoVorhanden) {
     const an = (f) => infoAn.has(f.properties.g);
@@ -384,6 +404,16 @@ function expSzene(ansicht) {
       const gr = infoGruppe[f.properties.g];
       befehle.push({ t: "marke", dxf: "INFO_" + gr.id.toUpperCase(), c: expUtm([lon, lat]), fill: farbeVon(gr), kurz: gr.kurz });
       geo.push({ type: "Feature", properties: { ebene: "INFO_" + gr.id.toUpperCase(), gruppe: gr.name, name: f.properties.name, adresse: f.properties.adr }, geometry: f.geometry });
+    }
+  }
+  // Umgebung: Gehzeit-Kreise (wenn im Reiter angehakt und ein Mittelpunkt gewählt ist)
+  if (ansicht === "infos" && erreichMitte && erreichEl.an.checked) {
+    linien(erreichRinge(), "ERREICHBARKEIT", { stroke: ERREICH_FARBE, sw: 0.35, dash: [2, 1.4] });
+    befehle.push({ t: "marke", dxf: "ERREICHBARKEIT_MITTE", c: expUtm(erreichMitte), fill: ERREICH_FARBE, kurz: "" });
+    for (const ring of erreichRinge()) {
+      const spitze = turf.destination(erreichMitte, ring.properties.meter / 1000, 0, { units: "kilometers" }).geometry.coordinates;
+      if (spitze[0] < bbox[0] || spitze[0] > bbox[2] || spitze[1] < bbox[1] || spitze[1] > bbox[3]) continue;
+      befehle.push({ t: "text", dxf: "ERREICHBARKEIT_TEXT", c: expUtm(spitze), text: `${ring.properties.min} min` });
     }
   }
   // Luftbild: Linien über dem Foto, wie im Reiter angehakt (Gebäudeumrisse gelb, Flurstücksgrenzen hellblau, Straßen rosa)
@@ -421,7 +451,8 @@ function expLegende(ansicht) {
   const a = ANSICHTEN[ansicht];
   switch (ansicht) {
     case "schwarzplan":
-      fl(FARBE.gebaeudeSchwarzplan, null, "Gebäude"); fl(FARBE.nebengebaeude, null, "Nebengebäude, Überdachung");
+      if (schwarzModus === "hoehe") { for (const k of HOEHEN_KLASSEN) fl(k.farbe, "#666", `Gebäude ${k.name}`); fl("#c9c9c9", null, "Nebengebäude"); }
+      else { fl(FARBE.gebaeudeSchwarzplan, null, "Gebäude"); fl(FARBE.nebengebaeude, null, "Nebengebäude, Überdachung"); }
       break;
     case "strassen":
       if (alkisVorhanden) { fl(FARBE.netz.fahrbahn, null, "Straßenraum (Fahrbahn)"); fl(FARBE.netz.weg, FARBE.netz.kante, "Wege und Gehwege"); fl(FARBE.netz.platz, FARBE.netz.kante, "Plätze, Fußgängerzonen"); }
@@ -445,6 +476,7 @@ function expLegende(ansicht) {
         if (!infoAn.has(gr.id) || !(infoZaehler[gr.id] > 0)) continue;
         if (gr.linie) li(gr.farbe, `${gr.name} (${infoZaehler[gr.id]})`); else mk(farbeVon(gr), gr.kurz, `${gr.name} (${infoZaehler[gr.id]})`);
       }
+      if (erreichMitte && erreichEl.an.checked) for (const min of erreichRadien()) li(ERREICH_FARBE, `Gehzeit ${min} min = ${zahl(min * ERREICH_M_PRO_MIN)} m (Luftlinie)`);
       fl(FARBE.kontext, null, "Gebäude (Orientierung)");
       break;
     case "luftbild":
@@ -481,6 +513,7 @@ function expLegende(ansicht) {
       break;
     }
   }
+  if (EXP_PLAENE[ansicht].art === "plan") for (const d of importDateien) if (d.an && d.features) fl(IMPORT_FARBE, null, `Import: ${d.name}`);
   return L;
 }
 
@@ -566,6 +599,7 @@ function expZeichne(b, opt, szene, lay) {
     if (c.t === "flaeche") b.flaeche(c.ringe.map((r) => r.map(tr)), { ...s, sw: s.sw });
     else if (c.t === "linie") b.linie(c.pts.map(tr), { stroke: s.stroke, sw: s.swM ? s.swM * k : s.sw, cap: s.cap });
     else if (c.t === "kreis") { const [x, y] = tr(c.c); b.kreis(x, y, c.r * k, s); }
+    else if (c.t === "text") { const [x, y] = tr(c.c); b.text(c.text, x, y - 0.9, { pt: 6.5 * sf, fett: true, anker: "m", farbe: ERREICH_FARBE }); }
     else if (c.t === "marke") {                                   // Symbol der Umgebung: Kreis mit Kürzel, feste Größe auf dem Papier
       const [x, y] = tr(c.c), rr = 1.7 * sf;
       b.kreis(x, y, rr, { fill: c.fill, stroke: "#ffffff", sw: 0.25 });
@@ -614,16 +648,17 @@ function expZeichne(b, opt, szene, lay) {
         b.text(eintrag.text, x, y + 3.2 * sf, { pt: 6 * sf, farbe: "#444" });
         return;
       }
+      const textBreite = bz - s - 5 * sf;                          // Platz für den Text in der Spalte
       if (eintrag.art === "marke") {
         b.kreis(x + s / 2, y - s / 2 + 0.3, s / 2, { fill: eintrag.fill, stroke: "#ffffff", sw: 0.2 });
         b.text(eintrag.kurz, x + s / 2, y - s / 2 + 0.3 + s * 0.17, { pt: (eintrag.kurz.length > 1 ? 4.2 : 5.2) * sf, fett: true, anker: "m", farbe: "#ffffff" });
-        b.text(eintrag.text, x + s + 2 * sf, y, { pt: 6.8 * sf });
+        b.text(expKuerzen(eintrag.text, 6.8 * sf, textBreite), x + s + 2 * sf, y, { pt: 6.8 * sf });
         return;
       }
       if (eintrag.art === "kreis") b.kreis(x + s / 2, y - s / 2 + 0.3, s / 2, { fill: eintrag.fill, stroke: eintrag.rand, sw: 0.12 });
       else if (eintrag.art === "linie") b.rechteck(x, y - s / 2 - 0.3, s, 1.0 * sf, { fill: eintrag.fill });
       else b.rechteck(x, y - s + 0.4, s, s - 0.4, { fill: eintrag.fill, stroke: eintrag.rand || "#888", sw: 0.12 });
-      b.text(eintrag.text, x + s + 2 * sf, y, { pt: 6.8 * sf });
+      b.text(expKuerzen(eintrag.text, 6.8 * sf, textBreite), x + s + 2 * sf, y, { pt: 6.8 * sf });
     });
   }
   if (szene.ohneMassstab) { b.text("Perspektivische Ansicht", spR + 4 * sf, z1 + 8 * sf, { pt: 7 * sf, farbe: "#444" }); b.text("ohne Nordpfeil und Maßstabsleiste", spR + 4 * sf, z1 + 12 * sf, { pt: 6 * sf, farbe: "#444" }); }
@@ -652,8 +687,8 @@ function expZeichne(b, opt, szene, lay) {
 
 // ---------- 6. DXF ----------
 const EXP_DXF_FARBEN = {
-  GEBAEUDE: 7, NEBENGEBAEUDE: 8, GEBAEUDE_UMRISS: 7, DACH_LOD2: 9, STRASSE_FAHRBAHN: 8, STRASSE_WEG: 40, STRASSE_PLATZ: 41, STRASSE_KANTE: 253, STRASSE_ACHSE: 8,
-  FLURSTUECKE: 30, FLURSTUECKE_WIRTSCHAFT: 30, FLURSTUECKE_GRENZE: 8, MIETRASTER: 3, MIETRASTER_GRENZE: 8, GRUEN: 3, WASSER: 5, WASSER_LINIE: 5, BAUM_KRONE: 82, BAUM_STAMM: 34, GEBIETSRAHMEN: 1, BESCHRIFTUNG: 7
+  GEBAEUDE: 7, GEBAEUDE_H_00_06: 9, GEBAEUDE_H_06_12: 8, GEBAEUDE_H_12_18: 253, GEBAEUDE_H_18_25: 251, GEBAEUDE_H_25_PLUS: 250, NEBENGEBAEUDE: 8, GEBAEUDE_UMRISS: 7, DACH_LOD2: 9, STRASSE_FAHRBAHN: 8, STRASSE_WEG: 40, STRASSE_PLATZ: 41, STRASSE_KANTE: 253, STRASSE_ACHSE: 8,
+  FLURSTUECKE: 30, FLURSTUECKE_WIRTSCHAFT: 30, FLURSTUECKE_GRENZE: 8, MIETRASTER: 3, MIETRASTER_GRENZE: 8, GRUEN: 3, WASSER: 5, WASSER_LINIE: 5, BAUM_KRONE: 82, BAUM_STAMM: 34, GEBIETSRAHMEN: 1, ERREICHBARKEIT: 1, ERREICHBARKEIT_MITTE: 1, ERREICHBARKEIT_TEXT: 1, BESCHRIFTUNG: 7
 };
 
 // Text in Zeilen mit höchstens n Zeichen umbrechen (für DXF-Texte)
@@ -686,6 +721,7 @@ function expDxf(szene, opt, voreinstellung) {
     if (c.nurBild) continue;                                              // Kanten und Umrisse liegen schon als Flächenränder vor
     if (c.t === "flaeche") for (const r of c.ringe) { const pts = r.slice(); if (pts.length > 1 && pts[0][0] === pts[pts.length - 1][0] && pts[0][1] === pts[pts.length - 1][1]) pts.pop(); if (pts.length >= 3) poly(c.dxf, pts, true); }
     else if (c.t === "linie") poly(c.dxf, c.pts, false);
+    else if (c.t === "text") { verwendet.add(c.dxf); text(c.dxf, c.c[0], c.c[1], Math.max(0.5, 2 * opt.massstab / 1000), c.text); }
     else if (c.t === "marke") {
       verwendet.add(c.dxf);
       const rM = 1.7 * opt.massstab / 1000;                              // Symbol: 3,4 mm Durchmesser im gewählten Maßstab

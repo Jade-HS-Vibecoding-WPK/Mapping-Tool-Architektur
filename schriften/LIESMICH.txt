@@ -1,0 +1,4 @@
+Schrift der Ortsanalyse: abgeleitet von TeX Gyre Heros 2.004 (GUST e-foundry, https://www.gust.org.pl/projects/e-foundry/tex-gyre),
+einer freien Schrift nach dem Vorbild der Helvetica. Lizenz: GUST Font License (siehe GUST-FONT-LICENSE.txt), (c) 2007-2009 B. Jackowski, J. M. Nowacki (GUST).
+Änderungen: auf lateinische Zeichen gekürzt (Teilmenge) und in WOFF2 umgewandelt; Dateien umbenannt, wie es die Lizenz erbittet.
+Sie wird auf allen Rechnern gleich verwendet (style.css, @font-face „Heros“), Ersatz: Helvetica, Arial.

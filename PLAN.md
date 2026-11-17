@@ -801,6 +801,13 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Blattformat, Kennzahlen/Übersicht ausgegraut), 3 ein Knopf „Exportieren: n Inhalte als …“ (PDF = eine Datei,
   PNG/DXF ab 2 Inhalten als ZIP). Einzel-Knöpfe je Zeile entfallen. „Fertige Dateien“ als feste Spalte rechts
   (unter 1000 px darunter). Erklärtexte zum Aufklappen. Getestet: DXF-ZIP, PDF, Handybreite ohne Querscrollen.
+- [x] **Gestaltung „Schweizer Raster“ und Helvetica** (17.11.2026): Schrift „Heros“ = TeX Gyre Heros (freie
+  Helvetica-Nachbildung, GUST Font License) als WOFF2-Teilmenge im Ordner `schriften/` (mit Lizenz und LIESMICH),
+  gilt in Oberfläche, Legenden, Karten, Schnitt und Diagrammen; auch Zahlen (keine Schreibmaschinenschrift mehr,
+  gleich breite Ziffern). Exporte (PDF/PNG/DXF) bleiben bei ihrer Standardschrift (Helvetica bzw. Arial im CAD).
+  Stil: schwarzer Balken über dem Titel, große fette Überschriften, kleine Versal-Beschriftungen mit Haarlinie,
+  durchgezogene statt gepunktete Linien, Legenden mit kräftiger Oberkante, Platzhalter ohne Grauflächen,
+  aktiver Reiter schwarz unterstrichen und wird beim Wechsel sichtbar geschoben. Rot nur für Hauptknopf und Markierungen.
 - [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

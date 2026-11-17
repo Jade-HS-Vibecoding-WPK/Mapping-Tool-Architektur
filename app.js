@@ -196,6 +196,8 @@ const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "
 function zeigeAnsicht(ziel) {
   const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === ziel));
+  const aktiverReiter = document.querySelector(".tab.is-active"); // ganz sichtbar machen, falls die Reiterleiste verschoben ist
+  if (aktiverReiter) aktiverReiter.scrollIntoView({ block: "nearest", inline: "nearest" });
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("is-active", v.dataset.view === sektion));
   if (ziel === "karte") map.resize(); // Karte nach dem Wiedereinblenden neu ausmessen
   if (sektion === "plan") {

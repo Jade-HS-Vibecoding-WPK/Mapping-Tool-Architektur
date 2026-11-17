@@ -340,8 +340,8 @@ function schnittSvg(erg, vorgabe) {
     + `<line x1="${X(L)}" y1="${R.oben - 8}" x2="${X(L)}" y2="${unterkante}" stroke="${PLAN_FARBEN.akzent}" stroke-width="0.8" stroke-dasharray="6 2 1 2"/>`;
 
   // Schriften direkt im SVG festlegen (damit auch das exportierte Bild stimmt)
-  const stil = `<style>.sz-text{font:10px Menlo,Consolas,monospace;fill:#111}.sz-klein{font-size:9px;fill:#555}
-    .sz-fett{font:600 12px Helvetica,Arial,sans-serif;fill:${PLAN_FARBEN.akzent}}</style>`;
+  const stil = `<style>.sz-text{font:10px Heros,Helvetica,Arial,sans-serif;fill:#111}.sz-klein{font-size:9px;fill:#555}
+    .sz-fett{font:700 12px Heros,Helvetica,Arial,sans-serif;fill:${PLAN_FARBEN.akzent}}</style>`;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="schnitt-svg">${stil}
     <defs><clipPath id="sz-streifen"><rect x="${X(0)}" y="0" width="${X(L) - X(0)}" height="${H}"/></clipPath></defs>
     <rect width="${W}" height="${H}" fill="#fff"/><g clip-path="url(#sz-streifen)">${teile.join("")}</g>${skala.join("")}${leiste}${ende}</svg>`;

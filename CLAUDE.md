@@ -86,4 +86,6 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 # Gestaltung
 - Klassisch-architektonisch: Schwarz-Weiß, feine Linien, eine Akzentfarbe, viel Weißraum.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
+- Schrift: „Heros“ (TeX Gyre Heros, freie Helvetica-Nachbildung) aus `schriften/`, überall in der Oberfläche, auch für Zahlen.
+  Stil „Schweizer Raster“: Haarlinien, Versal-Beschriftungen, keine Schatten/Rundungen, Rot nur für Hauptknopf und Markierungen.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

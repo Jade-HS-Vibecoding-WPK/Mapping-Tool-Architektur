@@ -1,25 +1,28 @@
 /* ============================================================
    Ortsanalyse – Gestaltung
-   Klassisch-architektonisch: Schwarz-Weiß, feine Linien,
-   eine Akzentfarbe, viel Weißraum.
+   Ruhig und architektonisch (Vorbild: Büro-Websites wie adept.dk): Schwarz auf Weiß, viel Weißraum,
+   eine Schriftstärke, Betonung über Größe statt Fett, feine Linien nur bei Tabellen und Legenden.
+   Farbe (Rot) nur in den Plänen, nicht in der Bedienoberfläche.
    ============================================================ */
 
-/* Schrift: „Heros“ = freie Helvetica-Nachbildung (TeX Gyre Heros, GUST Font License, siehe schriften/LIESMICH.txt).
-   Sieht auf allen Rechnern gleich aus; Ersatz: Helvetica, Arial. */
-@font-face { font-family: "Heros"; src: url("schriften/heros-ortsanalyse-regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
-@font-face { font-family: "Heros"; src: url("schriften/heros-ortsanalyse-bold.woff2") format("woff2"); font-weight: 600 700; font-style: normal; font-display: swap; }
-@font-face { font-family: "Heros"; src: url("schriften/heros-ortsanalyse-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
+/* Schrift: „Microsoft Yi Baiti“ (Windows-Systemschrift, wird nicht mitgeliefert, nur benutzt, wenn vorhanden).
+   Zeichen, die in ihr unschön sind (Mittelpunkt, Gedankenstrich, Anführungszeichen …), kommen aus der Ersatzschrift.
+   Ersatz auf Mac/Handy: Didact Gothic (SIL OFL, im Ordner schriften/). Siehe schriften/LIESMICH.txt. */
+@font-face { font-family: "Ortsschrift"; src: local("Microsoft Yi Baiti"), local("MicrosoftYiBaiti");
+  size-adjust: 112%; unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF; }
+@font-face { font-family: "Didact Gothic"; src: url("schriften/didact-gothic-latin-400.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap; }
 
 :root {
   --ink: #111111;        /* Schwarz für Text und Linien */
-  --ink-soft: #6b6b6b;   /* Grau für Nebentexte */
-  --line: #e2e2e2;       /* Haarlinien */
+  --ink-soft: #6f6f6f;   /* Grau für Nebentexte */
+  --line: #e6e6e6;       /* Haarlinien */
   --paper: #ffffff;      /* Weiß */
-  --paper-soft: #f5f5f5; /* hellgraue Fläche */
-  --accent: #e2482d;     /* die eine Akzentfarbe (Rot), sparsam: Hauptknopf, Markierungen */
-  --sidebar-width: 340px;
-  --font: "Heros", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --mono: var(--font);   /* auch Zahlen in Helvetica (gleich breite Ziffern) */
+  --paper-soft: #f4f4f4; /* hellgraue Fläche */
+  --accent: var(--ink);  /* keine Farbe in der Oberfläche (Rot nur in den Plänen) */
+  --sidebar-width: 360px;
+  --font: "Ortsschrift", "Didact Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: var(--font);
   --sans: var(--font);
   --raster: 8px;         /* Grundmaß für Abstände */
 }
@@ -42,9 +45,11 @@ html, body {
   color: var(--ink);
   font-family: var(--font);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 1.5;
+  word-spacing: -0.06em;  /* Yi Baiti hat sehr breite Wortabstände */
   -webkit-font-smoothing: antialiased;
   font-kerning: normal;
+  font-synthesis: none;    /* kein künstliches Fett: Betonung nur über Größe */
 }
 
 /* ---------- Grundaufteilung: Seitenleiste + Hauptbereich ---------- */
@@ -55,12 +60,12 @@ html, body {
 }
 
 .sidebar {
-  border-right: 1px solid var(--ink);
-  padding: 32px 28px;
+  border-right: 1px solid var(--line);
+  padding: 40px 32px 32px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 44px;
 }
 
 .main {
@@ -71,79 +76,69 @@ html, body {
 }
 
 /* ---------- Titel ---------- */
-.brand {
-  border-top: 6px solid var(--ink);
-  padding-top: 14px;
-}
 .brand h1 {
   margin: 0;
-  font-size: 34px;
-  line-height: 1;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-size: 40px;
+  line-height: 1.05;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 .brand .subtitle {
-  margin: 10px 0 0;
-  color: var(--ink-soft);
-  font-size: 13px;
+  margin: 14px 0 0;
+  color: var(--ink);
+  font-size: 18px;
   line-height: 1.4;
-  max-width: 26em;
+  max-width: 18em;
 }
 
 /* ---------- Arbeitsschritte ---------- */
 .step h2 {
-  margin: 0 0 12px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  border-top: 1px solid var(--ink);
-  padding-top: 8px;
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.3;
   display: flex;
-  gap: 10px;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ink);
 }
-.step .num {
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
+.step .num { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .hint {
-  margin: 0 0 12px;
+  margin: 0 0 14px;
   color: var(--ink-soft);
   font-size: 13px;
 }
 .row { display: flex; gap: 8px; }
 .step-main { margin-top: auto; }
-.step-main .hint { margin: 8px 0 0; }
+.step-main .hint { margin: 10px 0 0; }
 
 /* ---------- Knöpfe ---------- */
 .btn {
   font: inherit;
   font-size: 13px;
-  padding: 9px 14px;
+  letter-spacing: 0.02em;
+  padding: 9px 16px;
   border: 1px solid var(--ink);
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
   border-radius: 0;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.15s, color 0.15s;
 }
 .btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .btn.is-active { background: var(--ink); color: var(--paper); }
-.btn-ghost { border-color: #bdbdbd; }
+.btn-ghost { border-color: #c8c8c8; }
 .btn-block { width: 100%; margin-top: 8px; }
 .btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--ink);
+  border-color: var(--ink);
   color: var(--paper);
-  font-weight: 700;
-  font-size: 12px;
-  padding: 14px 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
+  font-size: 15px;
+  padding: 15px 18px;
 }
-.btn-primary:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); }
-.btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-primary:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
+.btn:focus-visible, .tab:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
 
 /* ---------- Gebietsangaben ---------- */
 .area-info {
@@ -208,28 +203,24 @@ html, body {
 /* ---------- Reiter (Tabs) für die Ansichten ---------- */
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--ink);
+  border-bottom: 1px solid var(--line);
   overflow-x: auto;
   flex-shrink: 0;
 }
 .tab {
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
   background: none;
   border: none;
-  padding: 14px 16px 12px;
+  padding: 18px 14px 14px;
   cursor: pointer;
   color: var(--ink-soft);
   white-space: nowrap;
-  position: relative;
 }
-.tab + .tab::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 1px; background: var(--line); }
+.tab:first-child { padding-left: 24px; }
 .tab:hover { color: var(--ink); }
-.tab.is-active {
-  color: var(--ink);
-  font-weight: 700;
-  box-shadow: inset 0 -3px 0 var(--ink);
-}
+.tab.is-active { color: var(--ink); box-shadow: inset 0 -1px 0 var(--ink); }
 
 /* ---------- Ansichten ---------- */
 .views { position: relative; flex: 1; min-height: 0; }
@@ -567,6 +558,36 @@ html, body {
 /* Eingabefelder und Auswahllisten schlicht */
 select, input[type="number"], input[type="text"] { border-radius: 0; }
 input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--ink); }
+
+/* ---------- Ruhiger Stil: Überschriften in normaler Schrift, Betonung über Größe ---------- */
+.plan-legende h3, .kz-block h4, .export-schritt h4, .export-fertig h4, .schnitt-panel h3, .flurstueck-info h4, .export-gruppe-kopf h5 {
+  text-transform: none; letter-spacing: 0.01em; font-weight: 400; }
+.plan-legende h3 { font-size: 15px; border-bottom-color: var(--line); }
+.plan-legende { border: 1px solid var(--line); padding: 14px 18px 16px; }
+.kz-block h4 { font-size: 18px; padding-bottom: 8px; }
+.kz-block h4 small { font-size: 12px; }
+.kz-kopf h3 { font-size: 34px; font-weight: 400; letter-spacing: -0.01em; }
+.kz-kopf p { font-size: 13px; }
+.kz-zeile dd { font-weight: 400; font-size: 18px; }
+.export-schritt h4 { font-size: 18px; }
+.export-nr { width: auto; height: auto; background: none; color: var(--ink-soft); font-size: inherit; }
+.export-format { font-weight: 400; }
+.export-gruppe-kopf h5 { font-size: 13px; }
+.export-fertig { border: 1px solid var(--line); }
+.export-fertig h4 { font-size: 15px; }
+.schnitt-panel h3 { font-size: 15px; }
+.flurstueck-info { border: 1px solid var(--line); }
+.flurstueck-info h4 { font-size: 14px; border-bottom-color: var(--line); }
+.flurstueck-info h3 { font-weight: 400; font-size: 20px; }
+.placeholder > div, .placeholder-box > div { border-top: 1px solid var(--ink); }
+.placeholder h3, .placeholder-box h3 { font-weight: 400; font-size: 28px; }
+.mietrechner-titel { font-weight: 400; }
+.brw-etikett { font-weight: 400; }
+.schnitt-etikett { font: 12px var(--font); }
+.schnitt-svg .sz-fett { font-weight: 400; }
+.nordpfeil text { font-weight: 400; }
+.dg-karte figcaption strong { font-weight: 400; font-size: 15px; }
+.maplibregl-ctrl-group { border-color: var(--line) !important; }
 
 /* ---------- Schmale Bildschirme (Handy) ---------- */
 @media (max-width: 760px) {

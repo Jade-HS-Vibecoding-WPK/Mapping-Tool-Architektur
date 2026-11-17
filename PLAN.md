@@ -808,6 +808,12 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Stil: schwarzer Balken über dem Titel, große fette Überschriften, kleine Versal-Beschriftungen mit Haarlinie,
   durchgezogene statt gepunktete Linien, Legenden mit kräftiger Oberkante, Platzhalter ohne Grauflächen,
   aktiver Reiter schwarz unterstrichen und wird beim Wechsel sichtbar geschoben. Rot nur für Hauptknopf und Markierungen.
+- [x] **Gestaltung nach Vorbild adept.dk, Schrift Microsoft Yi Baiti** (17.11.2026, ersetzt Heros): Schrift „Microsoft
+  Yi Baiti“ (Windows-Systemschrift, nur über local(), nicht mitgeliefert; unschöne Zeichen wie · – „“ aus dem Ersatz),
+  Ersatz auf Mac/Handy „Didact Gothic“ (SIL OFL, in `schriften/`, nichts von Google geladen). Eine Schriftstärke,
+  Betonung über Größe (font-synthesis: none), keine Versal-Beschriftungen, große ruhige Überschriften, viel Weißraum.
+  Feine Linien bleiben bei Tabellen, Legenden, Kennzahlen (Mischung). Oberfläche rein schwarz-weiß (auch der
+  Hauptknopf); Rot nur noch in den Plänen (Gebietsrahmen, Schnittlinie). Exporte unverändert.
 - [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

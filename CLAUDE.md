@@ -86,6 +86,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 # Gestaltung
 - Klassisch-architektonisch: Schwarz-Weiß, feine Linien, eine Akzentfarbe, viel Weißraum.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
-- Schrift: „Heros“ (TeX Gyre Heros, freie Helvetica-Nachbildung) aus `schriften/`, überall in der Oberfläche, auch für Zahlen.
-  Stil „Schweizer Raster“: Haarlinien, Versal-Beschriftungen, keine Schatten/Rundungen, Rot nur für Hauptknopf und Markierungen.
+- Schrift: „Microsoft Yi Baiti“ (nur lokal, nicht mitliefern), Ersatz „Didact Gothic“ (OFL) aus `schriften/`; überall in der
+  Oberfläche, auch für Zahlen. Stil nach adept.dk: eine Schriftstärke, Betonung über Größe, keine Versalien, viel Weißraum,
+  feine Linien nur bei Tabellen/Legenden. Oberfläche schwarz-weiß, Rot nur in den Plänen.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

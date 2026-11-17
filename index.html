@@ -86,22 +86,23 @@
       </div>
       <nav class="tabs" role="tablist" aria-label="Ansichten">
         <button class="tab is-active" data-view="karte" role="tab">Karte</button>
+        <!-- Reihenfolge nach Arbeitsablauf: 1 Orientierung, 2 Pläne, 3 Grundstück und Markt, 4 Darstellung, 5 Zahlen. Trennstrich = Gruppenende. -->
         <button class="tab" data-view="luftbild" role="tab">Luftbild</button>
+        <button class="tab tab-trenner" data-view="infos" role="tab">Umgebung</button>
         <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
         <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
-        <button class="tab" data-view="gruen" role="tab">Grün</button>
-        <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="gruen" role="tab">Grün &amp; Wasser</button>
+        <button class="tab tab-trenner" data-view="lageplan" role="tab">Lageplan</button>
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
-        <button class="tab" data-view="infos" role="tab">Infos</button>
-        <button class="tab" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
-        <button class="tab" data-view="schnitt" role="tab">Schnitt</button>
-        <button class="tab" data-view="3d" role="tab">3D</button>
+        <button class="tab tab-trenner" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
+        <button class="tab" data-view="schnitt" role="tab">Schnitt &amp; Ansicht</button>
+        <button class="tab tab-trenner" data-view="3d" role="tab">3D-Modell</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für elf Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise, Infos, Wirtschaftlichkeit und Schnitt.
+        <!-- Eine Karte für elf Reiter: Karte, Luftbild, Umgebung (data-view infos), Schwarzplan, Straßennetz, Grün &amp; Wasser, Lageplan, Flurstücke, Mietpreise, Wirtschaftlichkeit und Schnitt &amp; Ansicht.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -157,6 +158,9 @@
               <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
               <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
               <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
+              <label><input type="checkbox" id="schnitt-gelaende" checked> Gelände dahinter</label>
+              <label><input type="checkbox" id="schnitt-baeume" checked> Bäume</label>
+              <label><input type="checkbox" id="schnitt-wasser" checked> Wasser</label>
               <label><input type="checkbox" id="schnitt-strasse" checked> Straßenflächen</label>
               <label><input type="checkbox" id="schnitt-grenzen" checked> Flurstücksgrenzen</label>
               <label><input type="checkbox" id="schnitt-mass" checked> Bemaßung</label>
@@ -166,7 +170,7 @@
             <div class="schnitt-info" id="schnitt-info"></div>
             <div class="schnitt-hinweis" id="schnitt-hinweis"></div>
             <svg id="schnitt-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schnitt oder Straßenansicht"></svg>
-            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume fehlen. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben.</p>
+            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume sind aus OpenStreetMap, die Höhe ist meist geschätzt; die Gewässertiefe ist unbekannt. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben.</p>
           </div>
           <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
           <div class="flst-info" id="luft-info" hidden>

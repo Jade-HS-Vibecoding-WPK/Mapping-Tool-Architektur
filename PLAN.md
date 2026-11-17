@@ -850,6 +850,25 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Nicht getestet / Grenzen:** DXF in Allplan und ArchiCAD (das müsstest du prüfen), sehr lange Linien (über 1 km), Gebäude mit Innenhöfen oder Durchfahrten (LoD2 hat keine Innenräume, werden zu
   Vollkörpern), Dachüberstände (können im Schnitt als Vollkörper zu breit wirken), Bäume (fehlen), Maleralgorithmus bei stark verschachtelten Dächern, Genauigkeit der Maße gegen Aufmaß (Gelände DGM1
   1 m Raster, Gebäude LoD2; nicht vermessungsgenau), Handy, andere Browser. Die Linie lässt sich nicht nachträglich an den Enden ziehen (neue Linie ziehen).
+- [x] **Schnitt: Tiefe sichtbar, Bäume, Wasser, Gelände dahinter** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**; Erweiterung von `schnitt.js` nach Rückmeldung): „Tiefe“ ist die
+  Tiefe der Schnitt-/Ansichtslinie, also wie weit die Zeichnung hinter der Linie reicht (Standard 30 m, einstellbar 5 bis 300 m).
+  **Tiefe sichtbar:** auf der Karte als gestricheltes, rötlich getöntes **Band** neben der Linie in Blickrichtung (folgt Tiefe und Blickseite sofort); in der Zeichnung eine **Tiefenskala** (Farbverlauf
+  dunkel = nah, hell = fern, mit 0 m und Tiefe) unten links; die Tiefenstaffelung ist kräftiger (Grau von 172 nah bis 238 fern, nahe Kanten stärker); die Infozeile nennt die Tiefe.
+  **Bäume:** Stämme aus OpenStreetMap mit der Kronengröße der Karte (Krone aus OSM, aus der Höhe oder geschätzt), Höhe aus OSM, sonst das Doppelte des Kronendurchmessers (geschätzt, im Test 16 von
+  18 Bäumen); Bäume als **Architektur-Strichzeichnung** (nach Rückmeldung: Farbverläufe wirkten kindlich): weiße Krone mit unregelmäßigem Umriss aus vielen kleinen Blattzeichen am Rand, lockere Punktierung innen (unten rechts dichter), Astgabeln, Stamm mit Fuß und Rindenstrichen; Nadelbaum gestuft mit Nadelstrichen; **einfarbig**: weiße Fläche, überall dieselbe dunkle Linie, keine Abstufung nach Entfernung (Form je Baum fest, Zufall aus der Position; in der DXF nur die Umrisse von Stamm und Krone) (Form je Baum fest, Zufall aus der Position); in der DXF dieselben Umrisse; Bäume, die die Linie trifft, werden an der Ebene gekappt (Kreissehne) und dunkelgrün über dem Schnitt gezeichnet, Bäume dahinter
+  nach Entfernung heller und zusammen mit den Gebäuden von hinten nach vorn sortiert.
+  **Wasser:** Gewässerflächen aus OpenStreetMap, die die Linie kreuzt (genau), und Wasserlinien mit geschätzter Breite (gestrichelt, „ca.“); Wasserfläche als blauer Balken an der Geländehöhe mit
+  Breite in der Maßkette (im Test 13,9 m). **Die Gewässertiefe ist unbekannt**: das Blau läuft nach unten aus (darstellerisch 1,5 m).
+  **Gelände dahinter:** Höhenprofile des Höhenmodells in sechs Abständen hinter der Linie plus die Hüllkurve (höchster Wert je Stelle) als getönte Fläche; nur im Raster des Höhenmodells.
+  Neue Schalter: Gelände dahinter, Bäume, Wasser. **DXF** neu: Layer BAEUME (Stamm und Krone als Vielecke), WASSER, GELAENDE_DAHINTER.
+  **Getestet** (echte Daten, Linie 186 m): 18 Bäume (3 geschnitten), 1 Gewässer (65,7 bis 79,7 m), 6 Geländeprofile, Tiefenband auf der Karte bei 30 m und 60 m (gemessene Bandtiefe 60 m), Seitenwechsel
+  (Band spiegelt), Schalter aus und an, beide Modi, alle dreizehn Reiter ohne Fehlermeldung; Zeichnung am Bildschirm gesehen; **DXF mit ezdxf geprüft: drei Dateien, 0 Fehler, 0 Korrekturen**.
+  **Nicht getestet / Grenzen:** Baumhöhen sind meist geschätzt (nicht gemessen), Kronenform schematisch; Wasserlinien-Breite geschätzt; Gewässerprofil unbekannt; Gelände dahinter nur im Höhenraster
+  (außerhalb Niedersachsens gibt es keins); DXF weiter nicht in Allplan oder ArchiCAD getestet; Handy, andere Browser.
+- [x] **Reiter neu sortiert und umbenannt** (nur lokal, **nicht committet**): Reihenfolge nach Arbeitsablauf, mit Trennstrich zwischen den Gruppen:
+  (1) Karte, Luftbild, Umgebung | (2) Schwarzplan, Straßennetz, Grün & Wasser, Lageplan | (3) Flurstücke, Mietpreise, Wirtschaftlichkeit | (4) Schnitt & Ansicht, 3D-Modell | (5) Kennzahlen.
+  Umbenannt: Infos → **Umgebung**, Grün → **Grün & Wasser**, Schnitt → **Schnitt & Ansicht**, 3D → **3D-Modell**. Die internen Namen (`infos`, `gruen`, `schnitt`, `3d`) und alle Dateien
+  bleiben gleich, geändert sind nur `index.html` (Reihenfolge, Beschriftung), `style.css` (Trennstrich) und der Ladeleisten-Text. **Nicht geprüft:** Handy-Breite (Leiste scrollt seitlich).
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

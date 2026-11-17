@@ -30,10 +30,11 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   (Gutachterausschuss Niedersachsen, Landesgrundstücksmarktdaten 2025), ImmoWertV Anlage 1, 3, 4, BewG Anlage 24, Mietspiegel Oldenburg 2025, Baupreisindex (Destatis). Jedes Feld im
   Reiter zeigt Quelle und Art (amtlich, Marktangabe, Annahme). Neue Standardwerte nur mit Quelle eintragen. Nie als Gutachten oder Anlageberatung darstellen;
   Richtwert-GFZ ersetzt keinen Bebauungsplan.
-- Schnitt (Reiter „Schnitt“, `schnitt.js`): gezogene Linie, senkrechter Schnitt durch Gelände (DGM1), LoD2-Gebäude (Ebene mit jeder Dach- und Wandfläche geschnitten, Poché als Vollkörper),
-  amtliche Straßenflächen und Flurstücksgrenzen; Straßenansicht aus den LoD2-Flächen. Export nur DXF (R12, Meter, X = Abstand entlang der Linie, Y = Höhe über NHN, keine Füllungen). DXF mit ezdxf
+- Schnitt (Reiter „Schnitt & Ansicht“, intern `schnitt`, `schnitt.js`): gezogene Linie, senkrechter Schnitt durch Gelände (DGM1), LoD2-Gebäude (Ebene mit jeder Dach- und Wandfläche geschnitten, Poché als Vollkörper),
+  amtliche Straßenflächen, Flurstücksgrenzen, Bäume (OSM, Höhe meist geschätzt), Wasser (OSM, Gewässertiefe unbekannt) und Gelände dahinter; die Tiefe der Ansicht ist als Band auf der Karte
+  sichtbar. Straßenansicht aus den LoD2-Flächen. Export nur DXF (R12, Meter, X = Abstand entlang der Linie, Y = Höhe über NHN, keine Füllungen). DXF mit ezdxf
   geprüft, in Allplan/ArchiCAD ungetestet (das macht die Nutzerin / der Nutzer).
-- Infos (Reiter „Infos“, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
+- Umgebung (Reiter „Umgebung“, früher „Infos“, intern `infos`, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km².

@@ -178,6 +178,7 @@ html, body {
   color: var(--ink-soft);
   white-space: nowrap;
 }
+.tab-trenner { border-right: 2px solid var(--ink-soft); }   /* Ende einer Gruppe von Reitern */
 .tab:hover { color: var(--ink); }
 .tab.is-active {
   color: var(--ink);

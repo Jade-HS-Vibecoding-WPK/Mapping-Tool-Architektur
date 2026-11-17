@@ -19,7 +19,7 @@ const LADE_QUELLEN = {
   dgm:   { name: "Gelände (LGLN)", gewicht: 10 },
   flst:  { name: "Flurstücke und Bodenrichtwerte (LGLN)", gewicht: 10 },
   mieten: { name: "Mieten (Zensus 2022)", gewicht: 5 },
-  infos: { name: "Infos: Kitas, Läden, Haltestellen … (OSM)", gewicht: 10 }
+  infos: { name: "Umgebung: Kitas, Läden, Haltestellen … (OSM)", gewicht: 10 }
 };
 const ladeFeld = document.getElementById("ladeleiste");
 const ladeListe = document.getElementById("lade-liste");

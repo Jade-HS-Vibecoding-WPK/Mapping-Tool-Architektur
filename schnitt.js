@@ -13,7 +13,10 @@
    Wichtig und ehrlich:
      - LoD2 kennt keine Innenräume: geschnittene Gebäude sind Vollkörper (Poché). Durchfahrten, Höfe unter Dach und Keller fehlen.
      - Gebäude ohne LoD2 (z. B. wenn LoD2 abgeschaltet ist) erscheinen als Blöcke aus OpenStreetMap mit geschätzter Höhe (Geschosse mal 3 m).
-     - Bäume, Fenster, Türen, Vordächer und Möblierung fehlen. Die Zeichnung ist nicht vermessungsgenau.
+     - Bäume stammen aus OpenStreetMap (Standort und, wenn eingetragen, Höhe und Kronendurchmesser); sonst sind Höhe und Krone geschätzt.
+       Wasser: Gewässerflächen aus OpenStreetMap (Wasserlinien mit geschätzter Breite); die Tiefe des Gewässers ist unbekannt (Blau läuft aus).
+       Gelände dahinter: Höhenprofile des Höhenmodells in sechs Abständen hinter der Linie.
+     - Fenster, Türen, Vordächer und Möblierung fehlen. Die Zeichnung ist nicht vermessungsgenau.
      - Die Straßenansicht sortiert die Flächen nach Entfernung (Maleralgorithmus); bei sehr verschachtelten Dächern kann die Überdeckung abweichen.
      - Die DXF-Datei ist nicht in Allplan oder ArchiCAD getestet.
    ============================================================ */
@@ -28,8 +31,10 @@ const schnittInfo = document.getElementById("schnitt-info");
 const sEl = {
   neu: document.getElementById("schnitt-linie-neu"), seite: document.getElementById("schnitt-seite"), tiefe: document.getElementById("schnitt-tiefe"),
   strasse: document.getElementById("schnitt-strasse"), grenzen: document.getElementById("schnitt-grenzen"), mass: document.getElementById("schnitt-mass"),
-  dahinter: document.getElementById("schnitt-dahinter"), fit: document.getElementById("schnitt-fit"), dxf: document.getElementById("schnitt-dxf")
+  dahinter: document.getElementById("schnitt-dahinter"), fit: document.getElementById("schnitt-fit"), dxf: document.getElementById("schnitt-dxf"),
+  baeume: document.getElementById("schnitt-baeume"), wasser: document.getElementById("schnitt-wasser"), gelaende: document.getElementById("schnitt-gelaende")
 };
+const SCHNITT_EBENEN = ["schnitt-tiefe", "schnitt-tiefe-rand", "schnitt-rand", "schnitt-linie", "schnitt-punkte"];
 let schnittLinie = null;          // { a: [Ost, Nord], b: [Ost, Nord] } in UTM 32
 let schnittZeichnen = false;
 let schnittStart = null;
@@ -44,6 +49,11 @@ let schnittGebCache = { stand: "", liste: [] };
 function legeSchnittEbenenAn() {
   map.addSource("schnitt", { type: "geojson", data: leer });
   const unsichtbar = { visibility: "none" };
+  // Band der Ansichtstiefe: so weit reicht die Zeichnung in Blickrichtung hinter die Linie
+  map.addLayer({ id: "schnitt-tiefe", type: "fill", source: "schnitt", layout: unsichtbar, filter: ["==", ["get", "teil"], "tiefe"],
+    paint: { "fill-color": FARBE.flst.auswahl, "fill-opacity": 0.14 } }, "gebiet-flaeche");
+  map.addLayer({ id: "schnitt-tiefe-rand", type: "line", source: "schnitt", layout: unsichtbar, filter: ["==", ["get", "teil"], "tiefe"],
+    paint: { "line-color": FARBE.flst.auswahl, "line-width": 1.4, "line-dasharray": [3, 2] } }, "gebiet-flaeche");
   map.addLayer({ id: "schnitt-rand", type: "line", source: "schnitt", layout: { ...unsichtbar, "line-cap": "round" },
     filter: ["in", ["get", "teil"], ["literal", ["linie", "pfeil"]]], paint: { "line-color": "#ffffff", "line-width": 7 } }, "gebiet-flaeche");
   map.addLayer({ id: "schnitt-linie", type: "line", source: "schnitt", layout: { ...unsichtbar, "line-cap": "round" },
@@ -62,9 +72,10 @@ function schnittK(linie, seite) {
 function setzeSchnittLinieKarte(linie) {
   if (!kartenBereit) return;
   const sichtbar = aktuelleAnsicht === "schnitt" && linie ? "visible" : "none";
-  for (const id of ["schnitt-rand", "schnitt-linie", "schnitt-punkte"]) map.setLayoutProperty(id, "visibility", sichtbar);
+  for (const id of SCHNITT_EBENEN) map.setLayoutProperty(id, "visibility", sichtbar);
   if (!linie) { map.getSource("schnitt").setData(leer); return; }
   const seite = Number(sEl.seite.value);
+  const tiefe = Math.max(5, Math.min(300, Number(sEl.tiefe.value) || 30));
   const K = schnittK(linie, seite);
   const ll = (x, y) => utmWandler.inverse([x, y]);
   const feat = (teil, geometrie, eig = {}) => ({ type: "Feature", properties: { teil, ...eig }, geometry: geometrie });
@@ -72,7 +83,9 @@ function setzeSchnittLinieKarte(linie) {
   const vx = K.nx * seite, vy = K.ny * seite;                                    // Blickrichtung (quer zur Linie)
   const tx = mx + vx * 14, ty = my + vy * 14;                                    // Pfeilspitze, 14 m neben der Linie
   const kopf = (w) => [ll(tx, ty), ll(tx - vx * 4 + K.ux * w, ty - vy * 4 + K.uy * w)];
+  const bandPunkt = ([x, y]) => ll(x + vx * tiefe, y + vy * tiefe);
   return map.getSource("schnitt").setData({ type: "FeatureCollection", features: [
+    feat("tiefe", { type: "Polygon", coordinates: [[ll(...linie.a), ll(...linie.b), bandPunkt(linie.b), bandPunkt(linie.a), ll(...linie.a)]] }),
     feat("linie", { type: "LineString", coordinates: [ll(...linie.a), ll(...linie.b)] }),
     feat("pfeil", { type: "LineString", coordinates: [ll(mx, my), ll(tx, ty)] }),
     feat("pfeil", { type: "LineString", coordinates: kopf(2.8) }),
@@ -380,19 +393,213 @@ function rechneSchnitt() {
     for (const s of treffer) if (!D.grenzen.length || s - D.grenzen[D.grenzen.length - 1] > 0.2) D.grenzen.push(s);
   }
 
+  // Bäume: Stämme aus OpenStreetMap mit der Kronengröße aus der Karte (Krone aus OSM, aus der Höhe oder geschätzt).
+  // Höhe: OSM-Wert, sonst das Doppelte des Kronendurchmessers (so rechnet auch die Kronengröße in app.js aus der Höhe). Das ist eine Schätzung.
+  D.baeume = [];
+  for (const f of baumFeatures) {
+    if (f.properties.form !== "stamm") continue;
+    const [e, n] = utmWandler.forward(f.geometry.coordinates);
+    const s = (e - K.ax) * K.ux + (n - K.ay) * K.uy;
+    const d = seite * ((e - K.ax) * K.nx + (n - K.ay) * K.ny);
+    const kd = f.properties.d, r = kd / 2;
+    if (s < -r || s > L + r || d < -r || d > tiefe + r) continue;
+    const hOsm = f.properties.hoehe >= 3 && f.properties.hoehe <= 45;
+    const H = hOsm ? f.properties.hoehe : Math.min(35, Math.max(5, kd * 2));
+    const kh = H * (f.properties.nadel ? 0.8 : 0.6);
+    const z0 = gelaende && gelaendeImRaster(e, n) ? gelaendeHoehe(e, n) : zGelaende(Math.min(L, Math.max(0, s)));
+    D.baeume.push({ s, d, r, H, kh, zBasis: z0 + H - kh, z0, nadel: !!f.properties.nadel, geschaetzt: !hOsm, geschnitten: Math.abs(d) < r });
+  }
+
+  // Wasser entlang der Linie: Flächen aus OpenStreetMap (genau) und Wasserlinien (Breite geschätzt)
+  D.wasser = [];
+  {
+    const la = utmWandler.inverse(schnittLinie.a), lb = utmWandler.inverse(schnittLinie.b);
+    const rand = 0.0004;
+    const bb = [Math.min(la[0], lb[0]) - rand, Math.min(la[1], lb[1]) - rand, Math.max(la[0], lb[0]) + rand, Math.max(la[1], lb[1]) + rand];
+    for (const f of osmFeatures) {
+      const kat = f.properties.kat;
+      if (kat !== "wasser" && kat !== "wasserlinie") continue;
+      const fb = turf.bbox(f);
+      if (fb[2] < bb[0] || fb[0] > bb[2] || fb[3] < bb[1] || fb[1] > bb[3]) continue;
+      if (kat === "wasser") {
+        const polygone = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [];
+        for (const poly of polygone) {
+          const s = [];
+          for (const ring of poly) s.push(...kantenKreuzungen2D(ring.map((pt) => utmWandler.forward(pt)), K));
+          s.sort((p, q) => p - q);
+          for (let i = 0; i + 1 < s.length; i += 2) {
+            const s0 = Math.max(0, s[i]), s1 = Math.min(L, s[i + 1]);
+            if (s1 - s0 > 0.1) D.wasser.push({ s0, s1, geschaetzt: false });
+          }
+        }
+      } else {
+        const linien = f.geometry.type === "MultiLineString" ? f.geometry.coordinates : f.geometry.type === "LineString" ? [f.geometry.coordinates] : [];
+        const breite = WASSER_BREITE_SCHAETZUNG[f.properties.typ] || 2;
+        for (const koordinaten of linien) {
+          const utm = koordinaten.map((pt) => utmWandler.forward(pt));
+          for (let i = 0; i + 1 < utm.length; i++) {
+            const d0 = (utm[i][0] - K.ax) * K.nx + (utm[i][1] - K.ay) * K.ny, d1 = (utm[i + 1][0] - K.ax) * K.nx + (utm[i + 1][1] - K.ay) * K.ny;
+            if ((d0 > 0) === (d1 > 0)) continue;
+            const t = d0 / (d0 - d1);
+            const s = (utm[i][0] + t * (utm[i + 1][0] - utm[i][0]) - K.ax) * K.ux + (utm[i][1] + t * (utm[i + 1][1] - utm[i][1]) - K.ay) * K.uy;
+            const s0 = Math.max(0, s - breite / 2), s1 = Math.min(L, s + breite / 2);
+            if (s1 > s0) D.wasser.push({ s0, s1, geschaetzt: true });
+          }
+        }
+      }
+    }
+    // Überlagerungen (z. B. Fluss als Fläche und als Linie) zusammenfassen; ein Stück gilt als genau, wenn eine Fläche beteiligt ist
+    D.wasser.sort((p, q) => p.s0 - q.s0);
+    const wz = [];
+    for (const w of D.wasser) {
+      const letzter = wz[wz.length - 1];
+      if (letzter && w.s0 <= letzter.s1 + 0.2) { letzter.s1 = Math.max(letzter.s1, w.s1); letzter.geschaetzt = letzter.geschaetzt && w.geschaetzt; }
+      else wz.push({ ...w });
+    }
+    D.wasser = wz;
+  }
+
+  // Gelände dahinter: Höhenprofile in sechs Abständen hinter der Linie. Die Hüllkurve (höchster Wert je Stelle) ist das Gelände, das man sieht.
+  D.gelaendeHinten = null;
+  if (D.hatGelaende) {
+    const schrittH = Math.max(1, L / 400);
+    const scheiben = [];
+    for (let k = 1; k <= 6; k++) {
+      const tiefeK = (tiefe * k) / 6, pts = [];
+      for (let s = 0; s <= L + 1e-6; s += schrittH) {
+        const sc = Math.min(s, L);
+        const e = K.ax + K.ux * sc + K.nx * seite * tiefeK, n = K.ay + K.uy * sc + K.ny * seite * tiefeK;
+        pts.push([sc, gelaendeImRaster(e, n) ? gelaendeHoehe(e, n) : null]);
+      }
+      scheiben.push({ tiefe: tiefeK, pts });
+    }
+    const huelle = D.gelaende.filter((_, i) => i % Math.max(1, Math.round(schrittH / schritt)) === 0).map(([s, z]) => {
+      let h = z;
+      for (const sch of scheiben) { const p = sch.pts[Math.min(sch.pts.length - 1, Math.round(s / schrittH))]; if (p && p[1] != null) h = Math.max(h, p[1]); }
+      return [s, h];
+    });
+    D.gelaendeHinten = { scheiben, huelle };
+  }
+
   const zs = D.gelaende.map((p) => p[1]);
   D.zMin = Math.min(...zs); D.zMax = Math.max(...zs);
   let oben = D.zMax;
   for (const g of D.geschnitten) oben = Math.max(oben, g.firstZ);
   for (const a of D.ansicht) for (const p of a.pts) oben = Math.max(oben, p[1]);
+  for (const b of D.baeume) oben = Math.max(oben, b.z0 + b.H);
   D.zOben = oben;
   return D;
 }
 
+// Liegt ein Punkt (UTM) im Höhenraster? (Außerhalb gäbe gelaendeHoehe nur den Randwert zurück.)
+function gelaendeImRaster(e, n) {
+  return !!gelaende && e >= gelaende.x0 && e <= gelaende.x0 + gelaende.breite && n <= gelaende.yOben && n >= gelaende.yOben - gelaende.hoehe;
+}
+
 // ---------- 4. Zeichnung (SVG) ----------
 const fmt = (x) => (Math.round(x * 100) / 100).toString();
-const grau = (anteil) => { const g = Math.round(214 + anteil * 30); return `rgb(${g},${g - 2},${g - 6})`; };
-const ersatzFarbe = (anteil) => { const m = (v, w) => Math.round(v + (255 - v) * w); return `rgb(${m(207, anteil * 0.5)},${m(220, anteil * 0.5)},${m(234, anteil * 0.5)})`; };
+// Tiefenstaffelung: nah (Anteil 0) dunkler, fern (Anteil 1) heller
+const grau = (anteil) => { const g = Math.round(172 + Math.min(1.1, Math.max(-0.2, anteil)) * 66); return `rgb(${g},${g - 2},${g - 6})`; };
+const ersatzFarbe = (anteil) => { const m = (v, w) => Math.round(v + (255 - v) * w); return `rgb(${m(160, anteil * 0.7)},${m(185, anteil * 0.7)},${m(210, anteil * 0.7)})`; };
+// Feste Zufallszahlen je Baum (immer gleiches Aussehen bei jedem Neuzeichnen)
+function zufallsFolge(seed) { let s = seed % 4294967296; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; }
+
+// Form eines Baums als Punktlisten [Abstand, Höhe]; rx = Kronenradius an der Schnittebene.
+// Architektur-Strichzeichnung wie in Entourage-Bibliotheken: unregelmäßige Krone aus vielen kleinen Blattzeichen am Rand,
+// lockere Punktierung innen (unten rechts dichter), Astgabeln, Stamm mit Rindenstrichen. Nadelbaum: gestufte Form mit Nadelstrichen.
+function baumGeometrie(b, x, rx) {
+  const zuf = zufallsFolge(Math.floor(Math.abs(b.s * 977 + b.d * 131 + b.r * 17) * 1000) + 7);
+  const w0 = Math.min(0.4, 0.14 + b.H * 0.009), w1 = w0 * 0.6;
+  const g = { stamm: [], kronen: [], marken: [], punkte: [], aeste: [], rinde: [], striche: [] };
+  const stammBis = b.zBasis + (b.nadel ? 0.4 : 0.8);
+  g.stamm = [[x - w0 * 1.4, b.z0], [x - w0, b.z0 + 0.45], [x - w1, stammBis], [x + w1, stammBis], [x + w0, b.z0 + 0.45], [x + w0 * 1.4, b.z0]];
+  for (let i = 0; i < 5; i++) {                                              // Rindenstriche
+    const fx = -0.7 + i * 0.35, za = b.z0 + 0.5 + zuf() * 0.8, zb = za + (stammBis - b.z0) * (0.25 + zuf() * 0.4);
+    const breiteBei = (z) => w0 + (w1 - w0) * Math.min(1, (z - b.z0) / Math.max(0.1, stammBis - b.z0));
+    g.rinde.push([x + fx * breiteBei(za) * 0.8, za, x + fx * breiteBei(zb) * 0.8, Math.min(zb, stammBis - 0.1)]);
+  }
+  if (b.nadel) {
+    const n = b.H >= 12 ? 4 : 3;
+    const th = b.kh / (1 + (n - 1) * 0.55), step = th * 0.55;
+    for (let i = n - 1; i >= 0; i--) {                                       // unten zuerst, die oberen Stufen überdecken die unteren
+      const zA = b.z0 + b.H - i * step, zB = zA - th, w = rx * (0.5 + 0.5 * (i + 1) / n);
+      const pts = [[x, zA], [x + w, zB]];
+      for (let j = 1; j < 4; j++) pts.push([x + w - (2 * w * j) / 4, zB + (j % 2 ? th * 0.14 : 0)]);
+      pts.push([x - w, zB]);
+      g.kronen.push({ pts, ton: i });
+      const kante = Math.round(7 + w * 2.2);
+      for (let k = 0; k < kante; k++) {                                      // Nadelstriche an den Kanten, rechts dichter
+        const rechts = zuf() < 0.62, t = 0.12 + zuf() * 0.88, seite = rechts ? 1 : -1;
+        const px = x + seite * w * t * 0.97, pz = zA - (zA - zB) * t, l = th * (0.1 + zuf() * 0.1);
+        g.striche.push([px, pz, px + seite * l * 0.7, pz - l * 1.5]);
+      }
+      const dots = Math.round(w * th * 0.9);
+      for (let k = 0; k < dots; k++) {                                       // Punkte, rechts unten dichter
+        const t = Math.sqrt(zuf()), px = x + (zuf() * 2 - 1) * w * t, pz = zA - (zA - zB) * t * 0.95 - th * 0.03;
+        if (zuf() < 0.35 + 0.4 * ((px - x) / w + 1) / 2) g.punkte.push([px, pz]);
+      }
+    }
+    return g;
+  }
+  // Laubbaum
+  const ry = b.kh / 2, cz = b.zBasis + ry;
+  const p1 = zuf() * 6.28, p2 = zuf() * 6.28, p3 = zuf() * 6.28;
+  const f = (a) => 0.93 * (1 + 0.05 * Math.sin(3 * a + p1) + 0.04 * Math.sin(5 * a + p2) + 0.03 * Math.sin(8 * a + p3));
+  const dicht = (a) => 0.5 + 0.5 * (0.5 * Math.cos(a) - 0.5 * Math.sin(a));       // 1 = rechts unten, 0 = links oben
+  const pts = [];
+  for (let i = 0; i < 72; i++) { const a = (2 * Math.PI * i) / 72; pts.push([x + rx * f(a) * Math.cos(a), cz + ry * f(a) * Math.sin(a)]); }
+  g.kronen.push({ pts, ton: 0 });
+  const kl = Math.min(rx, ry);
+  const marke = (px, pz, l) => { const t = zuf() * 6.28; g.marken.push([px, pz, px + Math.cos(t) * l, pz + Math.sin(t) * l, px + Math.cos(t + 1.3) * l * 1.3, pz + Math.sin(t + 1.3) * l * 1.3]); };
+  const nRand = Math.min(280, Math.max(110, Math.round(90 + 28 * rx)));
+  for (let versuch = 0, n = 0; n < nRand && versuch < nRand * 6; versuch++) {      // Blattzeichen am Rand
+    const a = zuf() * 6.28;
+    if (zuf() > 0.3 + 0.7 * dicht(a)) continue;
+    const r = f(a) * (0.86 + 0.17 * zuf());
+    marke(x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a), kl * (0.045 + 0.06 * zuf()));
+    n++;
+  }
+  for (let i = 0; i < 14; i++) {                                              // einzelne Blattzeichen innen
+    const a = zuf() * 6.28, r = f(a) * (0.25 + 0.5 * Math.sqrt(zuf()));
+    marke(x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a), kl * (0.05 + 0.04 * zuf()));
+  }
+  const nPunkte = Math.min(220, Math.max(60, Math.round(rx * ry * 3.2)));
+  for (let versuch = 0, n = 0; n < nPunkte && versuch < nPunkte * 6; versuch++) { // Punktierung innen
+    const a = zuf() * 6.28, r = f(a) * 0.88 * Math.sqrt(zuf());
+    if (zuf() > 0.25 + 0.75 * dicht(a)) continue;
+    g.punkte.push([x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a)]);
+    n++;
+  }
+  const streck = rx / ry;                                                     // Äste so strecken, dass sie in die Krone passen
+  const ast = (x0, z0, ang, len, tief) => {
+    const x1 = x0 + Math.cos(ang) * len * streck, z1 = z0 + Math.sin(ang) * len;
+    g.aeste.push([x0, z0, x1, z1]);
+    if (tief > 0) { ast(x1, z1, ang + 0.3 + zuf() * 0.3, len * 0.62, tief - 1); ast(x1, z1, ang - 0.3 - zuf() * 0.3, len * 0.62, tief - 1); }
+  };
+  for (const w of [-0.6, 0.02, 0.58]) ast(x, b.zBasis + 0.6, Math.PI / 2 + w + (zuf() - 0.5) * 0.2, ry * 0.5, 2);
+  return g;
+}
+
+// Ein Baum für die Zeichnung. Geschnitten = die Krone wird an der Ebene gekappt (Sehne des Kronenkreises), dann kräftiger gezeichnet.
+function baumSvg(b, D, geschnitten) {
+  const x = D.xAnz(b.s);
+  const rx = geschnitten ? Math.sqrt(Math.max(0.04, b.r * b.r - b.d * b.d)) : b.r;
+  const g = baumGeometrie(b, x, rx);
+  const punkte = (pts) => pts.map(([px, pz]) => `${fmt(px)},${fmt(-pz)}`).join(" ");
+  const strich = "#1a1a1a";                                                       // einfarbig: immer dieselbe dunkle Linie, Fläche weiß
+  const sw = geschnitten ? 0.9 : 0.55;
+  const ne = 'vector-effect="non-scaling-stroke"';
+  const pfad = (teile, breite, op = 1, extra = "") => teile ? `<path d="${teile}" fill="none" stroke="${strich}" stroke-width="${breite}" stroke-opacity="${op}" stroke-linecap="round" stroke-linejoin="round" ${ne}${extra}/>` : "";
+  const m = (px, pz) => `M${fmt(px)},${fmt(-pz)}`;
+  let s = `<polygon points="${punkte(g.stamm)}" fill="#fff" stroke="${strich}" stroke-width="${sw}" ${ne} stroke-linejoin="round"/>`;
+  s += pfad(g.rinde.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), 0.4, 0.8);
+  for (const k of g.kronen) s += `<polygon points="${punkte(k.pts)}" fill="#fff" stroke="${strich}" stroke-width="${sw * (b.nadel ? 1 : 0.7)}" stroke-opacity="${b.nadel ? 1 : 0.8}" ${ne} stroke-linejoin="round"/>`;
+  s += pfad(g.aeste.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), 0.45, 0.6);
+  s += pfad(g.striche.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), sw * 0.9);
+  s += pfad(g.marken.map(([px, pz, cx, cz, ex, ez]) => `${m(px, pz)}Q${fmt(cx)},${fmt(-cz)} ${fmt(ex)},${fmt(-ez)}`).join(""), sw);
+  s += pfad(g.punkte.map(([px, pz]) => `${m(px, pz)}h0.01`).join(""), geschnitten ? 1.5 : 1.15, 0.9);
+  return s;
+}
 
 function baueSchnittSvg(D) {
   const y = (z) => -z;
@@ -404,15 +611,40 @@ function baueSchnittSvg(D) {
   const gelaendeLinie = D.seite > 0 ? gl : [...gl].reverse();
   teile.push(`<polygon points="${gelaendeLinie.join(" ")} ${fmt(D.L)},${fmt(y(bodenUnten))} 0,${fmt(y(bodenUnten))}" fill="url(#s-erde)" stroke="none"/>`);
 
-  // Ansicht in Blickrichtung (Straßenansicht, im Schnitt grau dahinter)
-  if (schnittModus === "ansicht" || hell) {
-    const buf = [];
+  const dahinterAn = schnittModus === "ansicht" || hell;
+
+  // Gelände dahinter: das Gelände, das hinter der Linie ansteigt, als Fläche bis zur Hüllkurve und als Höhenprofile in sechs Abständen
+  if (dahinterAn && sEl.gelaende.checked && D.gelaendeHinten) {
+    const gh = D.gelaendeHinten;
+    const h = D.seite > 0 ? gh.huelle : [...gh.huelle].reverse();
+    teile.push(`<polygon points="${h.map(([s, z]) => `${fmt(D.xAnz(s))},${fmt(y(z))}`).join(" ")} ${gelaendeLinie.slice().reverse().join(" ")}" fill="#ece5d3" fill-opacity="0.85" stroke="none"/>`);
+    gh.scheiben.forEach((sch, i) => {
+      const f = i / Math.max(1, gh.scheiben.length - 1);
+      let lauf = [];
+      const linien = [];
+      for (const [s, z] of sch.pts) { if (z == null) { if (lauf.length > 1) linien.push(lauf); lauf = []; } else lauf.push(`${fmt(D.xAnz(s))},${fmt(y(z))}`); }
+      if (lauf.length > 1) linien.push(lauf);
+      const grauwert = Math.round(120 + f * 90);
+      for (const l of linien) teile.push(`<polyline points="${l.join(" ")}" fill="none" stroke="rgb(${grauwert},${grauwert - 6},${grauwert - 20})" stroke-width="0.9" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`);
+    });
+  }
+
+  // Ansicht in Blickrichtung (Straßenansicht, im Schnitt grau dahinter), Gebäude und Bäume gemeinsam nach Entfernung sortiert
+  if (dahinterAn) {
+    const posten = [];
     for (const f of D.ansicht) {
       const anteil = Math.min(1, f.d / D.tiefe);
       const farbe = f.ersatz ? ersatzFarbe(anteil) : f.art === "dach" ? grau(anteil * 0.6 - 0.1) : grau(anteil);
-      buf.push(`<polygon points="${f.pts.map((p) => `${fmt(p[0])},${fmt(y(p[1]))}`).join(" ")}" fill="${farbe}" stroke="${anteil > 0.5 ? "#8a867d" : "#4a463f"}" stroke-width="0.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`);
+      posten.push({ d: f.d, svg: `<polygon points="${f.pts.map((p) => `${fmt(p[0])},${fmt(y(p[1]))}`).join(" ")}" fill="${farbe}" stroke="${anteil > 0.5 ? "#9a968d" : "#3a362f"}" stroke-width="${anteil > 0.5 ? 0.5 : 0.8}" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>` });
     }
-    teile.push(`<g id="s-ansicht">${buf.join("")}</g>`);
+    if (sEl.baeume.checked) {
+      for (const b of D.baeume) {
+        if (schnittModus === "schnitt" && b.geschnitten) continue;     // geschnittene Bäume kommen oben auf die Schnittebene
+        posten.push({ d: Math.max(0, b.d), svg: baumSvg(b, D, false) });
+      }
+    }
+    posten.sort((p, q) => q.d - p.d);                                  // von hinten nach vorn malen
+    teile.push(`<g id="s-ansicht">${posten.map((p) => p.svg).join("")}</g>`);
   }
 
   // Straßenflächen auf dem Gelände
@@ -426,8 +658,27 @@ function baueSchnittSvg(D) {
     }
   }
 
+  // Wasser: Wasserfläche an der Schnittebene. Die Tiefe des Gewässers kennen wir nicht, deshalb läuft das Blau nach unten aus.
+  if (sEl.wasser.checked) {
+    for (const w of D.wasser) {
+      const punkte = D.gelaende.filter(([s]) => s >= w.s0 && s <= w.s1);
+      if (!punkte.length) continue;
+      const zW = Math.min(...punkte.map((p) => p[1]));
+      const xa = Math.min(D.xAnz(w.s0), D.xAnz(w.s1)), xb = Math.max(D.xAnz(w.s0), D.xAnz(w.s1));
+      teile.push(`<rect x="${fmt(xa)}" y="${fmt(y(zW))}" width="${fmt(xb - xa)}" height="1.6" fill="url(#s-wasser)"${w.geschaetzt ? ' stroke="#2f7fc0" stroke-dasharray="4 3" stroke-width="0.8" vector-effect="non-scaling-stroke"' : ""}/>`);
+    }
+  }
+
   // Geländelinie
   teile.push(`<polyline points="${gelaendeLinie.join(" ")}" fill="none" stroke="#000" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`);
+  if (sEl.wasser.checked) {
+    for (const w of D.wasser) {
+      const punkte = D.gelaende.filter(([s]) => s >= w.s0 && s <= w.s1);
+      if (!punkte.length) continue;
+      const zW = Math.min(...punkte.map((p) => p[1]));
+      teile.push(`<line x1="${fmt(Math.min(D.xAnz(w.s0), D.xAnz(w.s1)))}" x2="${fmt(Math.max(D.xAnz(w.s0), D.xAnz(w.s1)))}" y1="${fmt(y(zW))}" y2="${fmt(y(zW))}" stroke="#2f7fc0" stroke-width="3" vector-effect="non-scaling-stroke"/>`);
+    }
+  }
 
   // Geschnittene Gebäude (Poché) im Schnitt
   if (schnittModus === "schnitt") {
@@ -439,6 +690,8 @@ function baueSchnittSvg(D) {
       }
     }
     teile.push(`<g id="s-poche">${buf.join("")}</g>`);
+    // Bäume, die die Schnittebene trifft
+    if (sEl.baeume.checked) teile.push(`<g id="s-baeume-schnitt">${D.baeume.filter((b) => b.geschnitten).map((b) => baumSvg(b, D, true)).join("")}</g>`);
   }
 
   // Flurstücksgrenzen als gestrichelte senkrechte Linien
@@ -484,6 +737,15 @@ function baueSchnittText(D, vb, pxBreite) {
         if (b * ppm > 26) text((xa + xb) / 2, y(zKette) - 4 / ppm, b * ppm > 80 ? `${namen[st.kat]} ${zahl(b, 2)} m` : `${zahl(b, 2)}`, { anker: "middle", klein: true });
       }
     }
+    if (sEl.wasser.checked) {
+      for (const w of D.wasser) {
+        const x0 = D.xAnz(w.s0), x1 = D.xAnz(w.s1), xa = Math.min(x0, x1), xb = Math.max(x0, x1), b = w.s1 - w.s0;
+        linie(xa, y(zKette), xb, y(zKette), "#2f7fc0", 1.5);
+        linie(xa, y(zKette) - 4 / ppm, xa, y(zKette) + 4 / ppm, "#2f7fc0", 1.5);
+        linie(xb, y(zKette) - 4 / ppm, xb, y(zKette) + 4 / ppm, "#2f7fc0", 1.5);
+        if (b * ppm > 26) text((xa + xb) / 2, y(zKette) - 4 / ppm, b * ppm > 90 ? `Wasser ${w.geschaetzt ? "ca. " : ""}${zahl(b, 1)} m` : `${zahl(b, 1)}`, { anker: "middle", klein: true, farbe: "#1f5f94" });
+      }
+    }
     linie(0, y(zGesamt), D.L, y(zGesamt), "#111", 1);
     linie(0, y(zGesamt) - 4 / ppm, 0, y(zGesamt) + 4 / ppm, "#111", 1);
     linie(D.L, y(zGesamt) - 4 / ppm, D.L, y(zGesamt) + 4 / ppm, "#111", 1);
@@ -515,6 +777,14 @@ function baueSchnittText(D, vb, pxBreite) {
   text(D.xAnz(D.L), y(D.zOben + 1.3), "B", { anker: "middle", fett: true });
   if (sEl.grenzen.checked && mass) for (const s of D.grenzen) text(D.xAnz(s), y(D.zOben + 1) + 12 / ppm, "Grenze", { anker: "middle", klein: true, farbe: "#2a9bd6" });
 
+  // Tiefenskala unten links: so weit hinter der Schnittebene reicht die Ansicht, dunkel = nah, hell = fern
+  if (schnittModus === "ansicht" || sEl.dahinter.checked) {
+    const bw = 120 / ppm, bh = 9 / ppm, tx = vb.x + 12 / ppm, ty = vb.y + vb.h - 34 / ppm;
+    t.push(`<rect x="${fmt(tx)}" y="${fmt(ty)}" width="${fmt(bw)}" height="${fmt(bh)}" fill="url(#s-tiefe)" stroke="#555" stroke-width="0.8" vector-effect="non-scaling-stroke"/>`);
+    text(tx, ty - 4 / ppm, `Tiefe hinter der ${schnittModus === "schnitt" ? "Schnittebene" : "Linie"}`, { klein: true, fett: true });
+    text(tx, ty + bh + 12 / ppm, "0 m", { klein: true });
+    text(tx + bw, ty + bh + 12 / ppm, `${zahl(D.tiefe)} m`, { klein: true, anker: "end" });
+  }
   // Maßstabsbalken unten rechts im Ausschnitt
   const balken = [1, 2, 5, 10, 20, 50, 100].find((m) => m * ppm >= 70) || 200;
   const bx = vb.x + vb.w - balken - 12 / ppm, by = vb.y + vb.h - 14 / ppm;
@@ -540,7 +810,9 @@ function zeichneSchnitt() {
   schnittSvg.setAttribute("viewBox", `${fmt(schnittBlick.x)} ${fmt(schnittBlick.y)} ${fmt(schnittBlick.w)} ${fmt(schnittBlick.h)}`);
   schnittSvg.innerHTML =
     `<defs><pattern id="s-erde" width="0.8" height="0.8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="0.8" height="0.8" fill="#f1ece1"/>` +
-    `<line x1="0" y1="0" x2="0" y2="0.8" stroke="#b9ae97" stroke-width="0.07"/></pattern></defs>` +
+    `<line x1="0" y1="0" x2="0" y2="0.8" stroke="#b9ae97" stroke-width="0.07"/></pattern>` +
+    `<linearGradient id="s-wasser" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6aaedb" stop-opacity="0.95"/><stop offset="1" stop-color="#6aaedb" stop-opacity="0"/></linearGradient>` +
+    `<linearGradient id="s-tiefe"x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${grau(0)}"/><stop offset="1" stop-color="${grau(1)}"/></linearGradient></defs>` +
     `<rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff"/>` +
     `<g id="s-geo">${baueSchnittSvg(D)}</g><g id="s-text"></g>`;
   zeichneSchnittText();
@@ -605,7 +877,7 @@ function schnittNeuRechnen() {
   if (schnittModus === "schnitt" && !D.geschnitten.length) hinweise.push("Die Linie schneidet kein Gebäude.");
   schnittHinweisSetzen(hinweise.join(" "));
   const zahlSchnitt = D.geschnitten.length;
-  schnittInfo.textContent = `Länge ${zahl(D.L, 1)} m · Gelände ${zahl(D.zMin, 1)} bis ${zahl(D.zMax, 1)} m NHN · ${zahl(zahlSchnitt)} Gebäude geschnitten`;
+  schnittInfo.textContent = `Länge ${zahl(D.L, 1)} m · Tiefe ${zahl(D.tiefe)} m · Gelände ${zahl(D.zMin, 1)} bis ${zahl(D.zMax, 1)} m NHN · ${zahl(zahlSchnitt)} Gebäude, ${zahl(D.baeume.length)} Bäume, ${zahl(D.wasser.length)} Gewässer`;
   zeichneSchnitt();
   console.info(`Schnitt: gerechnet in ${Math.round(performance.now() - t0)} ms, ${D.ansicht.length} Flächen in Blickrichtung, ${D.geschnitten.length} Gebäude geschnitten`);
 }
@@ -615,7 +887,7 @@ function aktualisiereSchnitt() {
   const aktiv = aktuelleAnsicht === "schnitt";
   schnittPanel.hidden = !aktiv;
   if (kartenBereit) {
-    for (const id of ["schnitt-rand", "schnitt-linie", "schnitt-punkte"]) map.setLayoutProperty(id, "visibility", aktiv && schnittLinie ? "visible" : "none");
+    for (const id of SCHNITT_EBENEN) map.setLayoutProperty(id, "visibility", aktiv && schnittLinie ? "visible" : "none");
     // Die Zeichnung deckt den unteren Teil der Karte ab: Karte entsprechend nach oben rücken
     const gewollt = aktiv ? Math.round(schnittPanel.clientHeight) : 0;
     if (gewollt !== schnittPaddingGesetzt) { schnittPaddingGesetzt = gewollt; map.easeTo({ padding: { bottom: gewollt, top: 0, left: 0, right: 0 }, duration: 0 }); }
@@ -632,7 +904,7 @@ function aktualisiereSchnitt() {
 
 sEl.neu.addEventListener("click", () => schnittModusZeichnen(!schnittZeichnen));
 for (const el of [sEl.seite, sEl.tiefe]) el.addEventListener("change", () => { if (schnittLinie) schnittNeuRechnen(); });
-for (const el of [sEl.strasse, sEl.grenzen, sEl.mass, sEl.dahinter]) el.addEventListener("change", () => { if (schnittDaten) zeichneSchnitt(); });
+for (const el of [sEl.strasse, sEl.grenzen, sEl.mass, sEl.dahinter, sEl.baeume, sEl.wasser, sEl.gelaende]) el.addEventListener("change", () => { if (schnittDaten) zeichneSchnitt(); });
 sEl.fit.addEventListener("click", () => { schnittBlick = null; zeichneSchnitt(); });
 document.querySelectorAll("#schnitt-umschalter button").forEach((b) => b.addEventListener("click", () => {
   schnittModus = b.dataset.modus;
@@ -653,7 +925,8 @@ function verwerfeSchnitt() {
 
 // ---------- 6. Legende (wird von legende.js benutzt) ----------
 function schnittLegendeEintraege() {
-  const e = [`<li><span class="sw sw-linie" style="background:${FARBE.flst.auswahl};height:3px"></span><span>Schnittlinie (A weiß, B schwarz), Pfeil = Blickrichtung</span></li>`];
+  const e = [`<li><span class="sw sw-linie" style="background:${FARBE.flst.auswahl};height:3px"></span><span>Schnittlinie (A weiß, B schwarz), Pfeil = Blickrichtung</span></li>`,
+    `<li><span class="sw" style="background:rgba(226,72,45,0.14);border:1px dashed ${FARBE.flst.auswahl}"></span><span>Band = Tiefe der Ansicht hinter der Linie</span></li>`];
   return e.join("");
 }
 function schnittEckdaten() {
@@ -671,7 +944,8 @@ const dxfZ = (x) => (Math.round(x * 1000) / 1000).toFixed(3);
 function baueDxf(D) {
   const ebenen = {
     GELAENDE: 7, GEBAEUDE_SCHNITT: 1, STRASSE_FAHRBAHN: 8, STRASSE_WEG: 40, STRASSE_PLATZ: 41, GRENZEN: 5,
-    ANSICHT_NAH: 7, ANSICHT_MITTE: 8, ANSICHT_FERN: 9, BEMASSUNG: 3, BESCHRIFTUNG: 7
+    ANSICHT_NAH: 7, ANSICHT_MITTE: 8, ANSICHT_FERN: 9, BEMASSUNG: 3, BESCHRIFTUNG: 7,
+    BAEUME: 3, WASSER: 5, GELAENDE_DAHINTER: 8
   };
   const e = [];
   const paar = (code, wert) => e.push(`${code}\n${wert}`);
@@ -690,6 +964,33 @@ function baueDxf(D) {
   for (const f of D.ansicht) {
     const ebene = f.d < drittel ? "ANSICHT_NAH" : f.d < 2 * drittel ? "ANSICHT_MITTE" : "ANSICHT_FERN";
     poly(ebene, f.pts, true);
+  }
+  // Gelände dahinter (Höhenprofile in sechs Abständen)
+  if (D.gelaendeHinten && sEl.gelaende.checked && (schnittModus === "ansicht" || sEl.dahinter.checked)) {
+    for (const sch of D.gelaendeHinten.scheiben) {
+      let lauf = [];
+      const aus = () => { if (lauf.length > 1) poly("GELAENDE_DAHINTER", lauf.sort((p, q) => p[0] - q[0]), false); lauf = []; };
+      for (const [s, z] of sch.pts) { if (z == null) aus(); else lauf.push([D.xAnz(s), z]); }
+      aus();
+    }
+  }
+  // Bäume: Stamm als Rechteck, Krone als Vieleck (Laubbaum Ellipse mit 24 Punkten, Nadelbaum Dreieck)
+  if (sEl.baeume.checked) {
+    for (const b of D.baeume) {
+      const geschnitten = b.geschnitten && schnittModus === "schnitt";
+      const x = D.xAnz(b.s), rx = geschnitten ? Math.sqrt(Math.max(0.04, b.r * b.r - b.d * b.d)) : b.r;
+      const g = baumGeometrie(b, x, rx);
+      poly("BAEUME", g.stamm, true);
+      for (const k of g.kronen) poly("BAEUME", k.pts, true);
+    }
+  }
+  // Wasserflächen an der Schnittebene (Tiefe unbekannt: 1,5 m darstellerisch)
+  for (const w of D.wasser) {
+    const punkte = D.gelaende.filter(([s]) => s >= w.s0 && s <= w.s1);
+    if (!punkte.length) continue;
+    const zW = Math.min(...punkte.map((p) => p[1]));
+    const x0 = Math.min(D.xAnz(w.s0), D.xAnz(w.s1)), x1 = Math.max(D.xAnz(w.s0), D.xAnz(w.s1));
+    poly("WASSER", [[x0, zW], [x1, zW], [x1, zW - 1.5], [x0, zW - 1.5]], true);
   }
   // Geschnittene Gebäude
   if (schnittModus === "schnitt") for (const g of D.geschnitten) for (const run of g.runs) poly("GEBAEUDE_SCHNITT", run.map(([s, z]) => [D.xAnz(s), z]), true);

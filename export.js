@@ -35,8 +35,7 @@ const groesseText = (bytes) => (bytes >= 1e6 ? `${fmt(bytes / 1e6, 1)} MB` : `${
 function zeigeFertigeDateien(hinscrollen) {
   const box = document.getElementById("export-fertig");
   if (!box) return;
-  box.hidden = !fertigeDateien.length;
-  box.innerHTML = `<h4>Fertige Dateien</h4><ul>${fertigeDateien.map((d, i) => `<li class="${i === 0 ? "ist-neu" : ""}">
+  box.innerHTML = `<h4>Fertige Dateien</h4>${fertigeDateien.length ? "" : `<p class="export-leer">Hier erscheinen die exportierten Dateien mit einem Knopf zum Herunterladen.</p>`}<ul>${fertigeDateien.map((d, i) => `<li class="${i === 0 ? "ist-neu" : ""}">
       <span class="export-datei">${htmlSicher(d.name)}</span><span class="export-groesse">${groesseText(d.groesse)}</span>
       <a class="btn btn-klein${i === 0 ? " btn-primary" : ""}" href="${d.url}" download="${htmlSicher(d.name)}">Herunterladen</a></li>`).join("")}</ul>`;
   if (hinscrollen) box.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -405,16 +404,25 @@ const dateiname = (eintrag, endung) => {
 };
 
 // ---------- Reiter „Export“ ----------
+// Aufbau in drei Schritten: 1 Dateiformat, 2 Inhalte (in Gruppen), 3 ein Knopf „Exportieren“.
+// Rechts daneben die fertigen Dateien zum Herunterladen.
 const EXPORT_EINTRAEGE = [
-  ...EXPORT_PLAENE.map((p) => ({ id: p, art: "plan" })),
-  { id: "schnitt", art: "schnitt" },
-  { id: "3d", art: "bild" },
-  { id: "kennzahlen", art: "bild" },
-  { id: "uebersicht", art: "bild" }
+  ...EXPORT_PLAENE.map((p) => ({ id: p, art: "plan", gruppe: "plaene" })),
+  { id: "schnitt", art: "schnitt", gruppe: "schnitt3d" },
+  { id: "3d", art: "bild", gruppe: "schnitt3d" },
+  { id: "kennzahlen", art: "bild", gruppe: "auswertung" },
+  { id: "uebersicht", art: "bild", gruppe: "auswertung" }
 ];
+const EXPORT_GRUPPEN = { plaene: "Pläne", schnitt3d: "Schnitt und 3D", auswertung: "Auswertung" };
 const EXPORT_NAMEN = { schnitt: "Schnitt A–A′", "3d": "3D-Ansicht", kennzahlen: "Kennzahlen und Diagramme", uebersicht: "Übersichtsblatt" };
+const EXPORT_FORMATE = {
+  pdf: { name: "PDF", text: "Blätter mit Schriftfeld, Vektorgrafik (in Illustrator/InDesign bearbeitbar). Alle Inhalte in einer Datei." },
+  png: { name: "PNG", text: "Dieselben Blätter als Bild (300 dpi bis A2, A1 200 dpi, A0 150 dpi). Mehrere Inhalte als ZIP." },
+  dxf: { name: "DXF", text: "Für CAD: Pläne, Schnitt und das komplette 3D-Modell, Einheit 1 m, je Kategorie ein Layer. Mehrere Inhalte als ZIP." }
+};
 let exportStand = {};      // je Eintrag { an, massstab, format, quer }
 let exportFuerAnalyse = null;
+let exportFormat = "pdf";
 
 // Welche Inhalte gibt es (mit Daten)?
 function exportVerfuegbar(id) {
@@ -427,6 +435,10 @@ function exportVerfuegbar(id) {
   if (id === "3d") return !!dreid;
   return true;
 }
+// DXF gibt es für die Pläne, den Schnitt und das 3D-Modell
+const mitDxf = (id) => EXPORT_PLAENE.includes(id) || id === "schnitt" || id === "3d";
+// Kann der Inhalt im gewählten Format ausgegeben werden?
+const imFormat = (id) => exportVerfuegbar(id) && (exportFormat !== "dxf" || mitDxf(id));
 
 // Schnitt: kleinste Maßstabszahl, bei der er auf A4–A1 passt (lange Schnitte sonst sehr groß)
 function schnittVoreinstellung() {
@@ -451,133 +463,145 @@ function exportVoreinstellen() {
   }
 }
 
+const ausgewaehlt = () => EXPORT_EINTRAEGE.map((e) => e.id).filter((id) => exportStand[id].an && imFormat(id));
+
+// Eine Zeile der Inhaltsliste
+function exportZeile(e) {
+  const st = exportStand[e.id], da = exportVerfuegbar(e.id), moeglich = imFormat(e.id), dxf = exportFormat === "dxf";
+  const name = e.art === "plan" ? PLAN_TITEL[e.id] : e.id === "3d" && dxf ? "3D-Modell (komplett)" : EXPORT_NAMEN[e.id];
+  const hinweis = !da ? "keine Daten" : !moeglich ? "nicht als DXF"
+    : dxf ? (e.id === "3d" ? "Gelände, Gebäude, Bäume in 3D" : e.id === "schnitt" ? "Höhen in m ü. NHN" : "Linien für den Maßstab")
+    : e.art === "bild" ? (e.id === "3d" ? "Bild der aktuellen Ansicht" : "Vektor")
+    : passt(e.art, st) ? "passt aufs Blatt" : `<span class="export-warnung" title="Das Gebiet ist größer als das Blatt, gezeigt wird die Mitte.">nur Ausschnitt</span>`;
+  const auswahl = (feld, werte, aktuell) => `<select data-feld="${feld}" ${moeglich ? "" : "disabled"}>${werte.map(([w, t]) => `<option value="${w}" ${w === aktuell ? "selected" : ""}>${t}</option>`).join("")}</select>`;
+  const massstab = e.art === "bild" ? "" : auswahl("massstab", MASSSTAEBE[e.art].map((m) => [m, `1:${fmt(m)}`]), st.massstab);
+  const blatt = dxf ? "" : auswahl("format", Object.keys(PAPIER).map((p) => [p, p]), st.format)
+    + auswahl("quer", [["1", "quer"], ["0", "hoch"]], st.quer ? "1" : "0");
+  return `<li class="export-zeile${moeglich ? "" : " ist-leer"}" data-id="${e.id}">
+      <label class="export-name"><input type="checkbox" data-feld="an" ${st.an && moeglich ? "checked" : ""} ${moeglich ? "" : "disabled"}> ${name}</label>
+      <span class="export-einst">${massstab}${blatt}</span>
+      <span class="export-hinweis">${hinweis}</span>
+    </li>`;
+}
+
 function zeigeExportReiter() {
   const ziel = document.getElementById("export-inhalt");
   if (!analyseErgebnis) {
-    ziel.innerHTML = `<div class="placeholder-box"><div><h3>Export</h3><p>Erscheint nach „Analysieren“: Pläne, Schnitt, 3D-Ansicht, Kennzahlen und Übersichtsblatt als PDF (Vektor) oder PNG.</p></div></div>`;
+    ziel.innerHTML = `<div class="placeholder-box"><div><h3>Export</h3><p>Erscheint nach „Analysieren“: Pläne, Schnitt, 3D-Modell, Kennzahlen und Übersichtsblatt als PDF, PNG oder DXF.</p></div></div>`;
     return;
   }
   exportVoreinstellen();
-  const zeilen = EXPORT_EINTRAEGE.map((e) => {
-    const st = exportStand[e.id], da = exportVerfuegbar(e.id);
-    const name = PLAN_TITEL[e.id] && e.art === "plan" ? PLAN_TITEL[e.id] : EXPORT_NAMEN[e.id];
-    const status = !da ? "keine Daten" : e.art === "bild" ? (e.id === "3d" ? "Bild (nicht Vektor)" : "Vektor")
-      : passt(e.art, st) ? "passt aufs Blatt" : "<span class=\"export-warnung\">nur Ausschnitt</span>";
-    return `<tr class="${da ? "" : "ist-leer"}" data-id="${e.id}">
-      <td><input type="checkbox" data-feld="an" ${st.an && da ? "checked" : ""} ${da ? "" : "disabled"}></td>
-      <td>${name}</td>
-      <td>${e.art === "bild" ? "–" : `<select data-feld="massstab">${MASSSTAEBE[e.art].map((m) => `<option value="${m}" ${m === st.massstab ? "selected" : ""}>1:${fmt(m)}</option>`).join("")}</select>`}</td>
-      <td><select data-feld="format">${Object.keys(PAPIER).map((p) => `<option ${p === st.format ? "selected" : ""}>${p}</option>`).join("")}</select></td>
-      <td><select data-feld="quer"><option value="1" ${st.quer ? "selected" : ""}>quer</option><option value="0" ${st.quer ? "" : "selected"}>hoch</option></select></td>
-      <td class="export-status-zelle">${status}</td>
-      <td class="export-einzeln"><button class="btn btn-klein btn-ghost" data-aktion="pdf" ${da ? "" : "disabled"}>PDF</button>
-        <button class="btn btn-klein btn-ghost" data-aktion="png" ${da ? "" : "disabled"}>PNG</button>
-        ${mitDxf(e.id) ? `<button class="btn btn-klein btn-ghost" data-aktion="dxf" ${da ? "" : "disabled"}>DXF</button>` : ""}</td>
-    </tr>`;
+  const dxf = exportFormat === "dxf";
+  const gruppen = Object.entries(EXPORT_GRUPPEN).map(([key, titel]) => {
+    const eintraege = EXPORT_EINTRAEGE.filter((e) => e.gruppe === key);
+    const moegliche = eintraege.filter((e) => imFormat(e.id));
+    const alleAn = moegliche.length && moegliche.every((e) => exportStand[e.id].an);
+    return `<div class="export-gruppe">
+        <div class="export-gruppe-kopf"><h5>${titel}</h5>
+          ${moegliche.length > 1 ? `<button class="btn-link" data-gruppe="${key}" data-an="${alleAn ? 0 : 1}">${alleAn ? "keine" : "alle"}</button>` : ""}</div>
+        <ul>${eintraege.map(exportZeile).join("")}</ul>
+      </div>`;
   }).join("");
+  const anzahl = ausgewaehlt().length;
+  const knopfText = !anzahl ? "Nichts ausgewählt"
+    : `Exportieren: ${anzahl === 1 ? "1 Inhalt" : `${anzahl} Inhalte`} als ${EXPORT_FORMATE[exportFormat].name}${anzahl > 1 && exportFormat !== "pdf" ? " (ZIP)" : ""}`;
+
   ziel.innerHTML = `
     <header class="kz-kopf"><h3>Export</h3>
-      <p>Pläne, Schnitt, 3D-Ansicht, Kennzahlen und Übersichtsblatt. Die PDF enthält Vektorgrafik (Linien und Flächen, in Illustrator oder InDesign bearbeitbar),
-      nur die 3D-Ansicht ist ein Bild. Jedes Blatt hat ein Schriftfeld mit Legende, Maßstab, Nordpfeil und Quellen.</p></header>
-    <table class="export-tabelle">
-      <thead><tr><th></th><th>Inhalt</th><th>Maßstab</th><th>Format</th><th>Ausrichtung</th><th>Prüfung</th><th>Einzeln</th></tr></thead>
-      <tbody>${zeilen}</tbody>
-    </table>
-    <p class="hint">Gezeigt wird der Zustand der Reiter: eingeschaltete Ebenen, das gewählte Merkmal im Reiter „Wohnen“, die Schnittlinie und die aktuelle 3D-Ansicht.
-      „Nur Ausschnitt“: Das Gebiet ist beim gewählten Maßstab größer als das Blatt, gezeigt wird die Mitte. PNG: 300 dpi bis A2, A1 200 dpi, A0 150 dpi.</p>
-    <div class="row export-knoepfe">
-      <button class="btn btn-primary" id="export-pdf">Ausgewählte als eine PDF</button>
-      <button class="btn" id="export-png">Ausgewählte als PNG (ZIP)</button>
-    </div>
-    <p class="export-status" id="export-status"></p>
-    <div class="export-fertig" id="export-fertig" hidden></div>
-    <section class="export-dxf">
-      <h4>DXF für CAD</h4>
-      <p>Pläne, Schnitt und das komplette 3D-Modell als DXF (AutoCAD 2013, Einheit 1 m, je Kategorie ein Layer, Farben wie in der App).
-        Das 3D-Modell enthält Gelände, LoD2-Wände und -Dächer, Ersatz-Klötze, Bäume, Gebietsrahmen und Nordpfeil als 3D-Flächen.</p>
-      <div class="row">
-        <label>Für <select id="dxf-ziel">${Object.entries(DXF_ZIELE).map(([key, z]) => `<option value="${key}" ${key === dxfZiel ? "selected" : ""}>${z.name} – ${z.text}</option>`).join("")}</select></label>
-        <button class="btn" id="export-dxf">Ausgewählte als DXF (ZIP)</button>
+      <p>Format wählen, Inhalte anhaken, exportieren. Gezeigt wird der Zustand der Reiter (eingeschaltete Ebenen, Merkmal im Reiter „Wohnen“, Schnittlinie, 3D-Ansicht).</p></header>
+    <div class="export-raster">
+      <div class="export-haupt">
+        <section class="export-schritt">
+          <h4><span class="export-nr">1</span>Format</h4>
+          <div class="export-formate" role="radiogroup">${Object.entries(EXPORT_FORMATE).map(([key, f]) =>
+            `<button class="export-format${key === exportFormat ? " ist-aktiv" : ""}" role="radio" aria-checked="${key === exportFormat}" data-format="${key}">${f.name}</button>`).join("")}</div>
+          <p class="export-format-text">${EXPORT_FORMATE[exportFormat].text}</p>
+          ${dxf ? `<label class="export-dxf-ziel">Für <select id="dxf-ziel">${Object.entries(DXF_ZIELE).map(([key, z]) =>
+            `<option value="${key}" ${key === dxfZiel ? "selected" : ""}>${z.name} – ${z.text}</option>`).join("")}</select></label>` : ""}
+        </section>
+        <section class="export-schritt">
+          <h4><span class="export-nr">2</span>Inhalte${dxf ? "" : " · Maßstab · Blatt"}</h4>
+          ${gruppen}
+        </section>
+        <section class="export-schritt">
+          <h4><span class="export-nr">3</span>Exportieren</h4>
+          <button class="btn btn-primary export-start" id="export-start" ${anzahl ? "" : "disabled"}>${knopfText}</button>
+          <p class="export-status" id="export-status"></p>
+        </section>
+        <details class="export-hilfe">
+          <summary>Hinweise zu PDF und PNG</summary>
+          <p>Jedes Blatt hat ein Schriftfeld mit Titel, Legende, Maßstab, Nordpfeil, Maßstabsleiste und Quellen. Die PDF enthält Linien und Flächen als
+            Vektorgrafik, nur die 3D-Ansicht ist ein Bild (aktuelle Kameraansicht im Reiter „3D“). „Nur Ausschnitt“: Das Gebiet ist beim gewählten Maßstab
+            größer als das Blatt, gezeigt wird die Mitte – größeres Format oder kleineren Maßstab wählen.</p>
+        </details>
+        <details class="export-hilfe">
+          <summary>So öffnest du die DXF in Allplan und ArchiCAD</summary>
+          <p><b>Allplan 2024:</b> Datei → Importieren → DXF. Einheit Meter, Koordinaten unverändert übernehmen (echte UTM-32-Koordinaten).</p>
+          <p><b>ArchiCAD 29:</b> Datei → Interoperabilität → Zusammenführen, 3D-Inhalt als Morph oder Objekt. Der Nullpunkt liegt an der Südwestecke
+            des Gebiets; die Bezugskoordinaten stehen als Text im Layer BESCHRIFTUNG.</p>
+          <p>Jede Kategorie liegt auf einem eigenen Layer, Farben wie in der App. Linienbreiten und Schrift der Pläne richten sich nach dem gewählten
+            Maßstab. Das 3D-Modell (Gelände, LoD2-Wände und -Dächer, Ersatz-Klötze, Bäume) kann je nach Gebiet 20–60 MB groß werden.</p>
+        </details>
       </div>
-      <p class="hint">Allplan: Datei → Importieren → DXF, Einheit Meter, Koordinaten unverändert übernehmen. ArchiCAD: Datei → Interoperabilität → Zusammenführen
-        (3D-Inhalt als Morph oder Objekt); der Bezugspunkt steht als Text im Layer BESCHRIFTUNG. Linienbreiten und Schrift der Pläne richten sich nach dem
-        gewählten Maßstab. Das 3D-Modell kann je nach Gebiet 20–60 MB groß werden.</p>
-    </section>`;
+      <aside class="export-fertig" id="export-fertig"></aside>
+    </div>`;
 
   zeigeFertigeDateien(false);
 
-  // Einstellungen ändern
-  ziel.querySelectorAll("tbody select, tbody input").forEach((el) => el.addEventListener("change", () => {
-    const st = exportStand[el.closest("tr").dataset.id];
+  // Format wählen
+  ziel.querySelectorAll("[data-format]").forEach((k) => k.addEventListener("click", () => { exportFormat = k.dataset.format; zeigeExportReiter(); }));
+  const zielWahl = document.getElementById("dxf-ziel");
+  if (zielWahl) zielWahl.addEventListener("change", () => { dxfZiel = zielWahl.value; });
+  // Gruppe ganz an oder aus
+  ziel.querySelectorAll("[data-gruppe]").forEach((k) => k.addEventListener("click", () => {
+    for (const e of EXPORT_EINTRAEGE) if (e.gruppe === k.dataset.gruppe && imFormat(e.id)) exportStand[e.id].an = k.dataset.an === "1";
+    zeigeExportReiter();
+  }));
+  // Einstellungen einer Zeile ändern
+  ziel.querySelectorAll(".export-zeile select, .export-zeile input").forEach((el) => el.addEventListener("change", () => {
+    const st = exportStand[el.closest("li").dataset.id];
     const feld = el.dataset.feld;
     st[feld] = feld === "an" ? el.checked : feld === "quer" ? el.value === "1" : feld === "massstab" ? +el.value : el.value;
     zeigeExportReiter();
   }));
-  const status = (t) => { document.getElementById("export-status").textContent = t; };
-  const sperren = (an) => ziel.querySelectorAll("tbody button, tbody select, tbody input, .export-knoepfe button, .export-dxf button, .export-dxf select").forEach((el) => { if (an) el.dataset.war = el.disabled; el.disabled = an || el.dataset.war === "true"; });
-  const ausfuehren = async (aufgabe) => {
-    sperren(true);
-    try { await aufgabe(); } catch (fehler) { console.error(fehler); status(`Export fehlgeschlagen: ${fehler.message}`); }
-    finally { sperren(false); }
-  };
-  // Einzeln
-  ziel.querySelectorAll("[data-aktion]").forEach((knopf) => knopf.addEventListener("click", () => ausfuehren(async () => {
-    const id = knopf.closest("tr").dataset.id;
-    status("Erzeuge das Blatt …");
-    await new Promise((r) => setTimeout(r, 20));
-    if (knopf.dataset.aktion === "dxf") {
-      status("Erzeuge die DXF …");
-      await new Promise((r) => setTimeout(r, 20));
-      const { blob, anzahl } = dxfErzeugen(id);
-      herunterladen(blob, dxfDateiname(id));
-      status(`Fertig: ${fmt(anzahl)} Zeichnungselemente, ${fmt(blob.size / 1e6, 1)} MB.`);
-      return;
-    }
-    const blaetter = blattErzeugen(id);
-    if (knopf.dataset.aktion === "pdf") herunterladen(await blaetterAlsPdf(blaetter, status), dateiname(id, "pdf"));
-    else { status("Erzeuge das PNG …"); herunterladen(await blattAlsPng(blaetter[0]), dateiname(id, "png")); }
-    status("Fertig.");
-  })));
-  const ausgewaehlt = () => EXPORT_EINTRAEGE.map((e) => e.id).filter((id) => exportStand[id].an && exportVerfuegbar(id));
-  // Alle in eine PDF
-  document.getElementById("export-pdf").addEventListener("click", () => ausfuehren(async () => {
-    const ids = ausgewaehlt();
-    if (!ids.length) { status("Nichts ausgewählt."); return; }
-    const blaetter = [];
-    for (const id of ids) { status(`Erzeuge ${id} …`); await new Promise((r) => setTimeout(r, 20)); blaetter.push(...blattErzeugen(id)); }
-    herunterladen(await blaetterAlsPdf(blaetter, status), `ortsanalyse_${dateiDatum()}.pdf`);
-    status(`Fertig: ${blaetter.length} Blätter in einer PDF.`);
-  }));
-  // Alle als PNG in einer ZIP
-  document.getElementById("export-png").addEventListener("click", () => ausfuehren(async () => {
-    const ids = ausgewaehlt();
-    if (!ids.length) { status("Nichts ausgewählt."); return; }
-    const zip = new JSZip();
-    for (const [i, id] of ids.entries()) {
-      status(`PNG ${i + 1} von ${ids.length} (${id}) …`);
-      await new Promise((r) => setTimeout(r, 20));
-      zip.file(dateiname(id, "png"), await blattAlsPng(blattErzeugen(id)[0]));
-    }
-    status("Packe die ZIP …");
-    herunterladen(await zip.generateAsync({ type: "blob" }), `ortsanalyse_png_${dateiDatum()}.zip`);
-    status(`Fertig: ${ids.length} PNG in einer ZIP.`);
-  }));
-  // DXF: Zielprogramm und alle ausgewählten als ZIP
-  document.getElementById("dxf-ziel").addEventListener("change", (e) => { dxfZiel = e.target.value; });
-  document.getElementById("export-dxf").addEventListener("click", () => ausfuehren(async () => {
-    const ids = ausgewaehlt().filter(mitDxf);
-    if (!ids.length) { status("Nichts ausgewählt (DXF gibt es für Pläne, Schnitt und 3D)."); return; }
-    const zip = new JSZip();
-    for (const [i, id] of ids.entries()) {
-      status(`DXF ${i + 1} von ${ids.length} (${id}) …`);
-      await new Promise((r) => setTimeout(r, 20));
-      zip.file(dxfDateiname(id), dxfErzeugen(id).blob);
-    }
-    status("Packe die ZIP …");
-    herunterladen(await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } }), `ortsanalyse_dxf_${dxfZiel}_${dateiDatum()}.zip`);
-    status(`Fertig: ${ids.length} DXF in einer ZIP.`);
-  }));
-}
 
-// DXF gibt es für die Pläne, den Schnitt und das 3D-Modell
-const mitDxf = (id) => EXPORT_PLAENE.includes(id) || id === "schnitt" || id === "3d";
+  const status = (t) => { document.getElementById("export-status").textContent = t; };
+  const pause = () => new Promise((r) => setTimeout(r, 20));
+  document.getElementById("export-start").addEventListener("click", async () => {
+    const ids = ausgewaehlt();
+    if (!ids.length) return;
+    const bedien = ziel.querySelectorAll(".export-haupt button, .export-haupt select, .export-haupt input");
+    bedien.forEach((el) => { el.dataset.war = el.disabled; el.disabled = true; });
+    try {
+      if (exportFormat === "pdf") {
+        const blaetter = [];
+        for (const id of ids) { status(`Erzeuge ${id} …`); await pause(); blaetter.push(...blattErzeugen(id)); }
+        herunterladen(await blaetterAlsPdf(blaetter, status), ids.length === 1 ? dateiname(ids[0], "pdf") : `ortsanalyse_${dateiDatum()}.pdf`);
+        status(`Fertig: ${blaetter.length === 1 ? "1 Blatt" : `${blaetter.length} Blätter`} in einer PDF.`);
+      } else {
+        const png = exportFormat === "png";
+        const erzeugen = async (id) => (png ? blattAlsPng(blattErzeugen(id)[0]) : dxfErzeugen(id).blob);
+        const name = (id) => (png ? dateiname(id, "png") : dxfDateiname(id));
+        if (ids.length === 1) {
+          status(`Erzeuge ${png ? "das PNG" : "die DXF"} …`); await pause();
+          herunterladen(await erzeugen(ids[0]), name(ids[0]));
+        } else {
+          const zip = new JSZip();
+          for (const [i, id] of ids.entries()) {
+            status(`${EXPORT_FORMATE[exportFormat].name} ${i + 1} von ${ids.length} (${id}) …`); await pause();
+            zip.file(name(id), await erzeugen(id));
+          }
+          status("Packe die ZIP …");
+          herunterladen(await zip.generateAsync(png ? { type: "blob" } : { type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } }),
+            `ortsanalyse_${exportFormat}${png ? "" : `_${dxfZiel}`}_${dateiDatum()}.zip`);
+        }
+        status(`Fertig: ${ids.length === 1 ? `1 ${EXPORT_FORMATE[exportFormat].name}` : `${ids.length} Dateien in einer ZIP`}. Rechts herunterladen.`);
+      }
+    } catch (fehler) {
+      console.error(fehler);
+      status(`Export fehlgeschlagen: ${fehler.message}`);
+    } finally {
+      bedien.forEach((el) => { el.disabled = el.dataset.war === "true"; });
+    }
+  });
+}

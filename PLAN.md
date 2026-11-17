@@ -869,7 +869,13 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   (1) Karte, Luftbild, Umgebung | (2) Schwarzplan, Straßennetz, Grün & Wasser, Lageplan | (3) Flurstücke, Mietpreise, Wirtschaftlichkeit | (4) Schnitt & Ansicht, 3D-Modell | (5) Kennzahlen.
   Umbenannt: Infos → **Umgebung**, Grün → **Grün & Wasser**, Schnitt → **Schnitt & Ansicht**, 3D → **3D-Modell**. Die internen Namen (`infos`, `gruen`, `schnitt`, `3d`) und alle Dateien
   bleiben gleich, geändert sind nur `index.html` (Reihenfolge, Beschriftung), `style.css` (Trennstrich) und der Ladeleisten-Text. **Nicht geprüft:** Handy-Breite (Leiste scrollt seitlich).
-- [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
-  (README, Poster, GitHub Pages)
+- [x] **README neu geschrieben** (nur lokal, **nicht committet**): Kurzbeschreibung, Schnellstart (Start.bat, Pages-Link als **ungetestet** gekennzeichnet), alle Reiter mit 14 Screenshots
+  (`docs/bilder/`, mit dem Tool in Oldenburg aufgenommen), Export (nur was heute geht), Datenquellen mit Lizenzen, Grenzen, Technik, KI-Hinweis, Geplant.
+  **Platzhalter für die Nutzerin / den Nutzer:** Namen der Gruppe, Kurs/Dozent, Datum, genaue Angaben zur KI-Nutzung nach den Regeln der Hochschule. Beschreibung der Rolle der
+  Studierenden im KI-Hinweis ist eine Annahme und muss geprüft werden. Screenshots sind 800 px breit (Vorschau-Browser), Tab-Leiste teils abgeschnitten.
+- [ ] **Vereinbarte Reihenfolge (Nutzerin / Nutzer, Stand 17.11.2026):** (1) README (gemacht, Platzhalter offen), (2) **Sonnen- und Verschattungsstudie**, (3) **Export** in allen Reitern:
+  maßstäblich mit Plankopf, als PDF und PNG, und vor allem **DXF für Allplan 2024 und ArchiCAD 29** (Test in den Programmen macht die Nutzerin / der Nutzer), (4) **Schwarzplan nach Höhe
+  einfärben, ein- und ausschaltbar**, (5) Erreichbarkeit zu Fuß, Denkmalgeschützte Gebäude, mehrere Schnittlinien speichern, Projekt speichern/laden, Datei-Import mit Qualitätsvergleich
+  (ohne Beispieldateien nur nach Spezifikation, **ungetestet**). **Nicht gewünscht:** Knopf „Beispiel Oldenburg laden“. Danach Poster und GitHub Pages prüfen.
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

@@ -768,6 +768,64 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Befund:** Nur 1 Kita im Testgebiet ist ein Hinweis auf Lücken in OSM oder wenige Kitas in der Innenstadt, nicht geprüft. Keine Straßenbahn in Oldenburg.
   **Nicht getestet:** Luftbild außerhalb Niedersachsens (nur Code), Handy, andere Browser, sehr dichte Gebiete mit tausenden Orten (Tempo), Straßenbahn- und
   U-Bahn-Gleise (kein Testgebiet), ob die Kürzel verständlich sind (Geschmackssache), Lücken und Fehler in den OSM-Daten.
+- [x] **Reiter „Wirtschaftlichkeit“** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Neue Datei `wirtschaft.js`. Flurstückskarte, bei der man ein
+  Flurstück anklickt und einen **Steckbrief** (Luftbild-Ausschnitt des LGLN mit rotem Umriss, Fläche, Bodenrichtwert und Zone, Nutzung, Richtwert-GFZ, Bodenwert,
+  Gebäude, GRZ/GFZ Bestand, Ø Geschosse, Rastermiete) und darunter eine **Wirtschaftlichkeitsrechnung** bekommt. Einfärbung wählbar: Neubau-Ergebnis je m²
+  Grundstück (rot negativ, grün positiv), Rendite Bestand, Ausnutzung (GFZ Bestand zu Richtwert-GFZ). Die Rechnung läuft live: Eingaben ändern sofort alles.
+  **A · Bestand (Ertragswert nach dem Prinzip der Immobilienwertermittlung):** vermietbare Fläche mal Miete mal 12 = Rohertrag, minus Bewirtschaftung = Reinertrag,
+  minus Bodenwertverzinsung (Bodenwert mal Liegenschaftszins) = Gebäudereinertrag, mal Vervielfältiger (Restnutzungsdauer, Zins) = Gebäudeertragswert, plus Bodenwert =
+  Ertragswert; dazu Ertragswert je m² Grundstück und Nettoanfangsrendite beim Kauf zum Ertragswert plus Nebenkosten. Trägt das Gebäude die Bodenverzinsung nicht,
+  zählt nur der Bodenwert (Hinweis). **B · Neubau-Potenzial:** Geschossfläche = Richtwert-GFZ mal Fläche (**kein Bebauungsplan**), vermietbare Fläche, Neubaumiete =
+  Bestandsmiete plus Aufschlag; Kosten = Grundstück mit Nebenkosten + Abbruch (m² Bestand) + Bau mit Baunebenkosten; Ertragswert nach Fertigstellung;
+  Projektergebnis in € und in % der Kosten; Rendite auf die Kosten; **Residualwert** (was das Grundstück höchstens kosten dürfte) gegen den Bodenwert.
+  **Eingaben:** je Flurstück Miete, vermietbare Fläche Bestand und GFZ für den Neubau überschreibbar (leer = Wert aus den Daten, grauer Platzhalter);
+  allgemeine Annahmen (Wohnfläche 75 % der Geschossfläche, Bewirtschaftung 25 %, Liegenschaftszins 3,0 %, Restnutzungsdauer 40 J., Erwerbsnebenkosten 10 %, Baukosten
+  3.200 €/m², Baunebenkosten 20 %, Abbruch 150 €/m², Aufschlag Neubaumiete 40 %, Nutzungsdauer Neubau 70 J.) in einem Ausklappfeld, im Browser gemerkt, Knopf
+  „Standardwerte“. **(Überholt: diese ersten Standardwerte waren ungeprüfte Annahmen und sind durch belegte Werte ersetzt, siehe den nächsten Eintrag „Wirtschaftlichkeit: Standardwerte mit Quellen“.)** die Wohnfläche im Bestand zählt nur Gebäude, die laut LoD2-Code/OSM
+  Wohnen sind (sonst die ohne Nutzungsangabe), Gewerbe wird nicht gerechnet.
+  Technik: Der Bestand (`berechneBestand`) wird jetzt über `sorgeFuerBestand()` auch ohne den Reiter „Flurstücke“ gerechnet.
+  **Getestet** (echte Daten, Oldenburg Innenstadt 79 ha, mit LoD2): 944 Flurstücke rechenbar, Rechenzeit ca. 0,6 s; ein Flurstück (527 m², Bodenrichtwert 500 €/m²,
+  864 m² Wohnfläche, 8,44 €/m²) **von Hand nachgerechnet**: Rohertrag 87.450 €, Reinertrag 65.587 €, Vervielfältiger 23,11, Ertragswert 1.596.810 € (3.030 €/m²),
+  Rendite 3,7 %; Neubau 1.265 m², Gesamtkosten 5.319.452 €, Ertragswert 2.969.812 €, Ergebnis −2.349.639 €, Residualwert −1.872.536 € (alle Zahlen stimmen mit der
+  Formel überein). Live-Neuberechnung bei Eingaben (Fokus bleibt im Feld), Zurücksetzen, Standardwerte, drei Einfärbungen, Verkehrsfläche, Randflurstück,
+  fehlende Miete, Luftbild-Ausschnitt mit Umriss, alle zwölf Reiter ohne Fehlermeldung, Flurstücke-Reiter nach der Umstellung unverändert (GRZ netto 0,46).
+  **Befund mit den ersten, ungeprüften Standardwerten (überholt, Zahlen siehe nächster Eintrag):** Das Neubau-Ergebnis war fast überall negativ (nur 11 von 658 Flurstücken positiv, Ø Rendite Bestand 0,8 %). Grund:
+  Die Rastermiete ist eine Bestandsmiete von 2022 (Ø 8,35 €/m²), plus 40 % ergibt 11,8 €/m², das trägt bei 3.200 €/m² Baukosten keinen Neubau. Das ist eine Folge
+  der Annahmen und der Mietdaten, keine Aussage über Oldenburg; reale Neubaumieten und Baukosten bitte selbst eintragen.
+  **Nicht getestet:** Gebiete außerhalb von Oldenburg, Handy (Panel ist hoch und überlagert die Karte), andere Browser, Gebiete mit Randflurstücken in großer Zahl, ob die
+  Standardannahmen für deine Aufgabe passen, Vergleich mit einem echten Gutachten oder Marktdaten.
+- [x] **Wirtschaftlichkeit: Standardwerte mit Quellen** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Auf Wunsch (Rückmeldung: „Werte mit Quellen nehmen, damit es
+  akkurat wird“) sind die Standardwerte durch recherchierte Werte ersetzt; jedes Eingabefeld im Reiter zeigt Quelle, Link und eine Kennzeichnung **amtlich** (Gesetz,
+  Verordnung, Gutachterausschuss, Statistik), **Marktangabe** (Ratgeber ohne amtliche Zahl) oder **Annahme** (meine). Bewirtschaftung ist jetzt nach ImmoWertV
+  gerechnet (Verwaltung je Wohnung, Instandhaltung je m², Mietausfallwagnis), nicht mehr pauschal 25 %. Baukosten aus den Normalherstellungskosten mal Baupreisindex.
+  | Wert | Standard | Art | Quelle |
+  |---|---|---|---|
+  | Liegenschaftszins | 2,2 % | amtlich | Gutachterausschüsse Niedersachsen, Landesgrundstücksmarktdaten 2025 (27.01.2025), Folie 20: Oldenburg, Mehrfamilienhäuser, bei 35 J. Restnutzungsdauer (`gag.niedersachsen.de/download/214752`). Gilt auch für den Neubau (Zins hängt etwas von der Restnutzungsdauer ab, nicht berücksichtigt). |
+  | Gesamtnutzungsdauer | 80 J. | amtlich | ImmoWertV Anlage 1: Mehrfamilienhäuser (gelesen auf gesetze.legal, nicht auf gesetze-im-internet.de) |
+  | Wohnfläche zu BGF | BGF = 1,55 × Wohnfläche | amtlich | Bewertungsgesetz Anlage 24 (Wohnungseigentum in Mehrfamilienhäusern). **Ersetzt mein früheres „75 % der Geschossfläche“, das nicht belegt war.** Geschossfläche wird als BGF genommen (Keller und Dach fehlen, Wohnfläche eher zu klein). |
+  | Verwaltungskosten | 367 €/Wohnung/Jahr | amtlich | ImmoWertV Anlage 3: 298 € (01.01.2021) mal VPI-Faktor 123,0 (Okt. 2025) / 99,9 (Okt. 2020) = 1,231; Fortschreibung von mir gerechnet, deckt sich mit einer Ratgeberseite (367 €) |
+  | Instandhaltung | 14,40 €/m²/Jahr | amtlich | ImmoWertV Anlage 3: 11,70 € mal 1,231 (dito) |
+  | Mietausfallwagnis | 2 % | amtlich | ImmoWertV Anlage 3 |
+  | Grunderwerbsteuer | 5,0 % | amtlich | Niedersachsen seit 01.01.2014; belegt über Ratgeberseiten (Gesetz selbst nicht gelesen) |
+  | Notar und Grundbuch | 1,5 % | Marktangabe | Ratgeberseiten: 1,2 bis 2 % (GNotKG), keine amtliche Zahl |
+  | Makler | 0 % | Annahme | kein Makler (Käuferanteil läge bei ca. 3,57 %) |
+  | Baukosten Neubau | Normalherstellungskosten 2010 Typ 4.1/4.2/4.3 (nach Zahl der Wohnungen), Standardstufe 4, mal 2,0014 | amtlich + Annahme (Stufe) | ImmoWertV Anlage 4: Typ 4.2 Stufe 4 = 915 €/m² BGF, enthält Baunebenkosten (19 %) und Umsatzsteuer; Baupreisindex Wohngebäude Destatis August 2026 141,7 (2021 = 100) geteilt durch 70,8 (Jahresschnitt 2010, 2021 = 100) = 2,0014. Ergebnis Typ 4.2: **1.831 €/m² BGF**. Der Wert 70,8 stammt aus einer Ratgeberseite (KIM) die Destatis GENESIS 61261-0001 zitiert, nicht direkt geprüft. Die Standardstufe 4 ist meine Annahme. |
+  | Abbruchkosten | 45 €/m³ umbauter Raum | Marktangabe | Abbruchfirmen und Ratgeber: 30 bis 60 €/m³ für massive Wohngebäude ohne Schadstoffe (Mitte); keine amtliche Quelle. Umbauter Raum = Grundfläche × LoD2-Höhe (sonst Geschosse × 3 m). |
+  | Neubaumiete | Mietspiegel-Basismiete (Wohnungsgröße) × 1,10 | amtlich | Mietspiegel Oldenburg 2025: Tabelle 1 (20 bis 200 m², maschinell aus der Broschüre ausgelesen, 181 Werte geprüft, z. B. 65 m² = 8,33 €/m²), Tabelle 2 Baujahr 2016 bis 2022 = +10 %. Wohnlage (A +7 bis G −10 %) kennt das Tool nicht: Standard 0 % (Annahme). **Der Mietspiegel gilt nur bis Baujahr 2022 und ist die ortsübliche Vergleichsmiete; erzielbare Neubaumieten ab 2023 können höher liegen.** |
+  | Restnutzungsdauer Bestand | 80 − (2026 − Baujahr), mindestens 20 J. | amtlich + Annahme | Baujahr = Median der Gebäude im 100-m-Raster (Zensus 2022, Gebäude nach Baujahrklassen, Klassenmitte); Mindestwert 20 J. ist meine Annahme (Modernisierung nach ImmoWertV Anlage 2 ist nicht bekannt). Ohne Baujahr: 80 / 2. |
+  | Miete Bestand | Raster-Zensus 2022 (flächengewichtet) | Statistik | Bestandsmiete Mai 2022; zum Vergleich Mietspiegel Oldenburg Ø 8,57 €/m² (1.1.2025, Dokumentation Tabelle 2) gegenüber 8,35 €/m² im Raster des Testgebiets. |
+  **Neu:** je Flurstück zusätzlich Baujahr und Neubaumiete überschreibbar; Ø Wohnungsgröße je Flurstück aus dem Raster (für die Zahl der Wohnungen, Verwaltungskosten und die
+  Typwahl der Normalherstellungskosten); Gebäudevolumen je Flurstück (`bri`); die Daten des alten Speichers (Schlüssel `ortsanalyse-wirtschaft`) werden gelöscht, der neue heißt `-v2`.
+  **Getestet** (echte Daten, Oldenburg Innenstadt, mit LoD2): ein Flurstück (5292/251, 527 m², Bodenrichtwert 500 €/m²) **unabhängig von Hand nachgerechnet**, alle Zeilen stimmen:
+  Wohnfläche 743 m², Rohertrag 75.225 €, Bewirtschaftung 15.875 €, Reinertrag 59.350 €, Restnutzungsdauer 20 J. (Baujahr 1964, Mindestwert), Vervielfältiger 16,04, Ertragswert
+  1.122.505 € (Rendite 5,0 %); Neubau 1.265 m² BGF, Gesamtkosten 2.753.686 €, Ertragswert 2.706.839 €, Ergebnis −46.847 € (−1,7 %), Residualwert 219.512 € (unter Bodenwert 263.500 €).
+  Live-Neuberechnung bei Zins, Baujahr, eigenen Baukosten und Neubaumiete, Zurücksetzen, Standardwerte, alle zwölf Reiter ohne Fehlermeldung, Quellenanzeige im Panel (am Bildschirm gesehen).
+  **Ergebnis im Testgebiet mit den belegten Werten:** Neubau-Ergebnis positiv bei 54 von 658 Flurstücken (vorher 11), Ø Rendite Bestand 2,9 %.
+  **Grenzen (ehrlich):** (1) Die Normalherstellungskosten mit Baupreisindex liegen oft unter tatsächlichen Marktpreisen; wer BKI-Werte oder ein Angebot hat, trägt sie in „Eigene Baukosten“ ein.
+  (2) Mietspiegel und Zensus sind keine Neubaumieten ab 2023. (3) Der Regionalfaktor der Gutachterausschüsse für die Normalherstellungskosten ist nicht berücksichtigt (nicht gefunden).
+  (4) Liegenschaftszins gilt laut Quelle bei 35 Jahren Restnutzungsdauer. (5) Abbruch, Notar und Grundbuch sind Marktangaben ohne amtliche Zahl. (6) Wohnfläche aus Geschossfläche durch 1,55 ist eine
+  Näherung. (7) Die Verbraucherpreisindex-Werte (99,9 und 123,0) und der Baupreisindex-Jahresschnitt 2010 stammen von Seiten, die Destatis zitieren, nicht direkt von Destatis.
+  **Nicht getestet:** Gebiete außerhalb von Oldenburg (dort passen Zins und Mietspiegel nicht), Handy, andere Browser, Vergleich mit einem echten Gutachten oder Marktdaten.
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

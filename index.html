@@ -94,12 +94,13 @@
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
         <button class="tab" data-view="infos" role="tab">Infos</button>
+        <button class="tab" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für neun Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise und Infos.
+        <!-- Eine Karte für zehn Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise, Infos und Wirtschaftlichkeit.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -116,6 +117,35 @@
           <div class="flst-info" id="flst-info" hidden></div>
           <!-- Nur im Reiter "Mietpreise": Infofeld zur gewählten Rasterzelle (siehe mieten.js) -->
           <div class="flst-info" id="miet-info" hidden></div>
+          <!-- Nur im Reiter "Wirtschaftlichkeit": Einfärbung wählen, Steckbrief und Rechnung zum gewählten Flurstück (siehe wirtschaft.js) -->
+          <div class="flst-modus" id="wirt-modus" hidden>
+            <span>Einfärben nach</span>
+            <button type="button" data-modus="ergebnis" class="is-active">Neubau-Ergebnis</button>
+            <button type="button" data-modus="rendite">Rendite Bestand</button>
+            <button type="button" data-modus="ausnutzung">Ausnutzung</button>
+          </div>
+          <div class="flst-info wirt-panel" id="wirt-panel" hidden>
+            <p class="flst-leer" id="wirt-leer"></p>
+            <div id="wirt-detail" hidden>
+              <button type="button" class="flst-zu" id="wirt-zu" aria-label="Schließen">×</button>
+              <div id="wirt-steckbrief"></div>
+              <div id="wirt-ueber">
+                <h4>Für dieses Flurstück anpassen <small>(leer = Wert aus den Daten)</small></h4>
+                <label class="wirt-feld"><span>Miete Bestand</span><input type="number" step="0.1" min="0" id="wirt-in-miete"><span class="wirt-einheit">€/m²</span></label>
+                <label class="wirt-feld"><span>Vermietbare Fläche Bestand</span><input type="number" step="10" min="0" id="wirt-in-wfl"><span class="wirt-einheit">m²</span></label>
+                <label class="wirt-feld"><span>Baujahr Bestand</span><input type="number" step="1" min="1000" id="wirt-in-bj"><span class="wirt-einheit"></span></label>
+                <label class="wirt-feld"><span>GFZ für den Neubau</span><input type="number" step="0.1" min="0" id="wirt-in-gfz"><span class="wirt-einheit"></span></label>
+                <label class="wirt-feld"><span>Neubaumiete</span><input type="number" step="0.1" min="0" id="wirt-in-nmiete"><span class="wirt-einheit">€/m²</span></label>
+                <button type="button" class="wirt-knopf" id="wirt-zuruecksetzen">Zurücksetzen</button>
+              </div>
+              <div id="wirt-ergebnis"></div>
+            </div>
+            <details class="wirt-annahmen" id="wirt-annahmen">
+              <summary>Allgemeine Annahmen (gelten für alle Flurstücke)</summary>
+              <p class="flst-hinweis">Jeder Wert zeigt seine Quelle. „amtlich“ = Gesetz, Verordnung, Gutachterausschuss oder Statistik, „Marktangabe“ = Ratgeber oder Anbieter ohne amtliche Zahl, „Annahme“ = meine eigene Annahme. Ändere sie nach deiner Aufgabe.</p>
+              <div id="wirt-annahmen-felder"></div>
+            </details>
+          </div>
           <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
           <div class="flst-info" id="luft-info" hidden>
             <h3>Luftbild</h3>
@@ -182,6 +212,7 @@
   <script src="mieten.js"></script>
   <script src="luftbild.js"></script>
   <script src="infos.js"></script>
+  <script src="wirtschaft.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

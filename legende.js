@@ -72,6 +72,9 @@ function farbschluessel(ansicht) {
     case "flurstuecke":
       e.push(flurstueckeVorhanden ? flstLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
+    case "wirtschaft":
+      e.push(flurstueckeVorhanden ? wirtLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
+      break;
     case "luftbild":
       e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       if (osmFeatures.length) e.push(eintrag(linienfeld("#ffd43b", 2), "Gebäudeumrisse (wenn an)"));
@@ -116,6 +119,7 @@ function eckdaten(ansicht) {
   if (ansicht === "flurstuecke") return zeilen.concat(flstEckdaten());
   if (ansicht === "mieten") return zeilen.concat(mietEckdaten());
   if (ansicht === "infos") return zeilen.concat(infoEckdaten());
+  if (ansicht === "wirtschaft") return zeilen.concat(wirtEckdaten());
   if (ansicht === "luftbild") return zeilen;
   const k = kennzahlenMitMerker();
   const A = k.flaeche;
@@ -150,7 +154,8 @@ function quellenzeile() {
   const q = ["© OpenStreetMap-Mitwirkende (ODbL)"];
   if (lod2Vorhanden) q.push(lod2Quelle.replace(/^LoD2: /, "Gebäude: "));
   if (alkisVorhanden) q.push(alkisQuelle);
-  if (flurstueckeVorhanden && aktuelleAnsicht === "flurstuecke") q.push(flurstueckeQuelle);
+  if (flurstueckeVorhanden && (aktuelleAnsicht === "flurstuecke" || aktuelleAnsicht === "wirtschaft")) q.push(flurstueckeQuelle);
+  if (mietVorhanden && aktuelleAnsicht === "wirtschaft") q.push(mietQuelle);
   if (mietVorhanden && aktuelleAnsicht === "mieten") q.push(mietQuelle);
   if (aktuelleAnsicht === "luftbild") q.push(`Luftbild: LGLN (${luftJahr}), CC BY 4.0`);
   if (gelaende) q.push(gelaendeQuelle);

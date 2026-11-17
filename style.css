@@ -397,3 +397,33 @@ html, body {
 .info-marke.info-linie { border-radius: 0; height: 0; width: 22px; border: 0; border-top: 4px solid; box-shadow: none; background: none; }
 .maplibregl-popup-content { font: 12px/1.45 var(--font); border-radius: 0; border: 1px solid var(--ink); box-shadow: none; padding: 10px 12px; }
 .pop-art { color: var(--ink-soft); font-size: 11px; }
+
+/* ---------- Reiter "Wirtschaftlichkeit" ---------- */
+.wirt-panel { width: 350px; }
+.wirt-panel h4 small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink-soft); }
+.wirt-bild { position: relative; margin: 6px 0 4px; border: 1px solid var(--ink); line-height: 0; }
+.wirt-bild img { width: 100%; height: auto; display: block; background: var(--paper-soft); min-height: 40px; }
+.wirt-bild svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wirt-bild-quelle { position: absolute; left: 0; bottom: 0; font-size: 9px; line-height: 1.3; padding: 1px 5px; background: rgba(255,255,255,0.85); color: var(--ink-soft); }
+.wirt-feld { display: grid; grid-template-columns: 1fr 86px 86px; gap: 6px; align-items: center; margin: 4px 0; }
+.wirt-feld input { font: inherit; font-family: var(--mono); padding: 3px 5px; border: 1px solid var(--ink); background: var(--paper); width: 100%; min-width: 0; }
+.wirt-feld input::placeholder { color: #9a9a9a; }
+.wirt-einheit { font-size: 10px; color: var(--ink-soft); }
+.wirt-knopf { font: inherit; font-size: 11px; padding: 3px 8px; margin: 6px 0 0; background: none; border: 1px solid var(--ink); cursor: pointer; }
+.wirt-knopf:hover { background: var(--ink); color: var(--paper); }
+.wirt-annahmen { margin-top: 12px; border-top: 1px dotted var(--line); padding-top: 8px; }
+.wirt-annahmen summary { cursor: pointer; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+.wirt-rechnung .summe { border-top: 1px solid var(--line); padding-top: 2px; }
+.wirt-rechnung .ergebnis { border-top: 2px solid var(--ink); padding-top: 3px; margin-top: 2px; }
+.wirt-plus { color: #1b7a52; }
+.wirt-minus { color: #c8362e; }
+@media (max-width: 760px) { .wirt-panel { width: calc(100% - 24px); } }
+
+/* Quellenangaben bei den Annahmen der Wirtschaftlichkeit */
+.wirt-annahmen h5 { margin: 12px 0 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--line); }
+.wirt-annahme { margin-bottom: 6px; }
+.wirt-quelle { margin: 0 0 4px; font-size: 10px; line-height: 1.4; color: var(--ink-soft); }
+.wirt-art { display: inline-block; padding: 0 5px; margin-right: 3px; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; color: #fff; }
+.wirt-art-amtlich { background: #1f5f94; }
+.wirt-art-markt { background: #b27a00; }
+.wirt-art-annahme { background: #8a8a8a; }

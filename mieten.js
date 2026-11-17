@@ -17,7 +17,11 @@
 "use strict";
 
 const MIET_DIENST = "https://services2.arcgis.com/jUpNdisbWqRpMo35/arcgis/rest/services/Zensus2022_grid_final/FeatureServer/0/query";
-const MIET_FELDER = "GITTER_ID_100m,Einwohner,durchschnMieteQM,durchschnFlaechejeWohn,Eigentuemerquote,Leerstandsquote,Durchschnittsalter";
+const MIET_FELDER = "GITTER_ID_100m,Einwohner,durchschnMieteQM,durchschnFlaechejeWohn,Eigentuemerquote,Leerstandsquote,Durchschnittsalter," +
+  "Vor1919,a1919bis1948,a1949bis1978,a1979bis1990,a1991bis2000,a2001bis2010,a2011bis2019,a2020undspaeter";
+// Gebäude nach Baujahr im Raster (Zensus): Feldname und Klassenmitte (für das Baujahr eines Flurstücks)
+const BJ_KLASSEN = [["Vor1919", 1900], ["a1919bis1948", 1934], ["a1949bis1978", 1964], ["a1979bis1990", 1985],
+  ["a1991bis2000", 1996], ["a2001bis2010", 2006], ["a2011bis2019", 2015], ["a2020undspaeter", 2022]];
 const WOHNFLAECHE_FAKTOR = 0.75;       // Annahme: Wohnfläche = 75 % der Geschossfläche (Wände, Treppenhäuser)
 const mietStatusFeld = document.getElementById("miet-status");
 const mietInfoFeld = document.getElementById("miet-info");
@@ -68,7 +72,8 @@ async function starteMieten(rahmen, nummer) {
         wfl: Number.isFinite(p.durchschnFlaechejeWohn) ? p.durchschnFlaechejeWohn : null,
         eig: Number.isFinite(p.Eigentuemerquote) ? p.Eigentuemerquote : null,
         leer: Number.isFinite(p.Leerstandsquote) ? p.Leerstandsquote : null,
-        alter: Number.isFinite(p.Durchschnittsalter) ? p.Durchschnittsalter : null
+        alter: Number.isFinite(p.Durchschnittsalter) ? p.Durchschnittsalter : null,
+        bj: BJ_KLASSEN.map(([feld]) => (Number.isFinite(p[feld]) ? p[feld] : 0))   // Anzahl Gebäude je Baujahrklasse
       });
     }
     const mitMiete = zellen.filter((z) => z.miete != null).length;
@@ -205,17 +210,28 @@ function mietEckdaten() {
 
 // ---------- 5. Miete je Flurstück (wird von flurstuecke.js aufgerufen) ----------
 // Die Miete des Rasters wird flächengewichtet auf das Flurstück übertragen (nur Zellen mit Mietwert).
+// Dazu aus denselben Zellen: Ø Wohnungsgröße (flächengewichtet) und das Baujahr (mittlere Baujahrklasse aller Gebäude in den
+// überlappten Zellen, gewichtet mit der Überlappung). Beides sind Raster-Werte, keine Werte des einzelnen Hauses.
 function mieteFuerFlurstueck(p) {
-  p.miete = null; p.mieteAnteil = 0;
+  p.miete = null; p.mieteAnteil = 0; p.wflWohnung = null; p.baujahr = null;
   if (!mietVorhanden) return;
-  let summe = 0, gewicht = 0;
+  let summe = 0, gewicht = 0, wflSumme = 0, wflGewicht = 0;
+  const klassen = BJ_KLASSEN.map(() => 0);
   for (const z of mietZellen) {
-    if (z.miete == null || !bboxUeberlappt(z.bbox, p.bbox)) continue;
+    if (!bboxUeberlappt(z.bbox, p.bbox)) continue;
     const a = flaecheSchnitt(p.f, z.f);
     if (a <= 0.05) continue;
-    summe += a * z.miete; gewicht += a;
+    if (z.miete != null) { summe += a * z.miete; gewicht += a; }
+    if (z.wfl != null) { wflSumme += a * z.wfl; wflGewicht += a; }
+    z.bj.forEach((n, i) => { klassen[i] += a * n; });
   }
   if (gewicht > 0) { p.miete = summe / gewicht; p.mieteAnteil = Math.min(1, gewicht / p.geomFlaeche); }
+  if (wflGewicht > 0) p.wflWohnung = wflSumme / wflGewicht;
+  const gesamt = klassen.reduce((s, x) => s + x, 0);
+  if (gesamt > 0) {                                   // Median-Klasse
+    let lauf = 0;
+    for (let i = 0; i < klassen.length; i++) { lauf += klassen[i]; if (lauf >= gesamt / 2) { p.baujahr = BJ_KLASSEN[i][1]; break; } }
+  }
 }
 
 // ---------- 6. Aufräumen und Bedienung ----------

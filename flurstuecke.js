@@ -32,6 +32,7 @@ let flurstueckeQuelle = "";
 let flstModus = "brw";                  // Einfärbung: "brw", "grz" oder "gfz"
 let flstAuswahl = null;                 // Nummer (id) des gewählten Flurstücks
 let flstStand = "";                     // woran wir merken, ob neu gerechnet werden muss
+let flstKarteStand = "";                // für welchen Stand die Karte des Reiters "Flurstücke" zuletzt gezeichnet wurde
 let flstSumme = null;                   // Zusammenfassung für Legende und Infofeld
 
 // Nutzungsarten und Zustände laut BORIS (gängige Schlüssel; nicht gegen die offizielle Liste geprüft)
@@ -199,7 +200,7 @@ function baueFlurstueck(roh, id) {
     id, f, bbox: turf.bbox(f),
     nr: roh.nr, flur: roh.flur, kennzeichen: roh.kennzeichen, gemarkungNr: roh.gemarkungNr, abweichend: roh.abweichend,
     flaeche: roh.flaeche || turf.area(f), flaecheAmtlich: !!roh.flaeche, geomFlaeche: turf.area(f),
-    miete: null, mieteAnteil: 0, gfWohnen: 0, gfUnbekannt: 0,
+    miete: null, mieteAnteil: 0, gfWohnen: 0, gfUnbekannt: 0, bri: 0, wflWohnung: null, baujahr: null,
     zone: null, zoneAnteil: 0, zoneKandidaten: 0,
     // Bestand (wird in berechneBestand gefüllt)
     verkehr: false, rand: false, nHaupt: 0, nNeben: 0, fHaupt: 0, fNeben: 0, gf: 0, ersatz: 0, geschosseSumme: 0
@@ -248,7 +249,7 @@ function berechneBestand() {
   // Verkehrsflächen: liegt ein Punkt des Flurstücks in einer amtlichen Straßen-, Weg- oder Platzfläche?
   const verkehr = alkisFlaechen.filter((f) => ["strasse", "weg", "platz"].includes(f.properties.kat)).map((f) => ({ f, b: turf.bbox(f) }));
   for (const p of flurstuecke) {
-    p.nHaupt = p.nNeben = p.fHaupt = p.fNeben = p.gf = p.ersatz = p.geschosseSumme = p.gfWohnen = p.gfUnbekannt = 0;
+    p.nHaupt = p.nNeben = p.fHaupt = p.fNeben = p.gf = p.ersatz = p.geschosseSumme = p.gfWohnen = p.gfUnbekannt = p.bri = 0;
     p.rand = p.bbox[0] < west || p.bbox[2] > ost || p.bbox[1] < sued || p.bbox[3] > nord;
     if (verkehr.length) {
       const pt = turf.pointOnFeature(p.f).geometry.coordinates;
@@ -264,11 +265,14 @@ function berechneBestand() {
     const gesch = geschosseVon(g.properties);
     // Nutzung (LoD2-Code, sonst OSM-Gebäudeart) für die Mietschätzung: nur Wohnen zählt sicher, "unbekannt" getrennt
     const nutzung = neben ? "" : ((g.properties.funktion && nutzungAusCode(g.properties.funktion)) || nutzungAusOsm(g.properties.bau));
+    // Höhe für den umbauten Raum (Abbruchkosten): Gebäudehöhe aus LoD2 (höchster Punkt, überschätzt bei Dächern leicht), sonst Geschosse mal 3 m
+    const hoehe = g.properties.hoehe > 0 ? g.properties.hoehe : gesch.n * GESCHOSSHOEHE_M;
     let bestes = null, besteFlaeche = 0;
     for (const p of flurstuecke) {
       if (!bboxUeberlappt(p.bbox, gb)) continue;
       const a = flaecheSchnitt(g, p.f);
       if (a < 0.05) continue;
+      p.bri += a * hoehe;
       if (neben) p.fNeben += a;
       else {
         p.fHaupt += a; p.gf += a * gesch.n;
@@ -345,21 +349,29 @@ function setzeFlurstueckeAufKarte() {
   map.setFilter("flst-auswahl", ["==", ["get", "id"], flstAuswahl == null ? -1 : flstAuswahl]);
 }
 
+// Rechnet den Bestand (Gebäude, Verkehr, Miete je Flurstück) neu, wenn sich die Datenlage geändert hat. Auch der Reiter
+// "Wirtschaftlichkeit" braucht diese Zahlen, deshalb ist das von der Karte des Reiters "Flurstücke" getrennt.
+// Gibt true zurück, wenn es Flurstücke gibt.
+function sorgeFuerBestand() {
+  if (!flurstueckeVorhanden) return false;
+  const stand = [turf.bbox(gebiet).join(","), flurstuecke.length, richtwertZonen.length, osmFeatures.length, alkisFlaechen.length, lod2Meta.length, mietZellen.length].join("|");
+  if (stand !== flstStand) {
+    flstStand = stand;
+    const t0 = performance.now();
+    berechneBestand();
+    console.info(`Flurstücke: Bestand gerechnet in ${Math.round(performance.now() - t0)} ms`);
+  }
+  return true;
+}
+
 // Wird am Ende von wendeAnsichtAn() aufgerufen. Rechnet nur im Reiter "Flurstücke" und nur, wenn sich Daten geändert haben.
 function aktualisiereFlurstuecke() {
   const aktiv = aktuelleAnsicht === "flurstuecke" && datenVorhanden;
   flstModusFeld.hidden = !(aktiv && flurstueckeVorhanden);
   flstInfoFeld.hidden = !aktiv;
   if (!aktiv) return;
-  if (flurstueckeVorhanden) {
-    const stand = [turf.bbox(gebiet).join(","), flurstuecke.length, richtwertZonen.length, osmFeatures.length, alkisFlaechen.length, lod2Meta.length, mietZellen.length].join("|");
-    if (stand !== flstStand) {
-      flstStand = stand;
-      const t0 = performance.now();
-      berechneBestand();
-      console.info(`Flurstücke: Bestand gerechnet in ${Math.round(performance.now() - t0)} ms`);
-      setzeFlurstueckeAufKarte();
-    }
+  if (sorgeFuerBestand()) {
+    if (flstKarteStand !== flstStand) { flstKarteStand = flstStand; setzeFlurstueckeAufKarte(); }
     flstModusFeld.querySelectorAll("button").forEach((b) => b.classList.toggle("is-active", b.dataset.modus === flstModus));
   }
   zeichneFlstInfo();
@@ -499,6 +511,7 @@ function wendeFlurstueckeAn(ergebnis) {
   flurstuecke = ergebnis.flurstuecke.map((r, i) => baueFlurstueck(r, i));
   flstAuswahl = null;
   flstStand = "";
+  flstKarteStand = "";
   const t0 = performance.now();
   ordneZonenZu();
   console.info(`Flurstücke: Zonen zugeordnet in ${Math.round(performance.now() - t0)} ms`);
@@ -521,6 +534,7 @@ function verwerfeFlurstuecke() {
   flurstueckeQuelle = "";
   flstAuswahl = null;
   flstStand = "";
+  flstKarteStand = "";
   flstSumme = null;
   zeigeFlstStatus("");
   if (typeof kartenBereit !== "undefined" && kartenBereit) {

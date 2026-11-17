@@ -25,6 +25,11 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   (dl-de/by-2-0), Daten geändert“.
 - Luftbild (Reiter „Luftbild“, `luftbild.js`): LGLN-Orthophotos DOP20 per WMS (https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms, Ebene ni_dop20),
   CC BY 4.0, Quellenvermerk „LGLN (Jahr des Datenbezugs)“. Nur Niedersachsen. Flugzeugaufnahmen, keine Satellitenbilder.
+- Wirtschaftlichkeit (Reiter „Wirtschaftlichkeit“, `wirtschaft.js`): Steckbrief und Überschlagsrechnung je Flurstück (Ertragswert Bestand, Neubau-Potenzial mit
+  Residualwert). Daten: Flurstücke/Bodenrichtwert (LGLN), Gebäude (OSM/LoD2), Rastermiete, Baujahr und Wohnungsgröße (Zensus). Standardwerte mit Quelle: Liegenschaftszins
+  (Gutachterausschuss Niedersachsen, Landesgrundstücksmarktdaten 2025), ImmoWertV Anlage 1, 3, 4, BewG Anlage 24, Mietspiegel Oldenburg 2025, Baupreisindex (Destatis). Jedes Feld im
+  Reiter zeigt Quelle und Art (amtlich, Marktangabe, Annahme). Neue Standardwerte nur mit Quelle eintragen. Nie als Gutachten oder Anlageberatung darstellen;
+  Richtwert-GFZ ersetzt keinen Bebauungsplan.
 - Infos (Reiter „Infos“, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.

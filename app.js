@@ -75,6 +75,7 @@ map.on("load", () => {
     paint: { "fill-color": "#e2482d", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
     paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
+  legeWirtEbenenAn();       // Reiter Wirtschaftlichkeit (wirtschaft.js)
   legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
   legeInfoEbenenAn();       // Reiter Infos (infos.js)
   kartenBereit = true;
@@ -198,7 +199,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos", "wirtschaft"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -433,7 +434,8 @@ const EBENEN = {
   dach: ["dach-flaeche", "dach-umriss"],   // LoD2-Dachflächen (nur im Lageplan, nur wenn geladen)
   alkis: ["alkis-strasse", "alkis-weg", "alkis-platz", "alkis-kante"],   // amtliche Flächen (nur wenn geladen)
   flurstuecke: ["flst-flaeche", "flst-linie", "flst-auswahl"],           // Flurstücke (nur wenn geladen), siehe flurstuecke.js
-  mieten: ["miet-flaeche", "miet-linie", "miet-auswahl"]                 // Mietraster (nur wenn geladen), siehe mieten.js
+  mieten: ["miet-flaeche", "miet-linie", "miet-auswahl"],                // Mietraster (nur wenn geladen), siehe mieten.js
+  wirtschaft: ["wirt-flaeche", "wirt-linie", "wirt-auswahl"]             // Flurstücke mit Wirtschaftlichkeit, siehe wirtschaft.js
 };
 
 // Was zeigt welcher Reiter?
@@ -454,6 +456,8 @@ const ANSICHTEN = {
                  text: "Flurstücke mit Bodenrichtwert und Bestand." },
   mieten:      { basiskarte: false, ebenen: ["kontext", "mieten"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
                  text: "Mietpreise aus dem Zensus-Raster." },
+  wirtschaft:  { basiskarte: false, ebenen: ["kontext", "wirtschaft"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
+                 text: "Flurstücke mit Steckbrief und Wirtschaftlichkeitsrechnung." },
   // Luftbild und Infos: Rechteck wie im Reiter "Karte" (rot gestrichelt), keine weiße Maske, Quellenangabe immer sichtbar
   luftbild:    { basiskarte: false, ebenen: [], rahmenWieKarte: true, rahmenFuellung: 0, quelleImmer: true,
                  text: "Luftbild des LGLN mit Überlagerungen." },
@@ -572,6 +576,7 @@ function verwerfeDaten() {
   verwerfeFlurstuecke();
   verwerfeMieten();
   verwerfeInfos();
+  verwerfeWirtschaft();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -602,6 +607,7 @@ function wendeAnsichtAn() {
     if (gruppe === "strassen" && alkisVorhanden) an = false; // wo amtliche Flächen da sind, brauchen wir die dünnen Linien nicht
     if (gruppe === "flurstuecke" && !flurstueckeVorhanden) an = false;
     if (gruppe === "mieten" && !mietVorhanden) an = false;
+    if (gruppe === "wirtschaft" && !flurstueckeVorhanden) an = false;
     ids.forEach((id) => map.setLayoutProperty(id, "visibility", sichtbar(an)));
   }
   map.setLayoutProperty("maske", "visibility", sichtbar(imPlan && datenVorhanden));
@@ -651,6 +657,7 @@ function wendeAnsichtAn() {
   quellen.hidden = !((imPlan && datenVorhanden) || einstellung.quelleImmer);
   aktualisiereFlurstuecke();   // rechnet und zeichnet nur im Reiter "Flurstücke"
   aktualisiereMieten();        // dito für "Mietpreise"
+  aktualisiereWirtschaft();    // Wirtschaftlichkeit: Bestand rechnen, Karte, Panel
   aktualisiereLuftbild();      // Luftbild und seine Linien
   aktualisiereInfos();         // Infos: Schalter und Ebenen
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();

@@ -41,10 +41,14 @@ out skel qt;`;
 
 // Fragt die Server der Reihe nach. meldung(text) zeigt den Fortschritt an.
 async function ladeOsm(bbox, meldung) {
-  const abfrage = overpassAbfrage(bbox);
+  return overpassHolen(overpassAbfrage(bbox), meldung, "OSM-Daten");
+}
+
+// Eine Overpass-Abfrage stellen (auch für die Infrastruktur-Punkte in infrastruktur.js)
+async function overpassHolen(abfrage, meldung, was) {
   let letzterFehler = null;
   for (const [i, server] of OVERPASS_SERVER.entries()) {
-    meldung(`Lade OSM-Daten (Server ${i + 1} von ${OVERPASS_SERVER.length}) … das kann bis zu 2 Minuten dauern.`);
+    meldung(`Lade ${was} (Server ${i + 1} von ${OVERPASS_SERVER.length}) … das kann bis zu 2 Minuten dauern.`);
     const abbruch = new AbortController();
     const zeitlimit = setTimeout(() => abbruch.abort(), 150_000);
     try {

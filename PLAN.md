@@ -713,6 +713,15 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
 - [x] **Korrekturen** (17.11.2026): Straßennetz feiner (Fläche 65 % der Straßenraumbreite, Rand 0,35 m je Seite,
   Fußwege dünner gestrichelt). Flurstücksgrenzen aus dem Lageplan entfernt (nur noch im Reiter „Flurstücke“
   und fein im Reiter „Bodenrichtwerte“).
+- [x] **Reiter „Infrastruktur“** (17.11.2026): eigene Overpass-Abfrage (`infrastruktur.js`, `out center tags`),
+  37 Arten in 6 schaltbaren Ebenen (Mobilität, Bildung und Soziales, Versorgung und Gesundheit, Kultur, Gastronomie,
+  Stadtmöbel). Piktogramme aus Maki (Mapbox, CC0), als Pfade in `piktogramme.js` (`werkzeuge/piktogramme.py`).
+  Beispiel Oldenburg: `data/beispiel-oldenburg-infra.js` (664 Orte, `werkzeuge/infra_beispiel.py`), auch Ersatz,
+  wenn Overpass nicht antwortet. Doppelte Haltestellen (gleicher Name in 30 m) zusammengefasst. Klick zeigt Art und
+  Namen (bei Arztpraxen kein Name, Datenschutz). Einzugsradien 300 m um Haltestellen, 500 m um Spielplätze
+  (Luftlinie, vereinigt) mit Abdeckung des Gebiets. Kennzahlen-Block „Infrastruktur“. Oldenburg: 32 Haltestellen,
+  6 Spielplätze, 97 % / 95 % des Gebiets abgedeckt. Die Reiterleiste ist jetzt so lang, dass sie bei schmalen
+  Fenstern seitlich scrollt.
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

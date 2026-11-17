@@ -40,7 +40,9 @@ const PLAN_EBENEN = {
     "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"],
   boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"],
   flurstuecke: ["flst-flaeche", "daecher", "daecher-linien", "flst-linie", "flst-auswahl", "rahmen"],
-  wohnen: ["zensus-flaeche", "zensus-rand", "gebaeude-kontur", "rahmen"]
+  wohnen: ["zensus-flaeche", "zensus-rand", "gebaeude-kontur", "rahmen"],
+  infra: ["wasser", "gebaeude-hell", "infra-radius-halt", "infra-radius-halt-rand", "infra-radius-spiel", "infra-radius-spiel-rand",
+    "rahmen", ...Object.keys(INFRA_EBENEN).map((e) => `infra-${e}`)]
 };
 
 const PLAN_TITEL = {
@@ -50,7 +52,8 @@ const PLAN_TITEL = {
   lageplan: "Lageplan",
   boden: "Bodenrichtwerte",
   flurstuecke: "Flurstücke und Dachaufsichten",
-  wohnen: "Wohnen (Zensus 2022)"
+  wohnen: "Wohnen (Zensus 2022)",
+  infra: "Infrastruktur (OSM)"
 };
 
 let planKarte = null;
@@ -64,6 +67,10 @@ let brwMarker = [];             // Beschriftungen der Bodenrichtwerte
 let brwDaten = null;
 let zensusKlassen = {};         // Farbklassen je Zensus-Merkmal (Reiter „Wohnen“)
 let zensusMerkmal = "miete";    // gerade gezeigtes Merkmal im Reiter „Wohnen“
+let infraDaten = null;          // Punkte und Einzugsradien (Reiter „Infrastruktur“)
+const infraSichtbar = Object.fromEntries(Object.keys(INFRA_EBENEN).map((e) => [e, true])); // Ebenen an/aus
+const radienSichtbar = { halt: false, spiel: false };                                     // Einzugsradien an/aus
+let infraPopup = null;          // Fenster nach Klick auf einen Ort
 let planLegenden = {};
 
 // Linienbreite, die beim Zoomen mitwächst (Wert in Pixeln bei Zoomstufe 16)
@@ -103,7 +110,7 @@ function erstellePlanKarte(bbox) {
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
 const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
-  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "zensus", "rahmen"];
+  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "zensus", "infra", "infraRadien", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -116,6 +123,7 @@ function ebenenAnlegen(breitengrad) {
     if (name === "parzellen") optionen.attribution = `Flurstücke: LGLN (${new Date().getFullYear()}), CC BY 4.0`;
     if (name === "brw") optionen.attribution = "Bodenrichtwerte: BORIS-NI (dl-de/by-2-0)";
     if (name === "zensus") optionen.attribution = "Wohnen: Zensus 2022 (dl-de/by-2-0)";
+    if (name === "infra") optionen.attribution = "Piktogramme: Maki (CC0)";
     k.addSource(name, optionen);
   }
   const filterKat = (kat) => ["==", ["get", "kategorie"], kat];
@@ -209,11 +217,37 @@ function ebenenAnlegen(breitengrad) {
     { id: "brw-rand", type: "line", source: "brw", paint: { "line-color": "#ffffff", "line-width": 1.5 } },
     { id: "parzellen-boden", type: "line", source: "parzellen", paint: { "line-color": "#3a3a3a", "line-width": mitZoom(0.35), "line-opacity": 0.35 } },
     { id: "gebaeude-kontur", type: "line", source: "gebaeude", paint: { "line-color": "#333333", "line-width": mitZoom(0.5), "line-opacity": 0.7 } },
+    // Reiter „Infrastruktur“: Einzugsradien (unter den Piktogrammen)
+    ...Object.entries(INFRA_RADIEN).flatMap(([key, r]) => [
+      { id: `infra-radius-${key}`, type: "fill", source: "infraRadien", filter: ["==", ["get", "radius"], key],
+        paint: { "fill-color": r.farbe, "fill-opacity": 0.1 } },
+      { id: `infra-radius-${key}-rand`, type: "line", source: "infraRadien", filter: ["==", ["get", "radius"], key],
+        paint: { "line-color": r.farbe, "line-width": 1.2, "line-dasharray": [3, 2] } }
+    ]),
     // Rahmen des Untersuchungsgebiets
-    { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } }
+    { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } },
+    // Reiter „Infrastruktur“: je Ebene eine Piktogramm-Ebene (ganz oben)
+    ...Object.keys(INFRA_EBENEN).map((e) => ({ id: `infra-${e}`, type: "symbol", source: "infra", filter: ["==", ["get", "ebene"], e],
+      layout: { "icon-image": ["get", "icon"], "icon-allow-overlap": true, "icon-ignore-placement": true,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 13, 0.45, 16, 0.8, 18, 1.1] } }))
   ];
   for (const e of ebenen) k.addLayer({ ...e, layout: { ...(e.layout || {}), visibility: "none" } });
   steckbriefAnmelden(); // Klick auf Flurstücke (steckbrief.js)
+  // Klick auf einen Ort im Reiter „Infrastruktur“: Art und Name zeigen
+  for (const e of Object.keys(INFRA_EBENEN)) {
+    k.on("click", `infra-${e}`, (ev) => {
+      const p = ev.features[0].properties, a = INFRA_ART[p.art];
+      if (infraPopup) infraPopup.remove();
+      infraPopup = new maplibregl.Popup({ closeButton: true, maxWidth: "240px", className: "infra-popup" })
+        .setLngLat(ev.features[0].geometry.coordinates)
+        .setHTML(`<img src="${piktogrammUrl(p.art)}" alt=""><div><strong>${a.name}</strong>`
+          + `<span>${p.name ? htmlSicher(p.name) : OHNE_NAMEN.has(p.art) ? "Name nicht angezeigt (Datenschutz)" : "ohne Namen in OSM"}</span>`
+          + `<small>${INFRA_EBENEN[a.ebene].name}</small></div>`)
+        .addTo(k);
+    });
+    k.on("mouseenter", `infra-${e}`, () => { k.getCanvas().style.cursor = "pointer"; });
+    k.on("mouseleave", `infra-${e}`, () => { k.getCanvas().style.cursor = ""; });
+  }
 }
 
 // Legenden-Einträge pro Plan: [Art des Zeichens, Farbe/Stärke, Text, Schalter?]
@@ -273,6 +307,31 @@ function legendeFuer(plan, k, amtlich) {
     case "wohnen": return legendeWohnen();
   }
   return [];
+}
+
+// Legende im Reiter „Infrastruktur“: je Ebene ein Schalter, darunter die Arten mit Piktogramm und Anzahl;
+// zum Schluss die Einzugsradien mit dem Anteil des Gebiets, der abgedeckt ist
+function legendeInfraHtml() {
+  if (!infraDaten) return `<p class="legende-hilfe">Keine Infrastruktur-Daten: Der OSM-Dienst war nicht erreichbar. Bitte später erneut analysieren.</p>`;
+  const anzahl = infraDaten.anzahl;
+  const ebenen = Object.entries(INFRA_EBENEN).map(([e, d]) => {
+    const arten = INFRA_ARTEN.filter(([art, ebene]) => ebene === e && anzahl[art]);
+    const summe = arten.reduce((s, [art]) => s + anzahl[art], 0);
+    return `<li class="infra-ebene">
+        <label class="infra-schalter"><input type="checkbox" data-ebene="${e}" ${infraSichtbar[e] ? "checked" : ""} ${summe ? "" : "disabled"}>
+          <span class="infra-farbe" style="background:${d.farbe}"></span><strong>${d.name}</strong><span class="infra-zahl">${fmt(summe)}</span></label>
+        ${arten.length && infraSichtbar[e] ? `<ul>${arten.map(([art, , name]) =>
+          `<li><img src="${piktogrammUrl(art)}" alt=""><span>${name}</span><span class="infra-zahl">${fmt(anzahl[art])}</span></li>`).join("")}</ul>` : ""}
+      </li>`;
+  }).join("");
+  const radien = Object.entries(INFRA_RADIEN).map(([key, r]) => `
+      <li><label class="infra-schalter"><input type="checkbox" data-radius="${key}" ${radienSichtbar[key] ? "checked" : ""} ${infraDaten.radien[key] ? "" : "disabled"}>
+        <span class="lz lz-flaeche" style="background:${r.farbe}1f;border:1px dashed ${r.farbe}"></span>
+        <span>${r.radius} m um ${r.name}</span><span class="infra-zahl">${prozent(infraDaten.abdeckung[key], 0)}</span></label></li>`).join("");
+  return `<ul class="infra-legende">${ebenen}</ul>
+    <p class="legende-hilfe">Einzugsradius (Luftlinie) · Zahl = Anteil des Gebiets, der abgedeckt ist</p>
+    <ul class="infra-legende">${radien}</ul>
+    <p class="legende-hilfe">Klicke auf ein Piktogramm für Art und Name. Daten aus OSM, oft unvollständig (${infraDaten.herkunft}).</p>`;
 }
 
 // Legende im Reiter „Wohnen“: hängt vom gewählten Zensus-Merkmal ab
@@ -345,6 +404,7 @@ function zeigeLegende() {
   box.innerHTML = `
     <h3>${PLAN_TITEL[aktuellerPlan]}</h3>
     ${aktuellerPlan === "wohnen" ? zensusKnoepfe() : ""}
+    ${aktuellerPlan === "infra" ? legendeInfraHtml() : ""}
     <ul>${eintraege.map((e) => `<li>${zeichen(e)}<span>${e[2]}</span>${
       e[3] === "neben" ? `<label class="schalter"><input type="checkbox" id="neben-schalter" ${nebenSichtbar ? "checked" : ""}> zeigen</label>` :
       e[3] === "grundrisse" ? `<label class="schalter"><input type="checkbox" id="grundriss-schalter" ${grundrisseSichtbar ? "checked" : ""}> zeigen</label>` :
@@ -352,6 +412,8 @@ function zeigeLegende() {
     }</li>`).join("")}</ul>
     <p class="legende-quelle">${document.getElementById("plan").dataset.quelle || ""}</p>`;
   box.querySelectorAll(".zensus-knoepfe button").forEach((b) => b.addEventListener("click", () => zeigeZensusMerkmal(b.dataset.merkmal)));
+  box.querySelectorAll("input[data-ebene]").forEach((c) => c.addEventListener("change", () => { infraSichtbar[c.dataset.ebene] = c.checked; zeigePlan(aktuellerPlan); }));
+  box.querySelectorAll("input[data-radius]").forEach((c) => c.addEventListener("change", () => { radienSichtbar[c.dataset.radius] = c.checked; zeigePlan(aktuellerPlan); }));
   const parz = document.getElementById("parzellen-schalter");
   if (parz) parz.addEventListener("change", () => { parzellenSichtbar = parz.checked; zeigePlan(aktuellerPlan); });
   const schalter = document.getElementById("neben-schalter");
@@ -373,6 +435,10 @@ function zeigePlan(plan) {
   // Reiter „Flurstücke“ ohne LoD2-Daten: Grundrisse statt Dachaufsichten
   if (plan === "flurstuecke" && !mitDaechern) ["gebaeude-lage", "gebaeude-umriss"].forEach((e) => sichtbar.add(e));
   if (plan !== "flurstuecke") schliesseSteckbrief();
+  // Infrastruktur: ausgeschaltete Ebenen und Radien weglassen
+  for (const e of Object.keys(INFRA_EBENEN)) if (!infraSichtbar[e]) sichtbar.delete(`infra-${e}`);
+  for (const r of Object.keys(INFRA_RADIEN)) if (!radienSichtbar[r]) { sichtbar.delete(`infra-radius-${r}`); sichtbar.delete(`infra-radius-${r}-rand`); }
+  if (infraPopup && plan !== "infra") { infraPopup.remove(); infraPopup = null; }
   // Beschriftung der Bodenrichtwerte nur im Plan „Bodenrichtwerte“
   brwMarker.forEach((m) => m.remove());
   brwMarker = [];
@@ -464,6 +530,19 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   if (!zensusKlassen[zensusMerkmal]) zensusMerkmal = Object.keys(zensusKlassen)[0] || "miete";
   zeigeZensusMerkmal(zensusMerkmal);
   schliesseSteckbrief();
+
+  // Infrastruktur: Piktogramme, Punkte und Einzugsradien
+  await infraBilderLaden(planKarte);
+  if (daten.infra) {
+    infraDaten = { ...daten.infra, anzahl: kennzahlen.infraAnzahl, abdeckung: kennzahlen.infraAbdeckung };
+    planKarte.getSource("infra").setData(daten.infra.punkte);
+    planKarte.getSource("infraRadien").setData({ type: "FeatureCollection", features: Object.values(daten.infra.radien) });
+  } else {
+    infraDaten = null;
+    planKarte.getSource("infra").setData(leereSammlung);
+    planKarte.getSource("infraRadien").setData(leereSammlung);
+  }
+  if (infraPopup) { infraPopup.remove(); infraPopup = null; }
 
   mitDaechern = !!(daecher && daecher.features.length);
   const amtlich = !!(daten.strassenAmtlich && daten.strassenAmtlich.features.length);

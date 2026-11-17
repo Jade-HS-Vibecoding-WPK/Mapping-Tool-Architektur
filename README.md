@@ -24,6 +24,7 @@ LGLN, CC BY 4.0 bzw. Geobasis NRW (dl-de/zero-2-0). Bodenrichtwerte: Gutachterau
 Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0). Wohnen (Nettokaltmiete, Leerstand, Wohnfläche,
 Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zensus 2022, 100-m-Gitter (dl-de/by-2-0).
 Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js.
+Piktogramme im Reiter „Infrastruktur“: Maki von Mapbox (https://github.com/mapbox/maki), Lizenz CC0.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)
 - [`UEBERGABE.md`](UEBERGABE.md): Zusammenfassung der bisherigen Sitzung für die Weiterarbeit in einem neuen Chat

@@ -282,6 +282,23 @@ html, body {
 /* Reiter „Wohnen“: Umschalter zwischen den Zensus-Merkmalen */
 .zensus-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; max-width: 300px; }
 .zensus-knoepfe .btn:disabled { opacity: 0.35; cursor: default; }
+/* Reiter „Infrastruktur“: lange Legende scrollbar, Ebenen mit Schalter, Arten mit Piktogramm */
+.plan-legende { max-height: calc(100% - 32px); overflow-y: auto; }
+.infra-legende { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 250px; }
+.infra-legende > li { display: block; }
+.infra-schalter { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.infra-schalter input { accent-color: var(--accent); margin: 0; }
+.infra-schalter input:disabled + .infra-farbe { opacity: 0.3; }
+.infra-farbe { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; }
+.infra-zahl { margin-left: auto; font-family: var(--mono); color: var(--ink-soft); }
+.infra-ebene ul { list-style: none; margin: 4px 0 2px 17px; padding: 0; display: grid; gap: 3px; }
+.infra-ebene ul li { display: flex; align-items: center; gap: 7px; font-size: 11px; }
+.infra-ebene ul img, .infra-popup img { width: 16px; height: 16px; flex: 0 0 16px; }
+.infra-popup .maplibregl-popup-content { display: flex; gap: 8px; align-items: flex-start; padding: 10px 26px 10px 10px;
+  border-radius: 0; border: 1px solid var(--ink); font: 12px/1.4 inherit; }
+.infra-popup img { width: 22px; height: 22px; flex-basis: 22px; }
+.infra-popup strong, .infra-popup span, .infra-popup small { display: block; }
+.infra-popup small { color: var(--ink-soft); }
 
 /* Steckbrief eines Flurstücks */
 .flurstueck-info {

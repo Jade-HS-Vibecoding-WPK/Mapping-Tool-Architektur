@@ -191,7 +191,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- 3. Reiter (Tabs) ----------
 // Schwarzplan, Straßennetz, Grün und Lageplan teilen sich die Ansicht „plan“.
-const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "wohnen"];
+const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "wohnen", "infra"];
 
 function zeigeAnsicht(ziel) {
   const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
@@ -284,6 +284,9 @@ async function analysiere(nurBeispiel = false) {
     }
     // Wohnen (Zensus 2022: Miete, Leerstand, Wohnfläche, Eigentum, Baujahr): Import oder eingebautes Beispiel
     try { daten.zensus = await zensuszellen(bbox); } catch (fehler) { console.warn("Zensusdaten nicht verfügbar:", fehler); }
+    // Infrastruktur (Haltestellen, Spielplätze, Läden …): eigene OSM-Abfrage, im Beispiel eingebaut
+    try { daten.infra = await ladeInfrastruktur(bbox, nurBeispiel, meldung); } catch (fehler) { console.warn("Infrastruktur nicht verfügbar:", fehler); }
+    meldung("Berechne Kennzahlen …");
     const kennzahlen = berechneKennzahlen(daten, bbox);
     // Für den Flurstücks-Steckbrief merken
     analyseErgebnis = { daten, lod2: lod2 || [], bbox };

@@ -158,7 +158,8 @@ function berechneKennzahlen(daten, bbox) {
     strassenAmtlich: !!daten.strassenAmtlich,
     nutzungAlkis: !!(daten.kataster && daten.kataster.nutzung.features.length),
     ...katasterKennzahlen(daten.kataster),
-    ...zensusKennzahlen(daten.zensus)
+    ...zensusKennzahlen(daten.zensus),
+    ...infraKennzahlen(daten.infra, bbox)
   };
 }
 
@@ -234,6 +235,24 @@ function wohnenBlock(z) {
             <span class="kz-balken-zahl">${prozent(b.epochen[i] / b.gebaeude, 0)}</span>
           </div>`).join("")}</div>` : ""}
       <p class="kz-hinweis">Stichtag 15.05.2022. Werte je 100-m-Rasterzelle; Mittelwerte sind ungewichtete Durchschnitte der Zellen.</p>
+    </section>`;
+}
+
+// Block „Infrastruktur (OSM)“: Anzahl je Art (nur vorhandene), gruppiert nach Ebene, dazu die Abdeckung der Einzugsradien
+function infraBlock(k) {
+  const zeilen = Object.entries(INFRA_RADIEN).map(([key, r]) =>
+    zeile(`Gebiet im ${r.radius}-m-Radius um ${r.name}`, prozent(k.infraAbdeckung[key], 0), "Luftlinie, Anteil der Gebietsfläche"));
+  for (const [e, d] of Object.entries(INFRA_EBENEN)) {
+    const arten = INFRA_ARTEN.filter(([art, ebene]) => ebene === e && k.infraAnzahl[art]);
+    if (!arten.length) continue;
+    zeilen.push(zeile(d.name, fmt(arten.reduce((s, [art]) => s + k.infraAnzahl[art], 0)),
+      arten.map(([art, , name]) => `${name} ${fmt(k.infraAnzahl[art])}`).join(" · ")));
+  }
+  return `
+    <section class="kz-block">
+      <h4>Infrastruktur (OSM)</h4>
+      <dl>${zeilen.join("")}</dl>
+      <p class="kz-hinweis">Orte aus OpenStreetMap im Gebiet. OSM ist hier oft unvollständig, besonders bei Bänken und Mülleimern.</p>
     </section>`;
 }
 
@@ -322,6 +341,8 @@ function zeigeKennzahlen(k, quelle) {
     </section>` : ""}
 
     ${k.zensus && Object.keys(k.zensus).length ? wohnenBlock(k.zensus) : ""}
+
+    ${k.infraAnzahl ? infraBlock(k) : ""}
 
     <section class="kz-block">
       <h4>Straßennetz</h4>

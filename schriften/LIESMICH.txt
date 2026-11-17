@@ -1,8 +1,4 @@
-Schriften der Ortsanalyse
-
-1. Microsoft Yi Baiti (Windows-Systemschrift, gehört Microsoft). Wird NICHT mitgeliefert, sondern nur benutzt,
-   wenn sie auf dem Rechner installiert ist (Windows). In style.css über local("Microsoft Yi Baiti").
-
-2. Ersatz auf anderen Rechnern (Mac, Handy): Didact Gothic, (c) 2016 The Didact Gothic Project Authors,
-   Lizenz SIL Open Font License 1.1 (siehe OFL-DIDACT-GOTHIC.txt). Datei: lateinische Teilmenge als WOFF2
-   aus dem Paket @fontsource/didact-gothic 5.2.7. Liegt im Projekt, damit nichts von Google Fonts geladen wird.
+Schrift der Ortsanalyse: Space Grotesk (400, 500, 700), (c) 2020 The Space Grotesk Project Authors
+(https://github.com/floriankarsten/space-grotesk), Lizenz SIL Open Font License 1.1 (siehe OFL-SPACE-GROTESK.txt).
+Dateien: lateinische Teilmenge als WOFF2 aus dem Paket @fontsource/space-grotesk 5.2.10.
+Liegt im Projekt, damit nichts von Google Fonts geladen wird.

@@ -8,7 +8,7 @@
 
 const DREID_FARBEN = {
   hintergrund: 0xffffff, boden: 0xf4f4f2, wand: 0xf7f7f5, dach: 0xc9c6c1,
-  ersatz: 0xeac3b9, kante: 0x8c8c8c, krone: 0x9fbf8f, stamm: 0x7d6e5d, akzent: 0xe2482d
+  ersatz: 0xeac3b9, kante: 0x8c8c8c, krone: 0x9fbf8f, stamm: 0x7d6e5d, akzent: 0xe535b8
 };
 
 let dreid = null; // { renderer, scene, camera, controls, gruppe }

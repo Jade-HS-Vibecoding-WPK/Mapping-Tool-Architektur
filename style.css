@@ -1,30 +1,31 @@
 /* ============================================================
-   Ortsanalyse – Gestaltung
-   Ruhig und architektonisch (Vorbild: Büro-Websites wie adept.dk): Schwarz auf Weiß, viel Weißraum,
-   eine Schriftstärke, Betonung über Größe statt Fett, feine Linien nur bei Tabellen und Legenden.
-   Farbe (Rot) nur in den Plänen, nicht in der Bedienoberfläche.
+   Ortsanalyse – Gestaltung im Stil der Gumroad-App („Neo-Brutalismus“):
+   cremeweißer Grund, weiße Karten mit schwarzem Rand, harte schwarze Schatten beim Überfahren,
+   Pink für Hauptknopf und Auswahl, Gelb für Hinweise. Schrift: Space Grotesk.
+   Pink (#e535b8) ist auch die Akzentfarbe in Plänen, 3D und Exporten.
    ============================================================ */
 
-/* Schrift: „Microsoft Yi Baiti“ (Windows-Systemschrift, wird nicht mitgeliefert, nur benutzt, wenn vorhanden).
-   Zeichen, die in ihr unschön sind (Mittelpunkt, Gedankenstrich, Anführungszeichen …), kommen aus der Ersatzschrift.
-   Ersatz auf Mac/Handy: Didact Gothic (SIL OFL, im Ordner schriften/). Siehe schriften/LIESMICH.txt. */
-@font-face { font-family: "Ortsschrift"; src: local("Microsoft Yi Baiti"), local("MicrosoftYiBaiti");
-  size-adjust: 112%; unicode-range: U+0020-007E, U+00A0-00B6, U+00B8-00FF; }
-@font-face { font-family: "Didact Gothic"; src: url("schriften/didact-gothic-latin-400.woff2") format("woff2");
-  font-weight: 400; font-style: normal; font-display: swap; }
+/* Space Grotesk (SIL OFL), liegt im Ordner schriften/ (siehe schriften/LIESMICH.txt) */
+@font-face { font-family: "Space Grotesk"; src: url("schriften/space-grotesk-latin-400.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("schriften/space-grotesk-latin-500.woff2") format("woff2"); font-weight: 500 600; font-display: swap; }
+@font-face { font-family: "Space Grotesk"; src: url("schriften/space-grotesk-latin-700.woff2") format("woff2"); font-weight: 700 800; font-display: swap; }
 
 :root {
-  --ink: #111111;        /* Schwarz für Text und Linien */
-  --ink-soft: #6f6f6f;   /* Grau für Nebentexte */
-  --line: #e6e6e6;       /* Haarlinien */
-  --paper: #ffffff;      /* Weiß */
-  --paper-soft: #f4f4f4; /* hellgraue Fläche */
-  --accent: var(--ink);  /* keine Farbe in der Oberfläche (Rot nur in den Plänen) */
+  --ink: #000000;        /* Schwarz für Text, Ränder, Schatten */
+  --ink-soft: #5c5c5c;   /* Grau für Nebentexte */
+  --line: #d6d6cf;       /* feine Trennlinien in Listen (Ränder von Karten sind schwarz) */
+  --paper: #ffffff;      /* Karten */
+  --paper-soft: #f4f4f0; /* cremeweißer Grund */
+  --pink: #ff90e8;       /* Gumroad-Pink: Hauptknopf, Auswahl */
+  --gelb: #ffc900;       /* Hinweise */
+  --accent: #ff90e8;
+  --radius: 4px;
+  --schatten: 4px 4px 0 var(--ink);
   --sidebar-width: 360px;
-  --font: "Ortsschrift", "Didact Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: var(--font);
   --sans: var(--font);
-  --raster: 8px;         /* Grundmaß für Abstände */
+  --raster: 8px;
 }
 
 * { box-sizing: border-box; }
@@ -46,11 +47,10 @@ html, body {
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
-  word-spacing: -0.06em;  /* Yi Baiti hat sehr breite Wortabstände */
   -webkit-font-smoothing: antialiased;
   font-kerning: normal;
-  font-synthesis: none;    /* kein künstliches Fett: Betonung nur über Größe */
 }
+body { background: var(--paper-soft); }
 
 /* ---------- Grundaufteilung: Seitenleiste + Hauptbereich ---------- */
 .app {
@@ -60,12 +60,13 @@ html, body {
 }
 
 .sidebar {
-  border-right: 1px solid var(--line);
-  padding: 40px 32px 32px;
+  border-right: 1px solid var(--ink);
+  background: var(--paper-soft);
+  padding: 24px 22px 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 44px;
+  gap: 18px;
 }
 
 .main {
@@ -76,69 +77,66 @@ html, body {
 }
 
 /* ---------- Titel ---------- */
-.brand h1 {
-  margin: 0;
-  font-size: 40px;
-  line-height: 1.05;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+.brand {
+  background: var(--pink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 18px 18px 16px;
+  box-shadow: var(--schatten);
+  margin-bottom: 6px;
 }
-.brand .subtitle {
-  margin: 14px 0 0;
-  color: var(--ink);
-  font-size: 18px;
-  line-height: 1.4;
-  max-width: 18em;
-}
+.brand h1 { margin: 0; font-size: 34px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+.brand .subtitle { margin: 10px 0 0; color: var(--ink); font-size: 14px; line-height: 1.4; }
 
-/* ---------- Arbeitsschritte ---------- */
+/* ---------- Arbeitsschritte als Karten ---------- */
+.step {
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  padding: 16px 16px 18px;
+}
+.step.step-main { background: none; border: 0; padding: 0; margin-top: auto; }
 .step h2 {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font-size: 18px;
-  font-weight: 400;
-  line-height: 1.3;
+  font-weight: 500;
+  line-height: 1.25;
   display: flex;
-  gap: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--ink);
+  align-items: center;
+  gap: 10px;
 }
-.step .num { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
-.hint {
-  margin: 0 0 14px;
-  color: var(--ink-soft);
-  font-size: 13px;
+.step .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 24px; padding: 0 6px;
+  background: var(--pink); border: 1px solid var(--ink); border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;
 }
+.hint { margin: 0 0 12px; color: var(--ink-soft); font-size: 13px; }
 .row { display: flex; gap: 8px; }
 .step-main { margin-top: auto; }
 .step-main .hint { margin: 10px 0 0; }
 
-/* ---------- Knöpfe ---------- */
+/* ---------- Knöpfe: schwarzer Rand, beim Überfahren harter Schatten ---------- */
 .btn {
   font: inherit;
-  font-size: 13px;
-  letter-spacing: 0.02em;
+  font-size: 14px;
+  font-weight: 500;
   padding: 9px 16px;
   border: 1px solid var(--ink);
+  border-radius: var(--radius);
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
-  border-radius: 0;
-  transition: background 0.15s, color 0.15s;
+  transition: transform 0.12s, box-shadow 0.12s;
 }
-.btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn:hover:not(:disabled) { transform: translate(-3px, -3px); box-shadow: var(--schatten); }
+.btn:active:not(:disabled) { transform: none; box-shadow: none; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn.is-active { background: var(--ink); color: var(--paper); }
-.btn-ghost { border-color: #c8c8c8; }
+.btn-ghost { background: var(--paper); }
 .btn-block { width: 100%; margin-top: 8px; }
-.btn-primary {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-  font-size: 15px;
-  padding: 15px 18px;
-}
-.btn-primary:hover:not(:disabled) { background: var(--paper); color: var(--ink); }
-.btn:focus-visible, .tab:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+.btn-primary { background: var(--pink); font-size: 16px; font-weight: 700; padding: 14px 18px; }
+.btn:focus-visible, .tab:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---------- Gebietsangaben ---------- */
 .area-info {
@@ -203,24 +201,29 @@ html, body {
 /* ---------- Reiter (Tabs) für die Ansichten ---------- */
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--line);
+  background: var(--paper-soft);
+  border-bottom: 1px solid var(--ink);
   overflow-x: auto;
   flex-shrink: 0;
 }
 .tab {
   font: inherit;
   font-size: 14px;
-  letter-spacing: 0.02em;
-  background: none;
-  border: none;
-  padding: 18px 14px 14px;
+  font-weight: 500;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin: 10px 0 10px 6px;
   cursor: pointer;
-  color: var(--ink-soft);
+  color: var(--ink);
   white-space: nowrap;
+  transition: transform 0.12s, box-shadow 0.12s;
 }
-.tab:first-child { padding-left: 24px; }
-.tab:hover { color: var(--ink); }
-.tab.is-active { color: var(--ink); box-shadow: inset 0 -1px 0 var(--ink); }
+.tab:first-child { margin-left: 14px; }
+.tab:last-child { margin-right: 14px; }
+.tab:hover { transform: translate(-2px, -2px); box-shadow: 2px 2px 0 var(--ink); }
+.tab.is-active { background: var(--pink); }
 
 /* ---------- Ansichten ---------- */
 .views { position: relative; flex: 1; min-height: 0; }
@@ -377,12 +380,12 @@ html, body {
 .schnitt-leer { color: var(--ink-soft); font-size: 13px; margin: 24px 0; }
 .schnitt-svg .sz-text { font: 10px var(--mono, monospace); fill: #111; }
 .schnitt-svg .sz-klein { font-size: 9px; fill: #555; }
-.schnitt-svg .sz-fett { font: 600 12px var(--sans, sans-serif); fill: #e2482d; }
+.schnitt-svg .sz-fett { font: 600 12px var(--sans, sans-serif); fill: #e535b8; }
 .schnitt-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; }
 .schnitt-regler { display: grid; gap: 4px; margin: 0 0 10px; font-size: 11px; }
 .schnitt-regler strong { font-family: var(--mono); }
 .schnitt-regler input { accent-color: var(--accent); width: 100%; }
-.schnitt-etikett { font: 600 12px sans-serif; color: #fff; background: #e2482d; padding: 1px 5px; }
+.schnitt-etikett { font: 600 12px sans-serif; color: #fff; background: #e535b8; padding: 1px 5px; }
 @media (max-width: 900px) { .schnitt-lage { display: none; } }
 /* Reiter „Infrastruktur“: lange Legende scrollbar, Ebenen mit Schalter, Arten mit Piktogramm */
 .plan-legende { max-height: calc(100% - 32px); overflow-y: auto; }
@@ -525,7 +528,7 @@ html, body {
 .f-bahn { background: #8a8a8a; }
 .f-leer { background: #ececea; }
 .f-n-wohnen { background: var(--ink); }
-.f-n-gewerbe { background: var(--accent); }
+.f-n-gewerbe { background: #e535b8; }
 .f-n-oeffentlich { background: #555; }
 .f-n-kirche { background: #888; }
 .f-n-sonstige { background: #b5b5b5; }
@@ -559,35 +562,61 @@ html, body {
 select, input[type="number"], input[type="text"] { border-radius: 0; }
 input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 
-/* ---------- Ruhiger Stil: Überschriften in normaler Schrift, Betonung über Größe ---------- */
+/* ---------- Gumroad-Stil für Karten, Legenden, Kennzahlen, Export ---------- */
 .plan-legende h3, .kz-block h4, .export-schritt h4, .export-fertig h4, .schnitt-panel h3, .flurstueck-info h4, .export-gruppe-kopf h5 {
-  text-transform: none; letter-spacing: 0.01em; font-weight: 400; }
-.plan-legende h3 { font-size: 15px; border-bottom-color: var(--line); }
-.plan-legende { border: 1px solid var(--line); padding: 14px 18px 16px; }
-.kz-block h4 { font-size: 18px; padding-bottom: 8px; }
-.kz-block h4 small { font-size: 12px; }
-.kz-kopf h3 { font-size: 34px; font-weight: 400; letter-spacing: -0.01em; }
-.kz-kopf p { font-size: 13px; }
-.kz-zeile dd { font-weight: 400; font-size: 18px; }
+  text-transform: none; letter-spacing: 0; font-weight: 500; }
+.plan-legende, .flurstueck-info {
+  background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); box-shadow: var(--schatten); padding: 14px 16px 16px; }
+.plan-legende h3 { font-size: 16px; border-bottom: 1px solid var(--ink); }
+.flurstueck-info h3 { font-size: 20px; font-weight: 700; }
+.flurstueck-info h4 { font-size: 14px; border-bottom-color: var(--ink); }
+.warning { background: var(--gelb); border: 1px solid var(--ink); border-radius: var(--radius); }
+.dropzone { background: var(--paper-soft); border: 1px dashed var(--ink); border-radius: var(--radius); color: var(--ink); }
+.dropzone:hover, .dropzone.ist-ueber { background: var(--gelb); color: var(--ink); }
+.verortung { border: 1px solid var(--ink); border-radius: var(--radius); background: var(--paper-soft); }
+.kachel-status li.fehlt { color: #b0128a; }
+select, input[type="number"], input[type="text"], .verortung-felder input {
+  border: 1px solid var(--ink) !important; border-radius: var(--radius); background: var(--paper); }
+input[type="checkbox"], input[type="radio"], input[type="range"] { accent-color: #e535b8; }
+/* Platzhalter vor der Analyse */
+.placeholder.is-active, .placeholder-box { background: var(--paper-soft); }
+.placeholder > div, .placeholder-box > div { text-align: left; background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius);
+  box-shadow: var(--schatten); padding: 24px 26px; }
+.placeholder h3, .placeholder-box h3 { font-weight: 700; font-size: 24px; letter-spacing: -0.02em; }
+/* Kennzahlen: jede Gruppe als Karte */
+.kennzahlen { background: var(--paper-soft); }
+.kz-kopf h3 { font-size: 34px; font-weight: 700; letter-spacing: -0.03em; }
+.kz-block { background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); padding: 16px 18px; }
+.kz-block h4 { font-size: 18px; border-bottom: 1px solid var(--ink); padding-bottom: 8px; }
+.kz-zeile dd { font-weight: 700; font-size: 18px; }
+.dg-karte { background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); padding: 14px 16px; }
+.dg-karte figcaption strong { font-weight: 700; font-size: 15px; }
+/* Export */
+.export-schritt { background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); padding: 16px 18px; }
 .export-schritt h4 { font-size: 18px; }
-.export-nr { width: auto; height: auto; background: none; color: var(--ink-soft); font-size: inherit; }
-.export-format { font-weight: 400; }
-.export-gruppe-kopf h5 { font-size: 13px; }
-.export-fertig { border: 1px solid var(--line); }
-.export-fertig h4 { font-size: 15px; }
-.schnitt-panel h3 { font-size: 15px; }
-.flurstueck-info { border: 1px solid var(--line); }
-.flurstueck-info h4 { font-size: 14px; border-bottom-color: var(--line); }
-.flurstueck-info h3 { font-weight: 400; font-size: 20px; }
-.placeholder > div, .placeholder-box > div { border-top: 1px solid var(--ink); }
-.placeholder h3, .placeholder-box h3 { font-weight: 400; font-size: 28px; }
-.mietrechner-titel { font-weight: 400; }
-.brw-etikett { font-weight: 400; }
-.schnitt-etikett { font: 12px var(--font); }
-.schnitt-svg .sz-fett { font-weight: 400; }
-.nordpfeil text { font-weight: 400; }
-.dg-karte figcaption strong { font-weight: 400; font-size: 15px; }
-.maplibregl-ctrl-group { border-color: var(--line) !important; }
+.export-nr { width: auto; min-width: 30px; height: 24px; padding: 0 6px; background: var(--pink); color: var(--ink); border: 1px solid var(--ink);
+  border-radius: 999px; font-size: 12px; font-weight: 700; }
+.export-formate { border-radius: var(--radius); overflow: hidden; }
+.export-format { font-weight: 500; }
+.export-format.ist-aktiv { background: var(--pink); color: var(--ink); }
+.export-gruppe-kopf { border-bottom-color: var(--ink); }
+.export-gruppe-kopf h5 { font-size: 14px; color: var(--ink); }
+.btn-link { color: var(--ink); }
+.export-fertig { background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); box-shadow: var(--schatten); }
+.export-fertig h4 { font-size: 16px; }
+.export-fertig .btn { font-size: 12px; padding: 4px 8px; }
+.export-hilfe { background: var(--paper); border: 1px solid var(--ink); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 10px; }
+.export-warnung { background: var(--gelb); color: var(--ink); padding: 0 4px; border-radius: 2px; }
+/* Schnitt, Wohnen, Zeichenmodus, Karte */
+.schnitt-panel { border-top: 1px solid var(--ink); }
+.schnitt-panel h3 { font-size: 16px; }
+.zensus-knoepfe .btn.ist-aktiv { background: var(--pink); color: var(--ink); }
+.mietrechner { background: var(--paper-soft); border: 1px solid var(--ink); border-radius: var(--radius); }
+.mietrechner-titel { font-weight: 700; }
+.mietrechner-ergebnis strong { color: var(--ink); background: var(--gelb); padding: 0 4px; }
+.map-mode { background: var(--gelb); color: var(--ink); border: 1px solid var(--ink); border-radius: var(--radius); }
+.maplibregl-ctrl-group { border: 1px solid var(--ink) !important; border-radius: var(--radius) !important; overflow: hidden; }
+.maplibregl-popup-content { border-radius: var(--radius); box-shadow: var(--schatten); }
 
 /* ---------- Schmale Bildschirme (Handy) ---------- */
 @media (max-width: 760px) {

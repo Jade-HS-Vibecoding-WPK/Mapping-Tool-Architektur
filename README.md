@@ -29,7 +29,7 @@ Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zens
 teils abgerufen über die destatis-Seite „Mietvergleich“ (Miete nach Baualter und Wohnungsgröße).
 Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js, jsPDF, svg2pdf.js.
 Piktogramme im Reiter „Infrastruktur“: Maki von Mapbox (https://github.com/mapbox/maki), Lizenz CC0.
-Schrift: Microsoft Yi Baiti (Windows-Systemschrift, wird nicht mitgeliefert), Ersatz Didact Gothic (SIL Open Font License), siehe `schriften/`.
+Schrift: Space Grotesk (The Space Grotesk Project Authors), SIL Open Font License, siehe `schriften/`.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)
 - [`UEBERGABE.md`](UEBERGABE.md): Zusammenfassung der bisherigen Sitzung für die Weiterarbeit in einem neuen Chat

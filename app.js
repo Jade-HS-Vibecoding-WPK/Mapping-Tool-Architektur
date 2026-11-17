@@ -67,9 +67,9 @@ const leer = { type: "FeatureCollection", features: [] };
 map.on("load", () => {
   map.addSource("gebiet", { type: "geojson", data: leer });
   map.addLayer({ id: "gebiet-flaeche", type: "fill", source: "gebiet",
-    paint: { "fill-color": "#e2482d", "fill-opacity": 0.08 } });
+    paint: { "fill-color": "#e535b8", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
-    paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
+    paint: { "line-color": "#e535b8", "line-width": 2, "line-dasharray": [3, 2] } });
 });
 
 // Aus zwei Ecken ein Rechteck machen

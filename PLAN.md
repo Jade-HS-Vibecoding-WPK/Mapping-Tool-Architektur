@@ -814,6 +814,12 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Betonung über Größe (font-synthesis: none), keine Versal-Beschriftungen, große ruhige Überschriften, viel Weißraum.
   Feine Linien bleiben bei Tabellen, Legenden, Kennzahlen (Mischung). Oberfläche rein schwarz-weiß (auch der
   Hauptknopf); Rot nur noch in den Plänen (Gebietsrahmen, Schnittlinie). Exporte unverändert.
+- [x] **Gestaltung im Stil der Gumroad-App** (17.11.2026, ersetzt adept.dk-Stil und Yi Baiti): cremeweißer Grund,
+  weiße Karten mit schwarzem Rand (Arbeitsschritte, Legenden, Kennzahlen, Export), harte schwarze Schatten beim
+  Überfahren von Knöpfen und Reitern, Reiter als Pillen, Gumroad-Pink #ff90e8 für Titel, Hauptknopf, aktiven Reiter
+  und Auswahl, Gelb #ffc900 für Hinweise. Schrift Space Grotesk (SIL OFL, 400/500/700 in `schriften/`).
+  Akzentfarbe in Plänen, 3D, Diagrammen und Exporten (PDF/PNG/DXF) jetzt Pink #e535b8 (kräftiger als #ff90e8, damit
+  dünne Linien auf Weiß sichtbar bleiben); Bodenrichtwert- und Baujahr-Stufen als Pink-Verlauf statt Rot.
 - [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

@@ -22,7 +22,7 @@ const PLAN_FARBEN = {
   wasser: "#cdd9e0",
   wasserLinie: "#9fb4c1",
   baum: "#5b7f4f",
-  akzent: "#e2482d"
+  akzent: "#e535b8"
 };
 
 // Grautöne der Straßenflächen im Straßennetz-Plan (je wichtiger, desto dunkler)
@@ -399,7 +399,7 @@ function quantilStufen(werte, feld, stellen, festeGrenzen) {
 }
 
 // Baualter: sechs Epochen, alt = dunkel, neu = hell
-const BAUJAHR_FARBEN = ["#5e1a0e", "#8f2615", "#e2482d", "#ec8a72", "#f5c4b6", "#fbebe6"];
+const BAUJAHR_FARBEN = ["#4a0d3c", "#8a1a72", "#e535b8", "#f27fd6", "#fbc4ee", "#fde9f8"];
 
 // Im Reiter „Wohnen“ ein anderes Merkmal zeigen (Knöpfe in der Legende)
 function zeigeZensusMerkmal(m) {
@@ -430,7 +430,7 @@ function zensusKnoepfe() {
 }
 
 // Farbskala der Bodenrichtwerte (hell = günstig, dunkel = teuer), mit der Akzentfarbe
-const BRW_FARBEN = ["#fbebe6", "#f5c4b6", "#ec8a72", "#e2482d", "#8f2615"];
+const BRW_FARBEN = ["#fde9f8", "#fbc4ee", "#f27fd6", "#e535b8", "#8a1a72"];
 
 function zeichen([art, wert]) {
   if (art === "flaeche") return `<span class="lz lz-flaeche" style="background:${wert}"></span>`;

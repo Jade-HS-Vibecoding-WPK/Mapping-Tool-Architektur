@@ -84,9 +84,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Demo-Daten Oldenburg fest eingebaut (Knopf „Beispiel Oldenburg laden“), mit Quellenangabe.
 
 # Gestaltung
-- Klassisch-architektonisch: Schwarz-Weiß, feine Linien, eine Akzentfarbe, viel Weißraum.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
-- Schrift: „Microsoft Yi Baiti“ (nur lokal, nicht mitliefern), Ersatz „Didact Gothic“ (OFL) aus `schriften/`; überall in der
-  Oberfläche, auch für Zahlen. Stil nach adept.dk: eine Schriftstärke, Betonung über Größe, keine Versalien, viel Weißraum,
-  feine Linien nur bei Tabellen/Legenden. Oberfläche schwarz-weiß, Rot nur in den Plänen.
+- Stil der Gumroad-App: cremeweißer Grund, weiße Karten mit schwarzem Rand, harte schwarze Schatten beim Überfahren,
+  Pink #ff90e8 (Oberfläche), Gelb #ffc900 (Hinweise). Schrift Space Grotesk (OFL) aus `schriften/`.
+  Akzentfarbe in Plänen, 3D und Exporten: Pink #e535b8 (PLAN_FARBEN.akzent, DREID_FARBEN.akzent, DG_FARBEN.akzent).
 - Ein Hauptbutton pro Ansicht („Analysieren“).

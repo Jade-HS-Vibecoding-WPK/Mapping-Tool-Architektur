@@ -6,8 +6,8 @@
    Flurstücksgrößen, Infrastruktur.
    ============================================================ */
 
-const DG = { breite: 460, namenSpalte: 168, wertSpalte: 70, zeile: 24, balken: 12, schrift: "Ortsschrift, Didact Gothic, Helvetica Neue, Helvetica, Arial, sans-serif" };
-const DG_FARBEN = { ink: "#111111", grau: "#9a9a9a", hell: "#cfcfcc", leer: "#ececea", gruen: "#a9c29b", wasser: "#9fb4c1", akzent: "#e2482d" };
+const DG = { breite: 460, namenSpalte: 168, wertSpalte: 70, zeile: 24, balken: 12, schrift: "Space Grotesk, Helvetica Neue, Helvetica, Arial, sans-serif" };
+const DG_FARBEN = { ink: "#111111", grau: "#9a9a9a", hell: "#cfcfcc", leer: "#ececea", gruen: "#a9c29b", wasser: "#9fb4c1", akzent: "#e535b8" };
 
 let diagrammListe = []; // die zuletzt gezeichneten Diagramme (für den PNG-Export)
 

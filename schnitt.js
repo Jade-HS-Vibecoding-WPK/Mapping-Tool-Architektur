@@ -505,12 +505,12 @@ const ersatzFarbe = (anteil) => { const m = (v, w) => Math.round(v + (255 - v) *
 function zufallsFolge(seed) { let s = seed % 4294967296; return () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; }; }
 
 // Form eines Baums als Punktlisten [Abstand, Höhe]; rx = Kronenradius an der Schnittebene.
-// Architektur-Strichzeichnung wie in Entourage-Bibliotheken: unregelmäßige Krone aus vielen kleinen Blattzeichen am Rand,
-// lockere Punktierung innen (unten rechts dichter), Astgabeln, Stamm mit Rindenstrichen. Nadelbaum: gestufte Form mit Nadelstrichen.
+// Architektur-Strichzeichnung, nur weiß mit dunkler Linie, ohne Flecken: unregelmäßige Kronenform, Astgabeln, Stamm mit Fuß und Rindenstrichen.
+// Nadelbaum: gestufte Tannenform mit gezackten Stufen.
 function baumGeometrie(b, x, rx) {
   const zuf = zufallsFolge(Math.floor(Math.abs(b.s * 977 + b.d * 131 + b.r * 17) * 1000) + 7);
   const w0 = Math.min(0.4, 0.14 + b.H * 0.009), w1 = w0 * 0.6;
-  const g = { stamm: [], kronen: [], marken: [], punkte: [], aeste: [], rinde: [], striche: [] };
+  const g = { stamm: [], kronen: [], aeste: [], rinde: [] };
   const stammBis = b.zBasis + (b.nadel ? 0.4 : 0.8);
   g.stamm = [[x - w0 * 1.4, b.z0], [x - w0, b.z0 + 0.45], [x - w1, stammBis], [x + w1, stammBis], [x + w0, b.z0 + 0.45], [x + w0 * 1.4, b.z0]];
   for (let i = 0; i < 5; i++) {                                              // Rindenstriche
@@ -527,49 +527,16 @@ function baumGeometrie(b, x, rx) {
       for (let j = 1; j < 4; j++) pts.push([x + w - (2 * w * j) / 4, zB + (j % 2 ? th * 0.14 : 0)]);
       pts.push([x - w, zB]);
       g.kronen.push({ pts, ton: i });
-      const kante = Math.round(7 + w * 2.2);
-      for (let k = 0; k < kante; k++) {                                      // Nadelstriche an den Kanten, rechts dichter
-        const rechts = zuf() < 0.62, t = 0.12 + zuf() * 0.88, seite = rechts ? 1 : -1;
-        const px = x + seite * w * t * 0.97, pz = zA - (zA - zB) * t, l = th * (0.1 + zuf() * 0.1);
-        g.striche.push([px, pz, px + seite * l * 0.7, pz - l * 1.5]);
-      }
-      const dots = Math.round(w * th * 0.9);
-      for (let k = 0; k < dots; k++) {                                       // Punkte, rechts unten dichter
-        const t = Math.sqrt(zuf()), px = x + (zuf() * 2 - 1) * w * t, pz = zA - (zA - zB) * t * 0.95 - th * 0.03;
-        if (zuf() < 0.35 + 0.4 * ((px - x) / w + 1) / 2) g.punkte.push([px, pz]);
-      }
     }
     return g;
   }
   // Laubbaum
   const ry = b.kh / 2, cz = b.zBasis + ry;
   const p1 = zuf() * 6.28, p2 = zuf() * 6.28, p3 = zuf() * 6.28;
-  const f = (a) => 0.93 * (1 + 0.05 * Math.sin(3 * a + p1) + 0.04 * Math.sin(5 * a + p2) + 0.03 * Math.sin(8 * a + p3));
-  const dicht = (a) => 0.5 + 0.5 * (0.5 * Math.cos(a) - 0.5 * Math.sin(a));       // 1 = rechts unten, 0 = links oben
+  const f = (a) => 0.93 * (1 + 0.05 * Math.sin(3 * a + p1) + 0.04 * Math.sin(5 * a + p2) + 0.03 * Math.sin(8 * a + p3) + 0.025 * Math.sin(13 * a + p1));
   const pts = [];
   for (let i = 0; i < 72; i++) { const a = (2 * Math.PI * i) / 72; pts.push([x + rx * f(a) * Math.cos(a), cz + ry * f(a) * Math.sin(a)]); }
   g.kronen.push({ pts, ton: 0 });
-  const kl = Math.min(rx, ry);
-  const marke = (px, pz, l) => { const t = zuf() * 6.28; g.marken.push([px, pz, px + Math.cos(t) * l, pz + Math.sin(t) * l, px + Math.cos(t + 1.3) * l * 1.3, pz + Math.sin(t + 1.3) * l * 1.3]); };
-  const nRand = Math.min(280, Math.max(110, Math.round(90 + 28 * rx)));
-  for (let versuch = 0, n = 0; n < nRand && versuch < nRand * 6; versuch++) {      // Blattzeichen am Rand
-    const a = zuf() * 6.28;
-    if (zuf() > 0.3 + 0.7 * dicht(a)) continue;
-    const r = f(a) * (0.86 + 0.17 * zuf());
-    marke(x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a), kl * (0.045 + 0.06 * zuf()));
-    n++;
-  }
-  for (let i = 0; i < 14; i++) {                                              // einzelne Blattzeichen innen
-    const a = zuf() * 6.28, r = f(a) * (0.25 + 0.5 * Math.sqrt(zuf()));
-    marke(x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a), kl * (0.05 + 0.04 * zuf()));
-  }
-  const nPunkte = Math.min(220, Math.max(60, Math.round(rx * ry * 3.2)));
-  for (let versuch = 0, n = 0; n < nPunkte && versuch < nPunkte * 6; versuch++) { // Punktierung innen
-    const a = zuf() * 6.28, r = f(a) * 0.88 * Math.sqrt(zuf());
-    if (zuf() > 0.25 + 0.75 * dicht(a)) continue;
-    g.punkte.push([x + rx * r * Math.cos(a), cz + ry * r * Math.sin(a)]);
-    n++;
-  }
   const streck = rx / ry;                                                     // Äste so strecken, dass sie in die Krone passen
   const ast = (x0, z0, ang, len, tief) => {
     const x1 = x0 + Math.cos(ang) * len * streck, z1 = z0 + Math.sin(ang) * len;
@@ -593,11 +560,8 @@ function baumSvg(b, D, geschnitten) {
   const m = (px, pz) => `M${fmt(px)},${fmt(-pz)}`;
   let s = `<polygon points="${punkte(g.stamm)}" fill="#fff" stroke="${strich}" stroke-width="${sw}" ${ne} stroke-linejoin="round"/>`;
   s += pfad(g.rinde.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), 0.4, 0.8);
-  for (const k of g.kronen) s += `<polygon points="${punkte(k.pts)}" fill="#fff" stroke="${strich}" stroke-width="${sw * (b.nadel ? 1 : 0.7)}" stroke-opacity="${b.nadel ? 1 : 0.8}" ${ne} stroke-linejoin="round"/>`;
+  for (const k of g.kronen) s += `<polygon points="${punkte(k.pts)}" fill="#fff" stroke="${strich}" stroke-width="${sw}" ${ne} stroke-linejoin="round"/>`;
   s += pfad(g.aeste.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), 0.45, 0.6);
-  s += pfad(g.striche.map(([x1, z1, x2, z2]) => `${m(x1, z1)}L${fmt(x2)},${fmt(-z2)}`).join(""), sw * 0.9);
-  s += pfad(g.marken.map(([px, pz, cx, cz, ex, ez]) => `${m(px, pz)}Q${fmt(cx)},${fmt(-cz)} ${fmt(ex)},${fmt(-ez)}`).join(""), sw);
-  s += pfad(g.punkte.map(([px, pz]) => `${m(px, pz)}h0.01`).join(""), geschnitten ? 1.5 : 1.15, 0.9);
   return s;
 }
 

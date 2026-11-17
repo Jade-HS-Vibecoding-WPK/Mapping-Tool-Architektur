@@ -35,6 +35,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   „–“ in Zensus-Tabellen = genau null.
   `infrastruktur.js`: Reiter „Infrastruktur“ (OSM-Orte in 6 Ebenen, Piktogramme aus `piktogramme.js` = Maki CC0,
   Einzugsradien). Overpass-Abfrage auch in `werkzeuge/infra_beispiel.py` (beide gleich halten). Keine Namen bei Arztpraxen.
+  `schnitt.js`: Reiter „Schnitt“ (Linie ziehen, Blickrichtung, Tiefe → SVG-Schnitt mit Ansicht aus LoD2, DGM, OSM-Bäumen;
+  Ersatzklötze aus OSM wie im 3D-Modell). Braucht `analyseErgebnis.lod2Daten`.
   `steckbrief.js`: Klick auf ein Flurstück im Reiter „Flurstücke“ zeigt dessen Kennzahlen.
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).

@@ -191,7 +191,7 @@ document.addEventListener("keydown", (e) => {
 
 // ---------- 3. Reiter (Tabs) ----------
 // Schwarzplan, Straßennetz, Grün und Lageplan teilen sich die Ansicht „plan“.
-const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "wohnen", "infra"];
+const PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "wohnen", "infra", "schnitt"];
 
 function zeigeAnsicht(ziel) {
   const sektion = PLAENE.includes(ziel) ? "plan" : ziel;
@@ -289,7 +289,7 @@ async function analysiere(nurBeispiel = false) {
     meldung("Berechne Kennzahlen …");
     const kennzahlen = berechneKennzahlen(daten, bbox);
     // Für den Flurstücks-Steckbrief merken
-    analyseErgebnis = { daten, lod2: lod2 || [], bbox };
+    analyseErgebnis = { daten, lod2: lod2 || [], lod2Daten, bbox };
     const lgln = ((lod2 && lod2.length) || daten.strassenAmtlich
       ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "")
       + (daten.kataster ? ` · ${daten.kataster.quelle}` : "")

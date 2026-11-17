@@ -722,6 +722,18 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   (Luftlinie, vereinigt) mit Abdeckung des Gebiets. Kennzahlen-Block „Infrastruktur“. Oldenburg: 32 Haltestellen,
   6 Spielplätze, 97 % / 95 % des Gebiets abgedeckt. Die Reiterleiste ist jetzt so lang, dass sie bei schmalen
   Fenstern seitlich scrollt.
+- [x] **Reiter „Schnitt“** (17.11.2026, `schnitt.js`): Linie mit zwei Klicks im Plan ziehen, Blickrichtung umdrehen,
+  Tiefe der Ansicht per Regler (10 m bis Gebietsdiagonale, Standard 50 m). Standardlinie: waagerecht durch die Mitte,
+  Blick nach Norden. Berechnung in UTM 32, unverzerrt (Höhe = Länge), als SVG:
+  - Schnitt schwarz: Gelände (DGM, sonst eben) bis 4 m unter dem tiefsten Punkt, Gebäude durch senkrechtes Abtasten
+    der Dachflächen (LoD2; ohne LoD2 OSM-Klotz Geschosse × 3 m).
+  - Ansicht: alle Wand- und Dachflächen im Blickbereich, an den Rändern abgeschnitten, von hinten nach vorn gezeichnet,
+    je weiter weg desto heller. Gelände dahinter als heller Horizont.
+  - Bäume (OSM) als lockere Silhouetten (Kronenrand mit Zufallswellen, Stamm mit Ästen), Höhe aus der Krone geschätzt,
+    geschnittene Bäume dunkler.
+  - Höhenskala (m ü. NHN), First und Traufe der geschnittenen Gebäude, Maßstabsleiste, A/A′, Mini-Lageplan mit
+    Schnittlinie, Blickpfeilen und Blickbereich.
+  - Oldenburg: 818-m-Schnitt in ca. 80 ms. Auf schmalen Bildschirmen verdeckt die Legende den Plan (einklappen).
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

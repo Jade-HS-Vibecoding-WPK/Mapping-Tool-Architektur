@@ -106,6 +106,7 @@
         <button class="tab" data-view="boden" role="tab">Bodenrichtwerte</button>
         <button class="tab" data-view="wohnen" role="tab">Wohnen</button>
         <button class="tab" data-view="infra" role="tab">Infrastruktur</button>
+        <button class="tab" data-view="schnitt" role="tab">Schnitt</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
@@ -123,6 +124,14 @@
           <div class="plan-legende" id="plan-legende"></div>
           <!-- Steckbrief eines angeklickten Flurstücks (Reiter „Flurstücke“) -->
           <aside class="flurstueck-info" id="flurstueck-info" hidden></aside>
+          <!-- Schnittzeichnung (Reiter „Schnitt“): unten, der Plan rückt nach oben -->
+          <div class="schnitt-panel" id="schnitt-panel" hidden>
+            <header><h3 id="schnitt-titel">Schnitt</h3></header>
+            <div class="schnitt-inhalt">
+              <div class="schnitt-zeichnung" id="schnitt-zeichnung"></div>
+              <div class="schnitt-lage" id="schnitt-lage"></div>
+            </div>
+          </div>
           <!-- Nordpfeil: Der Plan lässt sich nicht drehen, Norden ist immer oben -->
           <svg class="nordpfeil" viewBox="0 0 40 56" aria-label="Nordpfeil">
             <text x="20" y="12" text-anchor="middle">N</text>
@@ -155,6 +164,7 @@
   <script src="infrastruktur.js"></script>
   <script src="plaene.js"></script>
   <script src="steckbrief.js"></script>
+  <script src="schnitt.js"></script>
   <script src="lod2.js"></script>
   <script src="kataster.js"></script>
   <script src="zensus.js"></script>

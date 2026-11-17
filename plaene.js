@@ -42,7 +42,9 @@ const PLAN_EBENEN = {
   flurstuecke: ["flst-flaeche", "daecher", "daecher-linien", "flst-linie", "flst-auswahl", "rahmen"],
   wohnen: ["zensus-flaeche", "zensus-rand", "gebaeude-kontur", "rahmen"],
   infra: ["wasser", "gebaeude-hell", "infra-radius-halt", "infra-radius-halt-rand", "infra-radius-spiel", "infra-radius-spiel-rand",
-    "rahmen", ...Object.keys(INFRA_EBENEN).map((e) => `infra-${e}`)]
+    "rahmen", ...Object.keys(INFRA_EBENEN).map((e) => `infra-${e}`)],
+  schnitt: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "gebaeude-hell", "baeume", "schnitt-bereich", "schnitt-linie",
+    "schnitt-pfeil", "rahmen"]
 };
 
 const PLAN_TITEL = {
@@ -53,7 +55,8 @@ const PLAN_TITEL = {
   boden: "Bodenrichtwerte",
   flurstuecke: "Flurstücke und Dachaufsichten",
   wohnen: "Wohnen (Zensus 2022)",
-  infra: "Infrastruktur (OSM)"
+  infra: "Infrastruktur (OSM)",
+  schnitt: "Schnitt und Ansicht"
 };
 
 let planKarte = null;
@@ -110,7 +113,7 @@ function erstellePlanKarte(bbox) {
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
 const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
-  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "zensus", "infra", "infraRadien", "rahmen"];
+  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "zensus", "infra", "infraRadien", "schnitt", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -224,6 +227,13 @@ function ebenenAnlegen(breitengrad) {
       { id: `infra-radius-${key}-rand`, type: "line", source: "infraRadien", filter: ["==", ["get", "radius"], key],
         paint: { "line-color": r.farbe, "line-width": 1.2, "line-dasharray": [3, 2] } }
     ]),
+    // Reiter „Schnitt“: Blickbereich, Schnittlinie (Strich-Punkt) und Blickpfeile
+    { id: "schnitt-bereich", type: "fill", source: "schnitt", filter: ["==", ["get", "teil"], "bereich"],
+      paint: { "fill-color": PLAN_FARBEN.akzent, "fill-opacity": 0.1 } },
+    { id: "schnitt-linie", type: "line", source: "schnitt", filter: ["==", ["get", "teil"], "linie"],
+      paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 2, "line-dasharray": [6, 2, 1, 2] } },
+    { id: "schnitt-pfeil", type: "line", source: "schnitt", filter: ["==", ["get", "teil"], "pfeil"], layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 2.2 } },
     // Rahmen des Untersuchungsgebiets
     { id: "rahmen", type: "line", source: "rahmen", paint: { "line-color": PLAN_FARBEN.akzent, "line-width": 1.2, "line-dasharray": [4, 3] } },
     // Reiter „Infrastruktur“: je Ebene eine Piktogramm-Ebene (ganz oben)
@@ -233,6 +243,7 @@ function ebenenAnlegen(breitengrad) {
   ];
   for (const e of ebenen) k.addLayer({ ...e, layout: { ...(e.layout || {}), visibility: "none" } });
   steckbriefAnmelden(); // Klick auf Flurstücke (steckbrief.js)
+  schnittAnmelden();    // Schnittlinie zeichnen (schnitt.js)
   // Klick auf einen Ort im Reiter „Infrastruktur“: Art und Name zeigen
   for (const e of Object.keys(INFRA_EBENEN)) {
     k.on("click", `infra-${e}`, (ev) => {
@@ -405,6 +416,7 @@ function zeigeLegende() {
     <h3>${PLAN_TITEL[aktuellerPlan]}</h3>
     ${aktuellerPlan === "wohnen" ? zensusKnoepfe() : ""}
     ${aktuellerPlan === "infra" ? legendeInfraHtml() : ""}
+    ${aktuellerPlan === "schnitt" ? legendeSchnittHtml() : ""}
     <ul>${eintraege.map((e) => `<li>${zeichen(e)}<span>${e[2]}</span>${
       e[3] === "neben" ? `<label class="schalter"><input type="checkbox" id="neben-schalter" ${nebenSichtbar ? "checked" : ""}> zeigen</label>` :
       e[3] === "grundrisse" ? `<label class="schalter"><input type="checkbox" id="grundriss-schalter" ${grundrisseSichtbar ? "checked" : ""}> zeigen</label>` :
@@ -412,6 +424,7 @@ function zeigeLegende() {
     }</li>`).join("")}</ul>
     <p class="legende-quelle">${document.getElementById("plan").dataset.quelle || ""}</p>`;
   box.querySelectorAll(".zensus-knoepfe button").forEach((b) => b.addEventListener("click", () => zeigeZensusMerkmal(b.dataset.merkmal)));
+  if (aktuellerPlan === "schnitt") schnittLegendeAnmelden(box);
   box.querySelectorAll("input[data-ebene]").forEach((c) => c.addEventListener("change", () => { infraSichtbar[c.dataset.ebene] = c.checked; zeigePlan(aktuellerPlan); }));
   box.querySelectorAll("input[data-radius]").forEach((c) => c.addEventListener("change", () => { radienSichtbar[c.dataset.radius] = c.checked; zeigePlan(aktuellerPlan); }));
   const parz = document.getElementById("parzellen-schalter");
@@ -426,7 +439,16 @@ function zeigeLegende() {
 function zeigePlan(plan) {
   aktuellerPlan = plan;
   if (!planKarte || !planKarte.getLayer("rahmen")) return; // Planansicht wird noch aufgebaut
+  // Reiter „Schnitt“: unten die Schnittzeichnung, der Plan rückt nach oben
+  const mitSchnitt = plan === "schnitt";
+  document.getElementById("schnitt-panel").hidden = !mitSchnitt;
+  const planSektion = document.querySelector('.view[data-view="plan"]');
+  const groesseGeaendert = planSektion.classList.contains("mit-schnitt") !== mitSchnitt;
+  planSektion.classList.toggle("mit-schnitt", mitSchnitt);
+  if (!mitSchnitt && schnitt.zeichnen) beendeSchnittZeichnen();
   planKarte.resize();
+  // Plan wird kleiner bzw. größer: ganzes Gebiet wieder einpassen
+  if (groesseGeaendert && analyseErgebnis) planKarte.fitBounds(analyseErgebnis.bbox, { padding: 30, duration: 0 });
   const sichtbar = new Set(PLAN_EBENEN[plan]);
   if (!nebenSichtbar) { sichtbar.delete("gebaeude-neben"); sichtbar.delete("gebaeude-neben-hell"); }
   // Lageplan mit LoD2: nur die Dachaufsichten, die OSM-Grundrisse darunter nur auf Wunsch
@@ -463,6 +485,7 @@ function zeigePlan(plan) {
   planKarte.setPaintProperty("strassen-rand", "line-color", rand);
   planKarte.setPaintProperty("strassen-amtlich-rand", "line-color", rand);
   zeigeLegende();
+  if (mitSchnitt) aktualisiereSchnitt(); else zeigeSchnittImPlan();
 }
 
 // Nach der Analyse: Daten in die Planansicht übernehmen
@@ -543,6 +566,8 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
     planKarte.getSource("infraRadien").setData(leereSammlung);
   }
   if (infraPopup) { infraPopup.remove(); infraPopup = null; }
+  // Schnitt: neue Daten, Standardlinie für ein neues Gebiet
+  schnittVoreinstellen(bbox);
 
   mitDaechern = !!(daecher && daecher.features.length);
   const amtlich = !!(daten.strassenAmtlich && daten.strassenAmtlich.features.length);

@@ -189,7 +189,7 @@ Mit dem Schalter **Straßenansicht** sieht man stattdessen die Gebäudefassaden 
 Mit dem Haken **„Sonne“** werfen alle Gebäude und Bäume Schatten nach Datum und Uhrzeit (gleiche Einstellung wie im Reiter „Sonne & Schatten“).
 
 ![3D-Modell](docs/bilder/3d-modell.jpg)
-![3D-Modell mit Schatten, 21. März, 16:40 Uhr](docs/bilder/3d-schatten.jpg)
+![3D-Modell mit Schatten, 21. März, 15 Uhr](docs/bilder/3d-schatten.jpg)
 
 ### 5. Zahlen
 

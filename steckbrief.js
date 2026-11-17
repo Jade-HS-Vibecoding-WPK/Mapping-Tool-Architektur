@@ -2,7 +2,7 @@
    Ortsanalyse – Steckbrief eines Flurstücks (Reiter „Flurstücke“)
    Klick auf ein Flurstück → Kennzahlen nur für dieses Flurstück:
    Grunddaten, tatsächliche Nutzung, Bebauung (GRZ/GFZ), LoD2-Eigenschaften,
-   Bodenrichtwert und grob geschätzter Bodenwert, Miete (Zensus-Zelle).
+   Bodenrichtwert und grob geschätzter Bodenwert, Wohnen (Zensus-Zelle: Miete, Leerstand, Wohnfläche, Eigentum, Baujahr).
    ============================================================ */
 
 const DACHFORMEN = {
@@ -72,8 +72,8 @@ function flurstueckKennzahlen(f, ergebnis) {
   const zonen = daten.kataster ? daten.kataster.bodenrichtwerte.features.filter((z) => turf.booleanPointInPolygon(punkt, z)) : [];
   const zone = zonen.find((z) => z.properties.zustand === "B") || zonen[0] || null;
 
-  // Miete: Zensus-Zelle am Mittelpunkt
-  const zelle = daten.miete ? daten.miete.features.find((z) => turf.booleanPointInPolygon(punkt, z)) : null;
+  // Wohnen: Zensus-Zelle am Mittelpunkt
+  const zelle = daten.zensus ? daten.zensus.features.find((z) => turf.booleanPointInPolygon(punkt, z)) : null;
 
   return { flaeche, nutzung, grundflaeche, geschossflaeche, nebenflaeche, anzahl, maxGeschosse, geschaetzt,
     hoehe, dachformen, funktionen, zone, zelle };
@@ -121,14 +121,27 @@ function zeigeSteckbrief(f) {
           : zeile("Bodenwert", "–", "überwiegend Verkehrs-, Grün- oder Wasserfläche: der Richtwert gilt hier nicht sinnvoll")}`
         : zeile("Bodenrichtwert", "–", "keine Zone gefunden")}
     </dl></section>
-    <section><h4>Miete</h4><dl>
-      ${k.zelle ? zeile("Nettokaltmiete (Zensus-Zelle)", `${fmt(k.zelle.properties.wert, 2)} €/m²`,
-        `Durchschnitt der 100-m-Zelle, 15.05.2022${k.zelle.properties.unsicher ? ", unsicherer Wert" : ""}`)
-        : zeile("Nettokaltmiete", "–", "keine Zensus-Zelle mit Wert")}
+    <section><h4>Wohnen (Zensus-Zelle)</h4><dl>
+      ${k.zelle ? wohnenZeilen(k.zelle.properties) : zeile("Zensus 2022", "–", "keine Zelle mit Wohnungen")}
     </dl></section>`;
   steckbriefBox.hidden = false;
   document.getElementById("steckbrief-zu").addEventListener("click", schliesseSteckbrief);
   markiereFlurstueck(p.id);
+}
+
+// Werte der 100-m-Zensus-Zelle, in der der Mittelpunkt des Flurstücks liegt
+function wohnenZeilen(p) {
+  const zeilen = [];
+  for (const [m, d] of Object.entries(ZENSUS_MERKMALE)) {
+    if (m === "baujahr" || p[m] == null) continue;
+    zeilen.push(zeile(d.name, zensusWert(m, p[m]), p[`${m}Unsicher`] ? "unsicherer Wert (wenige Wohnungen)" : ""));
+  }
+  if (p.baujahr != null) {
+    const liste = BAUJAHR_EPOCHEN.map(([name], i) => [name, p.baujahrEpochen[i]]).filter(([, a]) => a).map(([name, a]) => `${name}: ${a}`).join(", ");
+    zeilen.push(zeile("Baualter", `überwiegend ${BAUJAHR_EPOCHEN[p.baujahr][0]}`, `Gebäude mit Wohnraum: ${liste}`));
+  }
+  zeilen.push(`<p class="steckbrief-unter">Durchschnitt der 100-m-Zelle am 15.05.2022, nicht nur dieses Flurstücks.</p>`);
+  return zeilen.join("");
 }
 
 // Ausgewähltes Flurstück in der Akzentfarbe umranden ("" = keines)

@@ -158,7 +158,7 @@ function berechneKennzahlen(daten, bbox) {
     strassenAmtlich: !!daten.strassenAmtlich,
     nutzungAlkis: !!(daten.kataster && daten.kataster.nutzung.features.length),
     ...katasterKennzahlen(daten.kataster),
-    ...mietKennzahlen(daten.miete)
+    ...zensusKennzahlen(daten.zensus)
   };
 }
 
@@ -202,6 +202,39 @@ function balken(eintraege, gesamt, einheit) {
       <span class="kz-balken-spur"><span class="kz-balken-wert ${klasse || ""}" style="width:${gesamt ? (wert / gesamt) * 100 : 0}%"></span></span>
       <span class="kz-balken-zahl">${einheit(wert)}</span>
     </div>`).join("")}</div>`;
+}
+
+// Block „Wohnen (Zensus 2022)“: Miete ausführlich, die übrigen Merkmale als Mittelwert mit Spanne, Baualter als Balken
+function wohnenBlock(z) {
+  const zeilen = [];
+  if (z.miete) {
+    const m = z.miete;
+    zeilen.push(zeile("Mittlere Nettokaltmiete", zensusWert("miete", m.mittel), "Durchschnitt der 100-m-Rasterzellen, Bestandsmieten"));
+    zeilen.push(zeile("Typische Nettokaltmiete", zensusWert("miete", m.median), "Median der Rasterzellen"));
+    zeilen.push(zeile("Spanne der Miete", `${fmt(m.min, 2)}–${zensusWert("miete", m.max)}`,
+      `${fmt(m.zellen)} Zellen${m.unsicher ? `, davon ${fmt(m.unsicher)} mit unsicherem Wert (wenige Wohnungen)` : ""}`));
+  }
+  for (const key of ["leerstand", "flaecheWohnung", "flaecheBewohner", "eigentum"]) {
+    if (!z[key]) continue;
+    const d = ZENSUS_MERKMALE[key], m = z[key];
+    zeilen.push(zeile(d.name, zensusWert(key, m.mittel),
+      `${d.erklaerung}; Mittel aus ${fmt(m.zellen)} Zellen, Spanne ${fmt(m.min, d.stellen)}–${zensusWert(key, m.max)}`));
+  }
+  const b = z.baujahr;
+  return `
+    <section class="kz-block">
+      <h4>Wohnen (Zensus 2022)</h4>
+      <dl>${zeilen.join("")}</dl>
+      ${b ? `
+        <p class="kz-hinweis">Baualter der ${fmt(b.gebaeude)} Gebäude mit Wohnraum, überwiegend ${BAUJAHR_EPOCHEN[b.ueberwiegend][0]}:</p>
+        <div class="kz-balken kz-balken-schmal">${BAUJAHR_EPOCHEN.map(([name], i) => `
+          <div class="kz-balken-zeile">
+            <span class="kz-balken-name">${name}</span>
+            <span class="kz-balken-spur"><span class="kz-balken-wert" style="width:${(b.epochen[i] / b.gebaeude) * 100}%;background:${BAUJAHR_FARBEN[i]}"></span></span>
+            <span class="kz-balken-zahl">${prozent(b.epochen[i] / b.gebaeude, 0)}</span>
+          </div>`).join("")}</div>` : ""}
+      <p class="kz-hinweis">Stichtag 15.05.2022. Werte je 100-m-Rasterzelle; Mittelwerte sind ungewichtete Durchschnitte der Zellen.</p>
+    </section>`;
 }
 
 function zeigeKennzahlen(k, quelle) {
@@ -288,16 +321,7 @@ function zeigeKennzahlen(k, quelle) {
       </dl>
     </section>` : ""}
 
-    ${k.mieteZellen ? `
-    <section class="kz-block">
-      <h4>Mieten (Zensus 2022)</h4>
-      <dl>
-        ${zeile("Mittlere Nettokaltmiete", `${fmt(k.mieteMittel, 2)} €/m²`, "Durchschnitt der 100-m-Rasterzellen, Bestandsmieten am 15.05.2022")}
-        ${zeile("Typische Nettokaltmiete", `${fmt(k.mieteMedian, 2)} €/m²`, "Median der Rasterzellen")}
-        ${zeile("Spanne", `${fmt(k.mieteMin, 2)}–${fmt(k.mieteMax, 2)} €/m²`,
-          `${fmt(k.mieteZellen)} Zellen${k.mieteUnsicher ? `, davon ${fmt(k.mieteUnsicher)} mit unsicherem Wert (wenige Wohnungen)` : ""}`)}
-      </dl>
-    </section>` : ""}
+    ${k.zensus && Object.keys(k.zensus).length ? wohnenBlock(k.zensus) : ""}
 
     <section class="kz-block">
       <h4>Straßennetz</h4>

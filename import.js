@@ -67,13 +67,16 @@ async function dateienAnnehmen(dateien) {
   for (const [name, holen] of liste) {
     const n = name.toLowerCase();
     try {
-      if (/nettokaltmiete/.test(n) && n.endsWith(".csv")) {
-        // Zensus-Mietkarte: nur das 100-m-Gitter, die 1-km- und 10-km-Tabellen der ZIP überspringen
+      const merkmal = zensusMerkmalAusDatei(n);
+      if (merkmal) {
+        // Zensus-Karte: nur das 100-m-Gitter, die 1-km- und 10-km-Tabellen der ZIP überspringen
         if (!/100m/.test(n)) continue;
-        const erg = await workerAuftrag("zensus", name, await holen());
-        mietImport = erg;
-      } else if (/datensatzbeschreibung/.test(n) || (/nettokaltmiete/.test(n) && n.endsWith(".xlsx"))) {
+        meldeImport(`Lese Zensus-Karte „${ZENSUS_MERKMALE[merkmal].name}“ …`);
+        zensusImport[merkmal] = await workerAuftrag("zensus", name, await holen());
+      } else if (/datensatzbeschreibung/.test(n) || (/^zensus2022_/.test(n) && n.endsWith(".xlsx"))) {
         continue; // Beschreibung der Zensus-Daten
+      } else if (/^zensus2022_/.test(n) && n.endsWith(".csv")) {
+        if (/100m/.test(n)) hinweise.push(`${name}: Diese Zensus-Tabelle wertet das Tool nicht aus.`);
       } else if (n.endsWith(".gml") || n.endsWith(".xml")) {
         meldeImport(`Lese ${name} …`);
         const erg = await workerAuftrag("citygml", name, await holen());
@@ -288,7 +291,10 @@ function zeigeDatenliste() {
     () => { importDaten.topo3d = null; }]);
   if (importDaten.dgm.length) eintraege.push(["Gelände DGM1", `${importDaten.dgm.length} Kachel(n), 2-m-Raster${importDaten.dgm[0].jahr ? `, Stand ${[...new Set(importDaten.dgm.map((d) => d.jahr))].join("/")}` : ""}`,
     () => { importDaten.dgm = []; }]);
-  if (mietImport) eintraege.push(["Mietkarte Zensus 2022", `${fmt(mietImport.anzahl)} Rasterzellen (100 m), Deutschland`, () => { mietImport = null; }]);
+  for (const m of Object.keys(zensusImport)) {
+    eintraege.push([`Zensus 2022: ${ZENSUS_MERKMALE[m].name}`, `${fmt(zensusImport[m].anzahl)} Rasterzellen (100 m), Deutschland`,
+      () => { delete zensusImport[m]; }]);
+  }
   if (!importDaten.topo2d && !importDaten.topo3d) importDaten.verortung = null;
   importListe.innerHTML = eintraege.map(([titel, info], i) =>
     `<li><span><strong>${titel}</strong><small>${info}</small></span><button class="btn btn-klein btn-ghost" data-nr="${i}" title="Entfernen">✕</button></li>`).join("");

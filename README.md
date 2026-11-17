@@ -21,8 +21,8 @@ Diagramme und Export folgen.
 3D-Gebäude: Landesamt für Geoinformation und Landesvermessung Niedersachsen (LGLN),
 3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Gelände DGM1, Flurstücke und tatsächliche Nutzung (ALKIS):
 LGLN, CC BY 4.0 bzw. Geobasis NRW (dl-de/zero-2-0). Bodenrichtwerte: Gutachterausschüsse für
-Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0). Mieten: Statistische Ämter des Bundes und
-der Länder, Zensus 2022, durchschnittliche Nettokaltmiete im 100-m-Gitter (dl-de/by-2-0).
+Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0). Wohnen (Nettokaltmiete, Leerstand, Wohnfläche,
+Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zensus 2022, 100-m-Gitter (dl-de/by-2-0).
 Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)

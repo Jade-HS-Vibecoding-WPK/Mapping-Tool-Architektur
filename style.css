@@ -279,6 +279,9 @@ html, body {
 .legende-quelle { margin: 8px 0 0; color: var(--ink-soft); font-size: 10px; }
 .legende-hilfe { margin: 8px 0 6px; color: var(--ink-soft); font-size: 11px; }
 .btn-klein { padding: 4px 8px; font-size: 11px; }
+/* Reiter „Wohnen“: Umschalter zwischen den Zensus-Merkmalen */
+.zensus-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; max-width: 300px; }
+.zensus-knoepfe .btn:disabled { opacity: 0.35; cursor: default; }
 
 /* Steckbrief eines Flurstücks */
 .flurstueck-info {
@@ -381,6 +384,7 @@ html, body {
 .kz-balken-spur { height: 12px; background: var(--paper-soft); }
 .kz-balken-wert { display: block; height: 100%; background: var(--ink); }
 .kz-balken-zahl { font-family: var(--mono); text-align: right; }
+.kz-balken-schmal .kz-balken-zeile { grid-template-columns: 80px 1fr 44px; gap: 8px; }
 .f-neben { background: #9a9a9a; }
 .f-gruen { background: #a9c29b; }
 .f-wasser { background: #9fb4c1; }

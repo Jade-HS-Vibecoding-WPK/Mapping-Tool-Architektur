@@ -54,7 +54,7 @@
         <h2><span class="num">02</span> Daten</h2>
         <p class="hint">OpenStreetMap wird automatisch geladen. Zusätzlich können topoexport-Dateien (DXF, DWG) und LoD2-Modelle (CityGML) importiert werden.</p>
         <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Dateien importieren">
-          Dateien hier ablegen oder klicken<br><small>CityGML-Kacheln (LoD2) · Gelände (GeoTIFF) · topoexport (DXF) · Zensus-Mietkarte · auch als ZIP</small>
+          Dateien hier ablegen oder klicken<br><small>CityGML-Kacheln (LoD2) · Gelände (GeoTIFF) · topoexport (DXF) · Zensus-Karten (Miete, Leerstand …) · auch als ZIP</small>
         </div>
         <input type="file" id="datei-wahl" multiple accept=".gml,.xml,.dxf,.zip,.tif,.tiff,.csv" hidden>
         <p class="hint hint-klein import-status" id="import-status" hidden></p>
@@ -104,7 +104,7 @@
         <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="boden" role="tab">Bodenrichtwerte</button>
-        <button class="tab" data-view="mieten" role="tab">Mieten</button>
+        <button class="tab" data-view="wohnen" role="tab">Wohnen</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
@@ -154,7 +154,7 @@
   <script src="steckbrief.js"></script>
   <script src="lod2.js"></script>
   <script src="kataster.js"></script>
-  <script src="miete.js"></script>
+  <script src="zensus.js"></script>
   <script src="dreid.js"></script>
   <script src="app.js"></script>
   <script src="import.js"></script>

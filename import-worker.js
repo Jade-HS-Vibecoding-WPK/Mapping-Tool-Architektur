@@ -15,7 +15,8 @@ self.onmessage = (e) => {
   try {
     const melde = (text) => self.postMessage({ nr, fortschritt: text });
     const ergebnis = art === "citygml" ? leseCityGML(daten, name, melde) : art === "zensus" ? leseZensus(daten, melde) : leseDXF(daten, name, melde);
-    const uebergabe = art === "zensus" ? [ergebnis.x.buffer, ergebnis.y.buffer, ergebnis.wert.buffer, ergebnis.unsicher.buffer] : [];
+    // Zahlenreihen (Zensus) ohne Kopieren übergeben
+    const uebergabe = art === "zensus" ? Object.values(ergebnis).filter((v) => ArrayBuffer.isView(v)).map((v) => v.buffer) : [];
     self.postMessage({ nr, ok: true, ergebnis }, uebergabe);
   } catch (fehler) {
     self.postMessage({ nr, ok: false, fehler: fehler.message || String(fehler) });
@@ -23,22 +24,62 @@ self.onmessage = (e) => {
 };
 
 // =============================================================
-// Zensus 2022: Nettokaltmiete im 100-m-Gitter (CSV mit „;“, Komma als Dezimalzeichen, EPSG:3035)
-// GITTER_ID_100m;x_mp_100m;y_mp_100m;durchschnMieteQM;werterlaeuternde_Zeichen
+// Zensus 2022: Tabellen im 100-m-Gitter (CSV mit „;“, Komma als Dezimalzeichen, EPSG:3035)
+// Ein Wert je Zelle:  GITTER_ID_100m;x_mp_100m;y_mp_100m;<Wert>;werterlaeuternde_Zeichen
+// Baujahr:            GITTER_ID_100M;x_mp_100m;y_mp_100m;Insgesamt_Gebaeude;Vor1919;a1919bis1949;…;a2016undspaeter
+// „–“ heißt „genau null“: bei Quoten (Leerstand, Eigentum) also 0 %, bei Miete und Fläche kein Wert.
 // =============================================================
 function leseZensus(puffer, melde) {
-  melde("Lese die Zensus-Mietkarte …");
-  const zeilen = new TextDecoder("latin1").decode(puffer).split("\n");
-  const n = zeilen.length;
-  const x = new Int32Array(n), y = new Int32Array(n), wert = new Float32Array(n), unsicher = new Uint8Array(n);
-  let k = 0;
-  for (let i = 1; i < n; i++) {
-    const t = zeilen[i].split(";");
-    if (t.length < 4 || !t[3]) continue;
-    x[k] = +t[1]; y[k] = +t[2]; wert[k] = parseFloat(t[3].replace(",", ".")); unsicher[k] = t[4] && t[4].trim() ? 1 : 0;
-    k++;
+  melde("Lese die Zensus-Tabelle …");
+  const bytes = new Uint8Array(puffer);
+  // Zeilen zählen (für die Größe der Zahlenreihen), ohne die ganze Datei auf einmal in Text umzuwandeln
+  let n = 1;
+  for (let i = 0; i < bytes.length; i++) if (bytes[i] === 10) n++;
+  const x = new Int32Array(n), y = new Int32Array(n);
+  let kopf = null, baujahr = false, nullErlaubt = false, klassen = null, wert = null, unsicher = null, k = 0;
+  zeilenweise(bytes, (zeile) => {
+    const t = zeile.split(";");
+    if (!kopf) {
+      kopf = t;
+      baujahr = /insgesamt_gebaeude/i.test(t[3] || "");
+      nullErlaubt = /quote/i.test(t[3] || "");
+      if (baujahr) klassen = new Uint16Array(n * 10);
+      else { wert = new Float32Array(n); unsicher = new Uint8Array(n); }
+      return;
+    }
+    if (baujahr) {
+      if (t.length < 14) return;
+      let summe = 0;
+      for (let j = 0; j < 10; j++) { const a = parseInt(t[4 + j], 10) || 0; klassen[k * 10 + j] = a; summe += a; }
+      if (!summe) return; // alle Spalten geheim oder null
+      x[k] = +t[1]; y[k] = +t[2]; k++;
+    } else {
+      if (t.length < 4 || !t[3]) return;
+      const roh = t[3].trim();
+      const zahl = roh === "–" ? (nullErlaubt ? 0 : NaN) : parseFloat(roh.replace(",", "."));
+      if (isNaN(zahl)) return;
+      x[k] = +t[1]; y[k] = +t[2]; wert[k] = zahl; unsicher[k] = t[4] && t[4].trim() ? 1 : 0;
+      k++;
+    }
+  });
+  if (baujahr) return { typ: "zensus-baujahr", anzahl: k, x: x.slice(0, k), y: y.slice(0, k), klassen: klassen.slice(0, k * 10) };
+  return { typ: "zensus-wert", anzahl: k, x: x.slice(0, k), y: y.slice(0, k), wert: wert.slice(0, k), unsicher: unsicher.slice(0, k) };
+}
+
+// Große Textdatei in Stücken von 16 MB (immer an einem Zeilenende geteilt) Zeile für Zeile lesen
+function zeilenweise(bytes, aufruf) {
+  const dekoder = new TextDecoder("utf-8");
+  const STUECK = 1 << 24;
+  let start = 0;
+  while (start < bytes.length) {
+    let ende = Math.min(start + STUECK, bytes.length);
+    while (ende < bytes.length && bytes[ende - 1] !== 10) ende++;
+    for (const zeile of dekoder.decode(bytes.subarray(start, ende)).split("\n")) {
+      const z = zeile.replace(/\r$/, "");
+      if (z) aufruf(z);
+    }
+    start = ende;
   }
-  return { typ: "zensus-miete", anzahl: k, x: x.slice(0, k), y: y.slice(0, k), wert: wert.slice(0, k), unsicher: unsicher.slice(0, k) };
 }
 
 // =============================================================

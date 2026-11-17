@@ -697,6 +697,19 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     tatsächliche Nutzung (Anteile), Gebäude, Grundfläche, GRZ und GFZ des Flurstücks (nur der Gebäudeteil auf dem
     Flurstück zählt), Geschosse, LoD2-Höhe, Dachform, Gebäudefunktion, Bodenrichtwert (Nutzungsart, wertrelevante GFZ,
     Stichtag), grob geschätzter Bodenwert (nur bei Bauland, Richtwert × Fläche), Miete der Zensus-Zelle.
+- [x] **Weitere Mietquellen geprüft, Reiter „Wohnen“** (17.11.2026):
+  - Recherche: Kleinräumig und frei nutzbar gibt es nur den Zensus 2022. BBSR-Angebotsmieten (INKAR) nur je Kreis/Stadt
+    (Oldenburg 2025 ca. 11,68 €/m² laut Presse, nicht eingebaut). Mietspiegel Oldenburg nur als Tabelle, nicht bestätigt.
+    Portale (Immoportal, Miet-Check, ImmoScout) nicht frei; RWI-GEO-RED nur für Forschung auf Antrag.
+  - Reiter „Mieten“ heißt jetzt **„Wohnen“**, mit Umschaltknöpfen in der Legende für sechs Zensus-Karten (100-m-Gitter,
+    15.05.2022, dl-de/by-2-0): Nettokaltmiete, Leerstandsquote (feste Stufen 3/6/10 %), Fläche je Wohnung,
+    Wohnfläche je Bewohner, Eigentümerquote (je 5 Quantil-Stufen), Baualter (überwiegende Epoche von 6, aus
+    „Gebäude nach Baujahr (Jahrzehnte)“). „–“ in den Tabellen = genau null (bei Quoten 0 %).
+  - `miete.js` → `zensus.js`; Beispiel `data/beispiel-oldenburg-zensus.js` (erzeugt mit `werkzeuge/zensus_beispiel.py`).
+    Import: die ZIPs von destatis.de ins Ablagefeld, der Worker liest sie stückweise (Baujahr 200 MB + Leerstand in 11 s,
+    Ergebnis identisch mit dem Beispiel). Kennzahlen-Block „Wohnen“ und Steckbrief zeigen alle Werte der Zelle.
+  - Oldenburg: Miete 8,37 €/m², Leerstand 4,4 %, 89 m² je Wohnung, 62 m² je Person, Eigentümerquote 20 %,
+    748 Wohngebäude, davon 59 % vor 1919.
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

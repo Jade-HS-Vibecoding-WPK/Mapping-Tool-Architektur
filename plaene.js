@@ -40,7 +40,7 @@ const PLAN_EBENEN = {
     "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"],
   boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"],
   flurstuecke: ["flst-flaeche", "daecher", "daecher-linien", "flst-linie", "flst-auswahl", "rahmen"],
-  mieten: ["miete-flaeche", "miete-rand", "gebaeude-kontur", "rahmen"]
+  wohnen: ["zensus-flaeche", "zensus-rand", "gebaeude-kontur", "rahmen"]
 };
 
 const PLAN_TITEL = {
@@ -50,7 +50,7 @@ const PLAN_TITEL = {
   lageplan: "Lageplan",
   boden: "Bodenrichtwerte",
   flurstuecke: "Flurstücke und Dachaufsichten",
-  mieten: "Mieten (Zensus 2022)"
+  wohnen: "Wohnen (Zensus 2022)"
 };
 
 let planKarte = null;
@@ -62,7 +62,8 @@ let parzellenSichtbar = true;   // Flurstücksgrenzen im Lageplan
 let mitParzellen = false;       // liegen Flurstücke vor?
 let brwMarker = [];             // Beschriftungen der Bodenrichtwerte
 let brwDaten = null;
-let mietDaten = null;           // Farbklassen der Mietkarte
+let zensusKlassen = {};         // Farbklassen je Zensus-Merkmal (Reiter „Wohnen“)
+let zensusMerkmal = "miete";    // gerade gezeigtes Merkmal im Reiter „Wohnen“
 let planLegenden = {};
 
 // Linienbreite, die beim Zoomen mitwächst (Wert in Pixeln bei Zoomstufe 16)
@@ -101,7 +102,7 @@ function erstellePlanKarte(bbox) {
 
 const leereSammlung = { type: "FeatureCollection", features: [] };
 const QUELLEN = ["gebaeude", "strassen", "strassenOsmFlaeche", "strassenAmtlich", "bahn", "gruen", "wasserLinien",
-  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "miete", "rahmen"];
+  "baeume", "verkehrsflaechen", "daecher", "parzellen", "brw", "zensus", "rahmen"];
 
 function ebenenAnlegen(breitengrad) {
   const k = planKarte;
@@ -113,7 +114,7 @@ function ebenenAnlegen(breitengrad) {
     if (name === "strassenAmtlich") optionen.attribution = "Straßenflächen: LGLN, DLM (CC BY 4.0) über topoexport";
     if (name === "parzellen") optionen.attribution = `Flurstücke: LGLN (${new Date().getFullYear()}), CC BY 4.0`;
     if (name === "brw") optionen.attribution = "Bodenrichtwerte: BORIS-NI (dl-de/by-2-0)";
-    if (name === "miete") optionen.attribution = "Mieten: Zensus 2022 (dl-de/by-2-0)";
+    if (name === "zensus") optionen.attribution = "Wohnen: Zensus 2022 (dl-de/by-2-0)";
     k.addSource(name, optionen);
   }
   const filterKat = (kat) => ["==", ["get", "kategorie"], kat];
@@ -199,9 +200,9 @@ function ebenenAnlegen(breitengrad) {
     { id: "flst-linie", type: "line", source: "parzellen", paint: { "line-color": "#2b2b2b", "line-width": mitZoom(0.9) } },
     { id: "flst-auswahl", type: "line", source: "parzellen", filter: ["==", ["get", "id"], ""],
       paint: { "line-color": PLAN_FARBEN.akzent, "line-width": mitZoom(2.6) } },
-    // Mietkarte: 100-m-Zellen nach Miete abgestuft
-    { id: "miete-flaeche", type: "fill", source: "miete", paint: { "fill-color": "#f3d6cd" } },
-    { id: "miete-rand", type: "line", source: "miete", paint: { "line-color": "#ffffff", "line-width": 1 } },
+    // Reiter „Wohnen“: 100-m-Zellen nach dem gewählten Zensus-Merkmal abgestuft (Filter und Farbe setzt zeigeZensusMerkmal)
+    { id: "zensus-flaeche", type: "fill", source: "zensus", paint: { "fill-color": "#f3d6cd" } },
+    { id: "zensus-rand", type: "line", source: "zensus", paint: { "line-color": "#ffffff", "line-width": 1 } },
     // Bodenrichtwerte: Zonen nach Wert abgestuft (Farbskala wird beim Zeichnen an die Werte angepasst)
     { id: "brw-flaeche", type: "fill", source: "brw", paint: { "fill-color": "#f3d6cd" } },
     { id: "brw-rand", type: "line", source: "brw", paint: { "line-color": "#ffffff", "line-width": 1.5 } },
@@ -269,13 +270,62 @@ function legendeFuer(plan, k, amtlich) {
       ["flaeche", PLAN_FARBEN.akzent, "ausgewähltes Flurstück"],
       ["text", "", "Klicke auf ein Flurstück, um seine Kennzahlen zu sehen."]
     ] : [["text", "", "Keine Flurstücke für dieses Gebiet (bisher nur Niedersachsen, ALKIS)."]];
-    case "mieten": return mietDaten ? [
-      ...mietDaten.klassen.map(([farbe, text]) => ["flaeche", farbe, `${text} €/m² Nettokaltmiete`]),
-      ["linie", 0.5, "Gebäude (Umriss)"],
-      ["text", "", "Durchschnitt je 100-m-Zelle, Bestandsmieten am 15.05.2022. Zellen mit wenigen Wohnungen fehlen oder sind unsicher."]
-    ] : [["text", "", "Keine Mietdaten für dieses Gebiet. Lege die Zensus-ZIP „Zensus2022_Durchschn_Nettokaltmiete“ ins Ablagefeld."]];
+    case "wohnen": return legendeWohnen();
   }
   return [];
+}
+
+// Legende im Reiter „Wohnen“: hängt vom gewählten Zensus-Merkmal ab
+function legendeWohnen() {
+  const d = ZENSUS_MERKMALE[zensusMerkmal];
+  const klassen = zensusKlassen[zensusMerkmal] && zensusKlassen[zensusMerkmal].klassen;
+  if (!klassen) return [["text", "", `Keine Zensus-Daten „${d.name}“ für dieses Gebiet. Lege die ZIP „${d.zip}“ von destatis.de ins Ablagefeld.`]];
+  return [
+    ...klassen.map(([farbe, text]) => ["flaeche", farbe, zensusMerkmal === "baujahr" ? text : `${text}${d.einheit ? ` ${d.einheit}` : ""}`]),
+    ["linie", 0.5, "Gebäude (Umriss)"],
+    ["text", "", `${d.name}: ${d.erklaerung}. Wert je 100-m-Zelle am 15.05.2022. Zellen ohne Wohnungen fehlen.`]
+  ];
+}
+
+// Fünf Stufen mit etwa gleich vielen Zellen (Quantile) oder feste Grenzen: [Farbausdruck, Legenden-Klassen]
+function quantilStufen(werte, feld, stellen, festeGrenzen) {
+  const sortiert = [...werte].sort((a, b) => a - b);
+  const grenzen = festeGrenzen ? [...festeGrenzen] : [];
+  for (let i = 1; !festeGrenzen && i < BRW_FARBEN.length; i++) {
+    const g = sortiert[Math.floor(sortiert.length * i / BRW_FARBEN.length)];
+    // nur echte Grenzen: größer als der kleinste Wert und als die vorige Grenze (z. B. viele Zellen mit 0 % Leerstand)
+    if (g > sortiert[0] && (!grenzen.length || g > grenzen[grenzen.length - 1])) grenzen.push(g);
+  }
+  const farben = BRW_FARBEN.slice(BRW_FARBEN.length - grenzen.length - 1);
+  const z = (v) => fmt(v, stellen);
+  const klassen = farben.map((farbe, i) => [farbe, !grenzen.length ? z(sortiert[0])
+    : i === 0 ? `unter ${z(grenzen[0])}` : i === grenzen.length ? `ab ${z(grenzen[i - 1])}` : `${z(grenzen[i - 1])} bis unter ${z(grenzen[i])}`]);
+  const ausdruck = grenzen.length ? ["step", ["get", feld], farben[0], ...grenzen.flatMap((g, i) => [g, farben[i + 1]])] : farben[0];
+  return [ausdruck, klassen];
+}
+
+// Baualter: sechs Epochen, alt = dunkel, neu = hell
+const BAUJAHR_FARBEN = ["#5e1a0e", "#8f2615", "#e2482d", "#ec8a72", "#f5c4b6", "#fbebe6"];
+
+// Im Reiter „Wohnen“ ein anderes Merkmal zeigen (Knöpfe in der Legende)
+function zeigeZensusMerkmal(m) {
+  zensusMerkmal = m;
+  if (planKarte && planKarte.getLayer("zensus-flaeche")) {
+    const feld = m === "baujahr" ? "baujahr" : m;
+    planKarte.setFilter("zensus-flaeche", ["has", feld]);
+    planKarte.setFilter("zensus-rand", ["has", feld]);
+    const stufen = zensusKlassen[m];
+    planKarte.setPaintProperty("zensus-flaeche", "fill-color", stufen ? stufen.ausdruck : "#f3d6cd");
+  }
+  planLegenden.wohnen = legendeWohnen();
+  if (aktuellerPlan === "wohnen") zeigeLegende();
+}
+
+// Umschaltknöpfe über der Legende (Merkmale ohne Daten sind ausgegraut)
+function zensusKnoepfe() {
+  return `<div class="zensus-knoepfe">${Object.entries(ZENSUS_MERKMALE).map(([m, d]) =>
+    `<button class="btn btn-klein ${m === zensusMerkmal ? "" : "btn-ghost"}" data-merkmal="${m}" ${zensusKlassen[m] ? "" : "disabled"}
+      title="${d.name}">${d.knopf}</button>`).join("")}</div>`;
 }
 
 // Farbskala der Bodenrichtwerte (hell = günstig, dunkel = teuer), mit der Akzentfarbe
@@ -294,12 +344,14 @@ function zeigeLegende() {
   const eintraege = planLegenden[aktuellerPlan] || [];
   box.innerHTML = `
     <h3>${PLAN_TITEL[aktuellerPlan]}</h3>
+    ${aktuellerPlan === "wohnen" ? zensusKnoepfe() : ""}
     <ul>${eintraege.map((e) => `<li>${zeichen(e)}<span>${e[2]}</span>${
       e[3] === "neben" ? `<label class="schalter"><input type="checkbox" id="neben-schalter" ${nebenSichtbar ? "checked" : ""}> zeigen</label>` :
       e[3] === "grundrisse" ? `<label class="schalter"><input type="checkbox" id="grundriss-schalter" ${grundrisseSichtbar ? "checked" : ""}> zeigen</label>` :
       e[3] === "parzellen" ? `<label class="schalter"><input type="checkbox" id="parzellen-schalter" ${parzellenSichtbar ? "checked" : ""}> zeigen</label>` : ""
     }</li>`).join("")}</ul>
     <p class="legende-quelle">${document.getElementById("plan").dataset.quelle || ""}</p>`;
+  box.querySelectorAll(".zensus-knoepfe button").forEach((b) => b.addEventListener("click", () => zeigeZensusMerkmal(b.dataset.merkmal)));
   const parz = document.getElementById("parzellen-schalter");
   if (parz) parz.addEventListener("change", () => { parzellenSichtbar = parz.checked; zeigePlan(aktuellerPlan); });
   const schalter = document.getElementById("neben-schalter");
@@ -391,24 +443,26 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   } else brwDaten = null;
   planKarte.getSource("brw").setData(zonen || leereSammlung);
 
-  // Mietkarte: fünf Stufen mit etwa gleich vielen Zellen
-  if (daten.miete && daten.miete.features.length) {
-    const werte = daten.miete.features.map((f) => f.properties.wert).sort((a, b) => a - b);
-    const grenzen = [];
-    for (let i = 1; i < BRW_FARBEN.length; i++) {
-      const g = werte[Math.floor(werte.length * i / BRW_FARBEN.length)];
-      if (!grenzen.length || g > grenzen[grenzen.length - 1]) grenzen.push(g);
+  // Wohnen (Zensus): Farbstufen je Merkmal; Baualter nach Epochen, alles andere in fünf Quantil-Stufen
+  zensusKlassen = {};
+  const zellen = daten.zensus ? daten.zensus.features : [];
+  for (const [m, d] of Object.entries(ZENSUS_MERKMALE)) {
+    if (m === "baujahr") {
+      const vorhanden = [...new Set(zellen.map((f) => f.properties.baujahr).filter((e) => e != null))].sort((a, b) => a - b);
+      if (vorhanden.length) zensusKlassen[m] = {
+        ausdruck: ["match", ["get", "baujahr"], ...BAUJAHR_FARBEN.flatMap((farbe, i) => [i, farbe]), "#dddddd"],
+        klassen: vorhanden.map((i) => [BAUJAHR_FARBEN[i], `überwiegend ${BAUJAHR_EPOCHEN[i][0]} gebaut`])
+      };
+      continue;
     }
-    const farben = BRW_FARBEN.slice(BRW_FARBEN.length - grenzen.length - 1);
-    planKarte.setPaintProperty("miete-flaeche", "fill-color", ["step", ["get", "wert"], farben[0], ...grenzen.flatMap((g, i) => [g, farben[i + 1]])]);
-    const zahl2 = (v) => fmt(v, 2);
-    mietDaten = { klassen: farben.map((farbe, i) => [farbe,
-      i === 0 ? `unter ${zahl2(grenzen[0])}` : i === grenzen.length ? `ab ${zahl2(grenzen[i - 1])}` : `${zahl2(grenzen[i - 1])} bis unter ${zahl2(grenzen[i])}`]) };
-    planKarte.getSource("miete").setData(daten.miete);
-  } else {
-    mietDaten = null;
-    planKarte.getSource("miete").setData(leereSammlung);
+    const werte = zellen.map((f) => f.properties[m]).filter((v) => v != null);
+    if (!werte.length) continue;
+    const [ausdruck, klassen] = quantilStufen(werte, m, d.stellen, d.grenzen);
+    zensusKlassen[m] = { ausdruck, klassen };
   }
+  planKarte.getSource("zensus").setData(daten.zensus || leereSammlung);
+  if (!zensusKlassen[zensusMerkmal]) zensusMerkmal = Object.keys(zensusKlassen)[0] || "miete";
+  zeigeZensusMerkmal(zensusMerkmal);
   schliesseSteckbrief();
 
   mitDaechern = !!(daecher && daecher.features.length);

@@ -30,7 +30,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   Testdateien lokal in `_testdaten/` (in .gitignore). DGM1 (GeoTIFF, geotiff.js) über den Knopf „Fehlende Daten
   laden“. `kataster.js`: Flurstücke, tatsächliche Nutzung (WFS ALKIS vereinfacht) und Bodenrichtwerte (WFS BORIS-NI)
   beim Analysieren, nur Niedersachsen. Keine Lagebezeichnungen/Adressen übernehmen.
-  `miete.js`: Zensus-2022-Mietkarte (EPSG:3035), Beispiel eingebaut, sonst Zensus-ZIP importieren.
+  `zensus.js`: Zensus-2022-Karten im 100-m-Gitter (EPSG:3035) für den Reiter „Wohnen“: Miete, Leerstand,
+  Fläche je Wohnung/Bewohner, Eigentümerquote, Baujahr. Beispiel eingebaut, sonst Zensus-ZIPs importieren.
+  „–“ in Zensus-Tabellen = genau null.
   `steckbrief.js`: Klick auf ein Flurstück im Reiter „Flurstücke“ zeigt dessen Kennzahlen.
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).

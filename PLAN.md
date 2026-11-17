@@ -710,6 +710,9 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     Ergebnis identisch mit dem Beispiel). Kennzahlen-Block „Wohnen“ und Steckbrief zeigen alle Werte der Zelle.
   - Oldenburg: Miete 8,37 €/m², Leerstand 4,4 %, 89 m² je Wohnung, 62 m² je Person, Eigentümerquote 20 %,
     748 Wohngebäude, davon 59 % vor 1919.
+- [x] **Korrekturen** (17.11.2026): Straßennetz feiner (Fläche 65 % der Straßenraumbreite, Rand 0,35 m je Seite,
+  Fußwege dünner gestrichelt). Flurstücksgrenzen aus dem Lageplan entfernt (nur noch im Reiter „Flurstücke“
+  und fein im Reiter „Bodenrichtwerte“).
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

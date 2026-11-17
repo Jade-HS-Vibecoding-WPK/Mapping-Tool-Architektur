@@ -35,7 +35,7 @@ const PLAN_EBENEN = {
     "strasse-fuss", "rahmen"],
   gruen: ["gebaeude-hell", "gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "baeume", "rahmen"],
   lageplan: ["gruen-wiese", "gruen-park", "gruen-wald", "wasser", "wasser-linien", "verkehrsflaechen",
-    "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume", "parzellen",
+    "lage-rand", "lage-flaeche", "weg-fein", "bahn-flaeche", "bahn", "baeume",
     "aussparung-flaeche", "aussparung-grundriss", "aussparung-dach", "gebaeude-lage", "gebaeude-neben-hell",
     "gebaeude-umriss", "daecher", "daecher-linien", "rahmen"],
   boden: ["brw-flaeche", "brw-rand", "parzellen-boden", "gebaeude-kontur", "rahmen"],
@@ -81,6 +81,7 @@ function inMetern(meterAusdruck, breitengrad) {
 const STRASSE_ALS_FLAECHE = [">=", ["get", "breite"], 5];
 const FAHRBAHN_FAKTOR = 0.75; // gezeichnete Breite = 75 % des typischen Straßenraums
 const LAGEPLAN_FAKTOR = 0.55; // im Lageplan feiner: 55 % des typischen Straßenraums
+const NETZ_FAKTOR = 0.65;     // im Straßennetz: 65 % des typischen Straßenraums
 
 function erstellePlanKarte(bbox) {
   planKarte = new maplibregl.Map({
@@ -147,17 +148,17 @@ function ebenenAnlegen(breitengrad) {
     { id: "strassen-amtlich", type: "fill", source: "strassenAmtlich", paint: { "fill-color": PLAN_FARBEN.strasseLage } },
     { id: "strassen-amtlich-rand", type: "line", source: "strassenAmtlich",
       paint: { "line-color": PLAN_FARBEN.strasseRand, "line-width": mitZoom(0.8) } },
-    // Straßennetz-Plan: alle Straßen als breite Fläche in voller Straßenraumbreite, Grauton nach Kategorie
+    // Straßennetz-Plan: alle Straßen als Fläche (NETZ_FAKTOR der Straßenraumbreite) mit feinem Rand, Grauton nach Kategorie
     { id: "netz-rand", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE, layout: rund,
-      paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": inMetern(["+", ["get", "breite"], 1.2], breitengrad) } },
+      paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": inMetern(["+", ["*", ["get", "breite"], NETZ_FAKTOR], 0.7], breitengrad) } },
     { id: "netz-flaeche", type: "line", source: "strassen", filter: STRASSE_ALS_FLAECHE,
       layout: { ...rund, "line-sort-key": rang },
       paint: { "line-color": ["match", ["get", "kategorie"], "haupt", STRASSEN_TOENE.haupt, "neben", STRASSEN_TOENE.neben,
           "wohn", STRASSEN_TOENE.wohn, STRASSEN_TOENE.fuss],
-        "line-width": inMetern(["get", "breite"], breitengrad) } },
+        "line-width": inMetern(["*", ["get", "breite"], NETZ_FAKTOR], breitengrad) } },
     // Schmale Wege: im Straßennetz schwarz gestrichelt, im Lageplan fein grau
     { id: "strasse-fuss", type: "line", source: "strassen", filter: ["!", STRASSE_ALS_FLAECHE],
-      paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": mitZoom(0.7), "line-dasharray": [3, 2] } },
+      paint: { "line-color": PLAN_FARBEN.schwarz, "line-width": mitZoom(0.5), "line-dasharray": [3, 2] } },
     { id: "weg-fein", type: "line", source: "strassen", filter: ["!", STRASSE_ALS_FLAECHE],
       paint: { "line-color": PLAN_FARBEN.wegFein, "line-width": mitZoom(0.6) } },
     // Bahn
@@ -254,8 +255,7 @@ function legendeFuer(plan, k, amtlich) {
       ["flaeche", PLAN_FARBEN.wald, "Wald"],
       ["flaeche", PLAN_FARBEN.wiese, "Wiese, Rasen"],
       ["flaeche", PLAN_FARBEN.wasser, "Wasser"],
-      ["kreis", PLAN_FARBEN.baum, "Einzelbaum"],
-      ...(mitParzellen ? [["linie", 0.5, "Flurstücksgrenze (ALKIS)", "parzellen"]] : [])
+      ["kreis", PLAN_FARBEN.baum, "Einzelbaum"]
     ];
     case "boden": return brwDaten ? [
       ...brwDaten.klassen.map(([farbe, text]) => ["flaeche", farbe, `${text} €/m² (baureifes Land)`]),

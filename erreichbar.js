@@ -9,7 +9,7 @@
 "use strict";
 
 const ERREICH_M_PRO_MIN = 80;
-const ERREICH_FARBE = "#e2482d";
+const ERREICH_FARBE = "#0071e3";
 let erreichMitte = null;            // [Länge, Breite] oder null
 let erreichWaehlt = false;          // wartet auf den Klick für den Mittelpunkt
 const erreichEl = {

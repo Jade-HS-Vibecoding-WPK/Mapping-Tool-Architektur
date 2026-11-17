@@ -79,6 +79,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Demo-Daten Oldenburg fest eingebaut (Knopf „Beispiel Oldenburg laden“), mit Quellenangabe.
 
 # Gestaltung
-- Klassisch-architektonisch: Schwarz-Weiß, feine Linien, eine Akzentfarbe, viel Weißraum.
+- Apple-Stil (Skill apple-design): Systemschrift, runde Ecken, milchig-durchsichtige Fenster über der Karte,
+  weiche Bewegungen ohne Überschwingen, sofortige Rückmeldung beim Drücken, eine Akzentfarbe (iOS-Blau).
+- Hell- und Dunkelmodus nach Systemeinstellung. Alle Farben stehen als Variablen oben in style.css.
+  Karte, Pläne, Zeichenblätter und Exporte bleiben hell, schwarz-weiß und streng.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

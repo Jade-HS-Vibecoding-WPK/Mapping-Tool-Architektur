@@ -931,7 +931,7 @@ function verwerfeSchnitt() {
 // ---------- 6. Legende (wird von legende.js benutzt) ----------
 function schnittLegendeEintraege() {
   const e = [`<li><span class="sw sw-linie" style="background:${FARBE.flst.auswahl};height:3px"></span><span>Schnittlinie (A weiß, B schwarz), Pfeil = Blickrichtung</span></li>`,
-    `<li><span class="sw" style="background:rgba(226,72,45,0.14);border:1px dashed ${FARBE.flst.auswahl}"></span><span>Band = Tiefe der Ansicht hinter der Linie</span></li>`];
+    `<li><span class="sw" style="background:rgba(0,113,227,0.14);border:1px dashed ${FARBE.flst.auswahl}"></span><span>Band = Tiefe der Ansicht hinter der Linie</span></li>`];
   return e.join("");
 }
 function schnittEckdaten() {

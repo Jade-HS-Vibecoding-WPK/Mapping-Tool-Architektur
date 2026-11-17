@@ -14,6 +14,12 @@ Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen auto
 
 **Live-Demo:** https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/
 
+| Hell | Dunkel |
+|---|---|
+| ![Oberfläche im Hellmodus, Reiter Sonne & Schatten](docs/bilder/oberflaeche-hell.jpg) | ![Oberfläche im Dunkelmodus, Reiter Kennzahlen](docs/bilder/oberflaeche-dunkel.jpg) |
+
+*Die Oberfläche folgt der Einstellung des Geräts (hell oder dunkel). Karte, Pläne und Exporte bleiben immer hell und schwarz-weiß.*
+
 | | |
 |---|---|
 | **Projekt von** | _[Namen der Gruppe eintragen]_ |
@@ -85,6 +91,12 @@ python server.py 8765
 5. **Exportieren:** Unten rechts auf „Exportieren …“ klicken, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern (siehe [Export](#export)).
 
 Die Dachformen (LoD2), das Gelände, Luftbilder, Flurstücke und Bodenrichtwerte gibt es nur in Niedersachsen. Außerhalb arbeitet das Tool mit OpenStreetMap-Daten.
+
+**Gestaltung der Oberfläche:** Die Bedienung ist an den Apple-Stil angelehnt: runde Ecken, Systemschrift, milchig-durchsichtige Fenster über der Karte,
+Ein-Aus-Schalter, weiche Bewegungen und eine einzige Akzentfarbe (Blau). Der Dunkelmodus schaltet sich nach der Systemeinstellung ein; bei „weniger Bewegung“,
+„weniger Transparenz“ und „mehr Kontrast“ im Betriebssystem passt sich das Tool an. Alle Farben stehen gesammelt am Anfang von `style.css`.
+
+![Reiter Schnitt & Ansicht mit Linie auf der Karte und Schnitt als Blatt von unten](docs/bilder/oberflaeche-schnitt.jpg)
 
 ---
 
@@ -301,7 +313,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 
 | Datei | Inhalt |
 |---|---|
-| `index.html`, `style.css` | Oberfläche und Gestaltung |
+| `index.html`, `style.css` | Oberfläche und Gestaltung (Apple-Stil, Hell und Dunkel, alle Farben als Variablen) |
 | `app.js` | Karte, Gebiet zeichnen, Datenabruf (OSM, ALKIS), Pläne, Kennzahlen |
 | `lod2-worker.js` | liest die LoD2-Kacheln im Hintergrund |
 | `gelaende.js` | Geländemodell DGM1 |
@@ -338,7 +350,8 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 ## Offen
 
 Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Programmen oder Geräten gehen: die DXF-Dateien in Allplan und ArchiCAD öffnen, der CityGML-Import
-mit einer echten Datei, Smartphone und andere Browser.
+mit einer echten Datei, Smartphone und andere Browser (Firefox, Safari) sowie die Oberfläche im Dunkelmodus in den Reitern 3D-Modell und Mietpreise.
+Zum Abgeben noch auszufüllen: Namen, Kurs, Datum und der KI-Nachweis oben in dieser README.
 
 ---
 

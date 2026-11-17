@@ -72,9 +72,9 @@ map.on("load", () => {
   legePlanEbenenAn();
   map.addSource("gebiet", { type: "geojson", data: leer });
   map.addLayer({ id: "gebiet-flaeche", type: "fill", source: "gebiet",
-    paint: { "fill-color": "#e2482d", "fill-opacity": 0.08 } });
+    paint: { "fill-color": "#0071e3", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
-    paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
+    paint: { "line-color": "#0071e3", "line-width": 2, "line-dasharray": [3, 2] } });
   legeWirtEbenenAn();       // Reiter Wirtschaftlichkeit (wirtschaft.js)
   legeSchnittEbenenAn();    // Reiter Schnitt (schnitt.js): die gezogene Linie
   legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
@@ -216,6 +216,9 @@ function zeigeAnsicht(ziel) {
     zeichenmodus(false);
   }
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === ziel));
+  // Reiterleiste scrollt so, dass der gewählte Reiter sichtbar bleibt (nur seitlich, die Seite springt nicht)
+  const aktiverReiter = document.querySelector(".tab.is-active");
+  if (aktiverReiter) aktiverReiter.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
   document.querySelectorAll(".view").forEach((v) =>
     v.classList.toggle("is-active", v.dataset.view === (istKarte ? "karte" : ziel)));
   if (istKarte) {
@@ -407,10 +410,10 @@ const FARBE = {
     brw: ["#f7f0df", "#e6b56a", "#a8431f"],
     grz: ["#eef3f6", "#8fb3c9", "#2f5d7e"],
     gfz: ["#f1eef6", "#b8a3d0", "#5c3f87"],
-    keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#e2482d"
+    keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#0071e3"
   },
   // Mietpreise (Zensus-Raster): Farblauf hell, mittel, dunkel
-  miet: { rampe: ["#cfeadb", "#73bda1", "#1b6a58"], keine: "#e6e4df", auswahl: "#e2482d", linie: "#5f8a7d" },
+  miet: { rampe: ["#cfeadb", "#73bda1", "#1b6a58"], keine: "#e6e4df", auswahl: "#0071e3", linie: "#5f8a7d" },
   // 3D-Modell
   d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#8a8887", ersatzWand: "#cfdcea", ersatzDach: "#9db3cb", stamm: "#6b5a46" }
 };
@@ -658,7 +661,7 @@ function wendeAnsichtAn() {
 
   // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
   map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : (einstellung.rahmenFuellung ?? 0.08));
-  map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#e2482d");
+  map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#0071e3");
   map.setPaintProperty("gebiet-rand", "line-width", imPlan ? 1 : 2);
   map.setPaintProperty("gebiet-rand", "line-dasharray", imPlan ? [1, 0] : [3, 2]);
 

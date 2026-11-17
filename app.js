@@ -202,6 +202,7 @@ function zeigeAnsicht(ziel) {
     document.getElementById("plan-leer-titel").textContent = PLAN_TITEL[ziel];
     zeigePlan(ziel);
   }
+  if (ziel === "export") zeigeExportReiter();
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {

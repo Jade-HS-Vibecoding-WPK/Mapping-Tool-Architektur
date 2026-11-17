@@ -761,6 +761,22 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   - Schnitt: „Schnitt als PNG“ maßstäblich (1:200/500/1000/2000) mit Schriftfeld und kleinem Lageplan
     (`schnittSvg` getrennt von der Bildschirmgröße). 3D: „Bild speichern“ (ca. 4-fache Auflösung, Quellen darunter).
   - Nicht im PNG: die Wertbeschriftungen der Bodenrichtwerte (HTML-Etiketten auf der Karte).
+- [x] **Reiter „Export“ und PDF mit Vektorgrafik** (17.11.2026):
+  - Neuer Reiter „Export“: Tabelle aller Inhalte (8 Pläne, Schnitt, 3D-Ansicht, Kennzahlen und Diagramme,
+    Übersichtsblatt) mit Haken, je Zeile Maßstab, Format, Ausrichtung, Prüfung („passt aufs Blatt“ / „nur Ausschnitt“)
+    und Einzel-Knöpfen PDF/PNG. Knöpfe „Ausgewählte als eine PDF“ und „Ausgewählte als PNG (ZIP)“. Die Export-Knöpfe
+    in Plänen, Schnitt, 3D und Diagrammen sind entfernt. Voreinstellung: Pläne 1:2000 im kleinsten passenden Format,
+    Schnitt kleinste Maßstabszahl, die auf A4–A1 passt.
+  - `vektorplan.js`: zeichnet jeden 2D-Plan als SVG in mm (UTM 32, maßstäblich) direkt aus dem Stil der Planansicht
+    (eigene Auswertung der MapLibre-Ausdrücke: get, match, step, case, interpolate …; Linienstärken in px → mm bei der
+    passenden Zoomstufe). Gleiche Schalter wie auf dem Bildschirm (`sichtbareEbenen` aus `zeigePlan` herausgelöst).
+    Bodenrichtwert-Zahlen jetzt auch im Export.
+  - `export.js` neu: Blätter als SVG (Schriftfeld als Vektor), PDF über jsPDF 2.5.1 + svg2pdf.js 2.2.3 (CDN),
+    PNG durch Rastern desselben Blatts (300/200/150 dpi). Nur die 3D-Ansicht ist ein Bild. Übersichtsblatt: vier
+    Pläne in gemeinsamem üblichem Maßstab, Kennzahlen, drei Diagramme. Zeichen außerhalb der PDF-Standardschrift
+    (′, −) werden ersetzt.
+  - Test Oldenburg: PDF mit 8 Blättern 5,6 MB in 47 s (mit pdf.js geprüft: nur die 3D-Seite enthält ein Bild),
+    ZIP mit 3 PNG. Große Blätter (Übersicht, Lageplan) haben sehr viele Flächen und brauchen beim Öffnen etwas Zeit.
 - [ ] **Nächster Schritt:** DXF-Export für CAD (Schritt 8, Abschnitt 4c): 2D-Layer, dann 3D (3DFACE), Voreinstellungen
   Allplan 2024 (UTM 32) und ArchiCAD 29 (lokaler Nullpunkt), Test in beiden Programmen. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt

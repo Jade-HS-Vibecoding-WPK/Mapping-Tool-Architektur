@@ -1,19 +1,24 @@
 /* ============================================================
-   Ortsanalyse – PNG-Export
-   - 2D-Pläne maßstäblich (1:500 … 1:5000) auf einem Blatt A4–A0 mit Schriftfeld
-     (Titel, Legende, Maßstab, Nordpfeil, Maßstabsleiste, Quellen)
-   - Schnitt maßstäblich auf einem Blatt
-   - 3D-Ansicht und Diagramme als hochaufgelöstes Bild
-   Der Plan wird in einer unsichtbaren zweiten Karte Stück für Stück in Druckauflösung gezeichnet
-   und zu einem großen Bild zusammengesetzt.
+   Ortsanalyse – Export (Reiter „Export“)
+   Alle Inhalte werden als Blätter in Vektorgrafik (SVG, Maße in mm) aufgebaut:
+   - 2D-Pläne maßstäblich (vektorplan.js), je Plan eigener Maßstab und Format
+   - Schnitt maßstäblich mit Lageplan
+   - 3D-Ansicht (als Bild, der einzige Nicht-Vektor-Teil)
+   - Kennzahlen und Diagramme
+   - Übersichtsblatt (Pläne klein, Kennzahlen, Diagramme)
+   Jedes Blatt hat ein Schriftfeld mit Titel, Legende, Maßstab, Nordpfeil, Maßstabsleiste und Quellen.
+   Ausgabe: eine mehrseitige PDF (jsPDF + svg2pdf, Vektor), einzelne PDFs oder PNGs (aus demselben Blatt gerastert).
    ============================================================ */
 
 const PAPIER = { A4: [210, 297], A3: [297, 420], A2: [420, 594], A1: [594, 841], A0: [841, 1189] }; // mm (kurz, lang)
-const DPI_JE_FORMAT = { A4: 300, A3: 300, A2: 300, A1: 200, A0: 150 }; // große Blätter mit weniger dpi (Speicher im Browser)
-const MASSSTAEBE = { plan: [500, 1000, 2000, 5000], schnitt: [200, 500, 1000, 2000] };
-const exportEinstellung = { plan: { massstab: 1000, format: "A3", quer: true }, schnitt: { massstab: 500, format: "A3", quer: true } };
+const DPI_JE_FORMAT = { A4: 300, A3: 300, A2: 300, A1: 200, A0: 150 }; // PNG: große Blätter mit weniger dpi (Speicher im Browser)
+const MASSSTAEBE = { plan: [500, 1000, 2000, 2500, 5000], schnitt: [200, 500, 1000, 2000] };
+const EXPORT_PLAENE = ["schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "boden", "wohnen", "infra"];
+const SCHRIFT = "helvetica";
 
 const mmZuPx = (mm, dpi) => (mm / 25.4) * dpi;
+const z2 = (v) => (Math.round(v * 100) / 100).toString();
+const dateiDatum = () => new Date().toISOString().slice(0, 10);
 
 function herunterladen(blob, name) {
   const url = URL.createObjectURL(blob);
@@ -23,350 +28,501 @@ function herunterladen(blob, name) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 const canvasAlsPng = (canvas) => new Promise((ok) => canvas.toBlob(ok, "image/png"));
-const dateiDatum = () => new Date().toISOString().slice(0, 10);
 
-// SVG-Text → Bild → Canvas (Faktor = Vergrößerung)
-async function svgAufCanvas(svg, breite, hoehe, faktor) {
-  const bild = new Image();
-  bild.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  await bild.decode();
-  const c = document.createElement("canvas");
-  c.width = Math.round(breite * faktor); c.height = Math.round(hoehe * faktor);
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(bild, 0, 0, c.width, c.height);
-  return c;
+// Textbreite in mm (Helvetica), für Umbruch und Kürzen
+const messKontext = document.createElement("canvas").getContext("2d");
+function textBreite(text, groesseMm, fett) {
+  messKontext.font = `${fett ? "bold " : ""}100px Helvetica, Arial, sans-serif`;
+  return (messKontext.measureText(text).width / 100) * groesseMm;
 }
-
-// ---------- Diagramme ----------
-async function diagrammAlsPng(d) {
-  const svg = diagrammSvg(d, true);
-  const H = +svg.match(/height="([\d.]+)"/)[1];
-  const c = await svgAufCanvas(svg, d.breite, H, 4); // ca. 380 dpi bei 9 cm Breite
-  herunterladen(await canvasAlsPng(c), `ortsanalyse_diagramm_${d.id}_${dateiDatum()}.png`);
-}
-
-// ---------- 3D-Ansicht ----------
-async function dreidAlsPng() {
-  if (!dreid) return;
-  const { renderer, scene, camera } = dreid;
-  const vorher = renderer.getPixelRatio();
-  const b = renderer.domElement.clientWidth || 1000;
-  renderer.setPixelRatio(Math.min(4, 8000 / b)); // ca. 4-fache Bildschirmauflösung
-  renderer.render(scene, camera);
-  const bild = renderer.domElement;
-  // Quellen unten anfügen (vollständig, umgebrochen: Pflicht laut Lizenz)
-  const rand = Math.round(bild.width * 0.025), schrift = Math.round(rand * 0.45);
-  const messen = document.createElement("canvas").getContext("2d");
-  messen.font = `${schrift}px Helvetica, Arial, sans-serif`;
-  const zeilen = umbrechen(messen, (document.getElementById("plan").dataset.quelle || "© OpenStreetMap-Mitwirkende (ODbL)")
-    + " · 3D-Ansicht, nicht maßstäblich · Erstellt mit Ortsanalyse", bild.width - rand * 2);
-  const c = document.createElement("canvas");
-  c.width = bild.width; c.height = bild.height + rand + zeilen.length * schrift * 1.4;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(bild, 0, 0);
-  ctx.fillStyle = "#555";
-  ctx.font = messen.font;
-  zeilen.forEach((z, i) => ctx.fillText(z, rand, bild.height + rand * 0.6 + (i + 0.8) * schrift * 1.4));
-  renderer.setPixelRatio(vorher);
-  renderer.render(scene, camera);
-  herunterladen(await canvasAlsPng(c), `ortsanalyse_3d_${dateiDatum()}.png`);
-}
-
-function textKuerzen(ctx, text, breite) {
-  if (ctx.measureText(text).width <= breite) return text;
-  while (text.length > 3 && ctx.measureText(`${text}…`).width > breite) text = text.slice(0, -1);
-  return `${text}…`;
-}
-
-// Text in Zeilen umbrechen
-function umbrechen(ctx, text, breite) {
+function umbrechenMm(text, groesse, breite, fett) {
   const zeilen = [];
   let zeile = "";
   for (const wort of String(text).split(/\s+/)) {
     const test = zeile ? `${zeile} ${wort}` : wort;
-    if (ctx.measureText(test).width > breite && zeile) { zeilen.push(zeile); zeile = wort; } else zeile = test;
+    if (textBreite(test, groesse, fett) > breite && zeile) { zeilen.push(zeile); zeile = wort; } else zeile = test;
   }
   if (zeile) zeilen.push(zeile);
   return zeilen;
 }
+function kuerzenMm(text, groesse, breite, fett) {
+  if (textBreite(text, groesse, fett) <= breite) return text;
+  while (text.length > 3 && textBreite(`${text}…`, groesse, fett) > breite) text = text.slice(0, -1);
+  return `${text}…`;
+}
+const txt = (x, y, text, groesse, extra = "") =>
+  `<text x="${z2(x)}" y="${z2(y)}"${/font-family=/.test(extra) ? "" : ` font-family="${SCHRIFT}"`} font-size="${z2(groesse)}" ${extra}>${svgText(text)}</text>`;
 
-// ---------- Blatt: Maße und Schriftfeld ----------
+// ---------- Blatt: Maße ----------
 function blattMasse(einst) {
   const [kurz, lang] = PAPIER[einst.format];
   const W = einst.quer ? lang : kurz, H = einst.quer ? kurz : lang;
   const f = Math.sqrt(kurz / 210); // Schrift und Ränder wachsen mit dem Format (A4 = 1, A0 = 2)
   const rand = 10 * f, schriftfeld = 34 * f;
-  return { W, H, f, rand, schriftfeld, dpi: DPI_JE_FORMAT[einst.format],
+  return { W, H, f, rand, schriftfeld, dpi: DPI_JE_FORMAT[einst.format], format: einst.format, quer: einst.quer,
     rahmen: { x: rand, y: rand, w: W - 2 * rand, h: H - 2 * rand - schriftfeld - 3 * f } }; // Zeichenfeld in mm
 }
 
-// Legendeneinträge eines Plans für das Schriftfeld: [{ art, farbe, text, bild? }]
+// Wie groß wird das Gebiet bzw. der Schnitt beim Maßstab auf dem Papier?
+function groesseAufPapier(art, massstab) {
+  if (art === "schnitt") {
+    const erg = berechneSchnitt();
+    if (!erg) return null;
+    const s = schnittSvg(erg, { k: mmZuPx(1000 / massstab, 96) });
+    return [s.W * PX_MM, s.H * PX_MM];
+  }
+  const [w, s, o, n] = analyseErgebnis.bbox;
+  const [e1, n1] = gradZuUtm(w, s), [e2, n2] = gradZuUtm(o, n);
+  return [((e2 - e1) * 1000) / massstab, ((n2 - n1) * 1000) / massstab];
+}
+function passt(art, einst) {
+  const g = groesseAufPapier(art, einst.massstab);
+  if (!g) return null;
+  const r = blattMasse(einst).rahmen;
+  return g[0] <= r.w + 0.5 && g[1] <= r.h + 0.5;
+}
+// kleinstes Format (und Ausrichtung), auf das der Inhalt passt
+function passendesFormat(art, massstab) {
+  for (const format of Object.keys(PAPIER)) {
+    for (const quer of [true, false]) if (passt(art, { massstab, format, quer })) return { format, quer };
+  }
+  return { format: "A0", quer: true };
+}
+
+// ---------- Schriftfeld (Vektor) ----------
+// Legendeneinträge eines Plans: [{ art, farbe, text }]
 function exportLegende(plan) {
   if (plan === "infra" && infraDaten) {
     const e = Object.entries(INFRA_EBENEN).filter(([key]) => infraSichtbar[key]).map(([key, d]) => ({ art: "kreis-voll", farbe: d.farbe,
       text: `${d.name} (${fmt(INFRA_ARTEN.filter(([art, eb]) => eb === key).reduce((s, [art]) => s + (infraDaten.anzahl[art] || 0), 0))})` }));
-    for (const [key, r] of Object.entries(INFRA_RADIEN)) if (radienSichtbar[key]) e.push({ art: "flaeche", farbe: `${r.farbe}33`, text: `${r.radius} m um ${r.name}` });
+    for (const [key, r] of Object.entries(INFRA_RADIEN)) if (radienSichtbar[key]) e.push({ art: "flaeche", farbe: r.farbe, deckkraft: 0.2, text: `${r.radius} m um ${r.name}` });
     return e;
   }
-  if (plan === "schnitt") return [{ art: "strich", farbe: PLAN_FARBEN.akzent, text: "Schnittlinie A–A′" }, { art: "flaeche", farbe: "#f6d2ca", text: "Blickbereich" }];
-  return (planLegenden[plan] || []).filter((e) => e[0] !== "text").map(([art, wert, text]) => ({
-    art, text, farbe: typeof wert === "string" ? (wert.match(/#[0-9a-f]{3,6}/i) || [wert])[0] : "#111", staerke: typeof wert === "number" ? wert : 1 }));
+  const liste = plan === "wohnen" ? legendeWohnen() : planLegenden[plan] || [];
+  return liste.filter((e) => e[0] !== "text").map(([art, wert, text]) => ({
+    art, text, farbe: typeof wert === "string" ? (wert.match(/#[0-9a-f]{3,6}/i) || [wert])[0] : "#111111", staerke: typeof wert === "number" ? wert : 1 }));
 }
 
-// Schriftfeld unten: Titel | Legende | Maßstab, Nordpfeil, Maßstabsleiste; darunter die Quellen
-function zeichneSchriftfeld(ctx, b, { titel, untertitel, massstab, legende, quelle, mitNord }) {
-  const px = (mm) => mmZuPx(mm, b.dpi);
-  const y0 = b.H - b.rand - b.schriftfeld, x0 = b.rand, breite = b.W - 2 * b.rand, f = b.f;
-  ctx.strokeStyle = "#111"; ctx.lineWidth = px(0.35 * f);
-  ctx.strokeRect(px(x0), px(b.rahmen.y), px(breite), px(b.H - b.rand - b.rahmen.y)); // Blattrahmen
-  ctx.beginPath(); ctx.moveTo(px(x0), px(y0)); ctx.lineTo(px(x0 + breite), px(y0)); ctx.stroke();
-  const quellenH = 7 * f;
-  const feldH = b.schriftfeld - quellenH;
-  const sp1 = breite * 0.3, sp3 = breite * 0.24, sp2 = breite - sp1 - sp3;
-  ctx.lineWidth = px(0.18 * f);
-  for (const x of [x0 + sp1, x0 + sp1 + sp2]) { ctx.beginPath(); ctx.moveTo(px(x), px(y0)); ctx.lineTo(px(x), px(y0 + feldH)); ctx.stroke(); }
-  ctx.beginPath(); ctx.moveTo(px(x0), px(y0 + feldH)); ctx.lineTo(px(x0 + breite), px(y0 + feldH)); ctx.stroke();
-  const pad = 3 * f;
-  const schrift = (mm, fett) => { ctx.font = `${fett ? "600 " : ""}${px(mm)}px Helvetica Neue, Helvetica, Arial, sans-serif`; };
-
+function schriftfeldSvg(b, { titel, untertitel, massstab, legende, quelle, mitNord }) {
+  const f = b.f, y0 = b.H - b.rand - b.schriftfeld, x0 = b.rand, breite = b.W - 2 * b.rand;
+  const quellenH = 7 * f, feldH = b.schriftfeld - quellenH;
+  const sp1 = breite * 0.3, sp3 = breite * 0.24, sp2 = breite - sp1 - sp3, pad = 3 * f;
+  const t = [];
+  const linie = (x1, y1, x2, y2, st) => `<line x1="${z2(x1)}" y1="${z2(y1)}" x2="${z2(x2)}" y2="${z2(y2)}" stroke="#111111" stroke-width="${z2(st)}"/>`;
+  // Blattrahmen und Feldteilung
+  t.push(`<rect x="${z2(x0)}" y="${z2(b.rahmen.y)}" width="${z2(breite)}" height="${z2(b.H - b.rand - b.rahmen.y)}" fill="none" stroke="#111111" stroke-width="${z2(0.35 * f)}"/>`);
+  t.push(linie(x0, y0, x0 + breite, y0, 0.35 * f), linie(x0, y0 + feldH, x0 + breite, y0 + feldH, 0.18 * f));
+  t.push(linie(x0 + sp1, y0, x0 + sp1, y0 + feldH, 0.18 * f), linie(x0 + sp1 + sp2, y0, x0 + sp1 + sp2, y0 + feldH, 0.18 * f));
   // Titel
-  ctx.fillStyle = PLAN_FARBEN.akzent; schrift(2.2 * f, true);
-  ctx.fillText("ORTSANALYSE", px(x0 + pad), px(y0 + pad + 2.2 * f));
-  ctx.fillStyle = "#111"; schrift(5 * f, true);
-  ctx.fillText(textKuerzen(ctx, titel, px(sp1 - 2 * pad)), px(x0 + pad), px(y0 + pad + 8.5 * f));
-  schrift(2.3 * f);
-  ctx.fillStyle = "#333";
-  umbrechen(ctx, untertitel, px(sp1 - 2 * pad)).slice(0, 4).forEach((z, i) => ctx.fillText(z, px(x0 + pad), px(y0 + pad + 13 * f + i * 3.2 * f)));
-
+  t.push(txt(x0 + pad, y0 + pad + 2.2 * f, "ORTSANALYSE", 2.2 * f, `font-weight="bold" fill="${PLAN_FARBEN.akzent}"`));
+  t.push(txt(x0 + pad, y0 + pad + 8.5 * f, kuerzenMm(titel, 5 * f, sp1 - 2 * pad, true), 5 * f, `font-weight="bold" fill="#111111"`));
+  umbrechenMm(untertitel, 2.3 * f, sp1 - 2 * pad).slice(0, 4).forEach((z, i) => t.push(txt(x0 + pad, y0 + pad + 13 * f + i * 3.2 * f, z, 2.3 * f, `fill="#333333"`)));
   // Legende in Spalten
-  const lx = x0 + sp1 + pad, ly = y0 + pad, zeileH = 3.6 * f, spalten = Math.max(1, Math.ceil(legende.length / Math.floor((feldH - 2 * pad) / zeileH)));
-  const spB = (sp2 - 2 * pad) / spalten, proSpalte = Math.ceil(legende.length / spalten);
-  schrift(2.2 * f);
+  const zeileH = 3.6 * f, proSpalteMax = Math.max(1, Math.floor((feldH - 2 * pad) / zeileH));
+  const spalten = Math.max(1, Math.ceil(legende.length / proSpalteMax)), spB = (sp2 - 2 * pad) / spalten, proSpalte = Math.ceil(legende.length / spalten) || 1;
   legende.forEach((e, i) => {
-    const x = lx + Math.floor(i / proSpalte) * spB, y = ly + (i % proSpalte) * zeileH;
+    const x = x0 + sp1 + pad + Math.floor(i / proSpalte) * spB, y = y0 + pad + (i % proSpalte) * zeileH;
     const zw = 6 * f, zh = 2.6 * f;
-    ctx.fillStyle = e.farbe; ctx.strokeStyle = e.farbe;
-    if (e.art === "flaeche") { ctx.fillRect(px(x), px(y), px(zw), px(zh)); ctx.strokeStyle = "#999"; ctx.lineWidth = px(0.1 * f); ctx.strokeRect(px(x), px(y), px(zw), px(zh)); }
-    else if (e.art === "linie" || e.art === "strich") {
-      ctx.strokeStyle = e.art === "linie" ? "#111" : e.farbe; ctx.lineWidth = px((e.art === "linie" ? 0.15 * (e.staerke || 1) + 0.1 : 0.4) * f);
-      ctx.setLineDash(e.art === "strich" ? [px(1.2 * f), px(0.6 * f)] : []);
-      ctx.beginPath(); ctx.moveTo(px(x), px(y + zh / 2)); ctx.lineTo(px(x + zw), px(y + zh / 2)); ctx.stroke(); ctx.setLineDash([]);
-    } else {
-      ctx.beginPath(); ctx.arc(px(x + zw / 2), px(y + zh / 2), px(zh / 2), 0, Math.PI * 2);
-      if (e.art === "kreis-voll") ctx.fill(); else { ctx.globalAlpha = 0.3; ctx.fill(); ctx.globalAlpha = 1; ctx.lineWidth = px(0.15 * f); ctx.stroke(); }
-    }
-    ctx.fillStyle = "#111";
-    ctx.fillText(textKuerzen(ctx, e.text, px(spB - zw - 3 * f)), px(x + zw + 1.5 * f), px(y + zh - 0.2 * f));
+    if (e.art === "flaeche") t.push(`<rect x="${z2(x)}" y="${z2(y)}" width="${z2(zw)}" height="${z2(zh)}" fill="${e.farbe}"${e.deckkraft ? ` fill-opacity="${e.deckkraft}"` : ""} stroke="#999999" stroke-width="${z2(0.1 * f)}"/>`);
+    else if (e.art === "linie") t.push(linie(x, y + zh / 2, x + zw, y + zh / 2, (0.15 * (e.staerke || 1) + 0.1) * f));
+    else if (e.art === "strich") t.push(`<line x1="${z2(x)}" y1="${z2(y + zh / 2)}" x2="${z2(x + zw)}" y2="${z2(y + zh / 2)}" stroke="${e.farbe}" stroke-width="${z2(0.4 * f)}" stroke-dasharray="${z2(1.2 * f)} ${z2(0.6 * f)}"/>`);
+    else t.push(`<circle cx="${z2(x + zw / 2)}" cy="${z2(y + zh / 2)}" r="${z2(zh / 2)}" fill="${e.farbe}" fill-opacity="${e.art === "kreis-voll" ? 1 : 0.3}"${e.art === "kreis-voll" ? "" : ` stroke="${e.farbe}" stroke-width="${z2(0.15 * f)}"`}/>`);
+    t.push(txt(x + zw + 1.5 * f, y + zh - 0.2 * f, kuerzenMm(e.text, 2.2 * f, spB - zw - 3 * f), 2.2 * f, `fill="#111111"`));
   });
-
   // Maßstab, Nordpfeil, Maßstabsleiste
   const mx = x0 + sp1 + sp2 + pad;
-  ctx.fillStyle = "#111"; schrift(4.2 * f, true);
-  ctx.fillText(`M 1:${fmt(massstab)}`, px(mx), px(y0 + pad + 4.2 * f));
-  schrift(2.1 * f); ctx.fillStyle = "#555";
-  ctx.fillText(`${b.format} ${b.quer ? "quer" : "hoch"} · ${b.dpi} dpi`, px(mx), px(y0 + pad + 8 * f));
+  t.push(txt(mx, y0 + pad + 4.2 * f, massstab ? `M 1:${fmt(massstab)}` : "ohne Maßstab", 4.2 * f, `font-weight="bold" fill="#111111"`));
+  t.push(txt(mx, y0 + pad + 8 * f, `${b.format} ${b.quer ? "quer" : "hoch"}`, 2.1 * f, `fill="#555555"`));
   if (mitNord) {
-    const nx = x0 + breite - pad - 4 * f, ny = y0 + pad + 1 * f, nh = 11 * f;
-    ctx.fillStyle = "#111"; schrift(2.6 * f, true); ctx.textAlign = "center";
-    ctx.fillText("N", px(nx), px(ny + 2.4 * f)); ctx.textAlign = "left";
-    ctx.beginPath(); ctx.moveTo(px(nx), px(ny + 3.4 * f)); ctx.lineTo(px(nx + 2.8 * f), px(ny + nh)); ctx.lineTo(px(nx), px(ny + nh - 2.2 * f)); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(px(nx), px(ny + 3.4 * f)); ctx.lineTo(px(nx - 2.8 * f), px(ny + nh)); ctx.lineTo(px(nx), px(ny + nh - 2.2 * f)); ctx.closePath();
-    ctx.lineWidth = px(0.15 * f); ctx.strokeStyle = "#111"; ctx.stroke();
+    const nx = x0 + breite - pad - 4 * f, ny = y0 + pad + f, nh = 11 * f;
+    t.push(txt(nx, ny + 2.4 * f, "N", 2.6 * f, `font-weight="bold" text-anchor="middle" fill="#111111"`));
+    t.push(`<path d="M${z2(nx)} ${z2(ny + 3.4 * f)}L${z2(nx + 2.8 * f)} ${z2(ny + nh)}L${z2(nx)} ${z2(ny + nh - 2.2 * f)}Z" fill="#111111"/>`);
+    t.push(`<path d="M${z2(nx)} ${z2(ny + 3.4 * f)}L${z2(nx - 2.8 * f)} ${z2(ny + nh)}L${z2(nx)} ${z2(ny + nh - 2.2 * f)}Z" fill="#ffffff" stroke="#111111" stroke-width="${z2(0.15 * f)}"/>`);
   }
-  // Maßstabsleiste: echte Länge auf dem Papier
-  const leisteMax = sp3 - 2 * pad - 4 * f;
-  const meter = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].filter((m) => (m * 1000) / massstab <= leisteMax).pop() || 5;
-  const lmm = (meter * 1000) / massstab, ly2 = y0 + feldH - pad - 4 * f;
-  for (let i = 0; i < 4; i++) {
-    ctx.fillStyle = i % 2 ? "#fff" : "#111";
-    ctx.fillRect(px(mx + (i * lmm) / 4), px(ly2), px(lmm / 4), px(1.4 * f));
+  if (massstab) {
+    const leisteMax = sp3 - 2 * pad - 4 * f;
+    const meter = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000].filter((m) => (m * 1000) / massstab <= leisteMax).pop() || 5;
+    const lmm = (meter * 1000) / massstab, ly = y0 + feldH - pad - 4 * f;
+    for (let i = 0; i < 4; i++) t.push(`<rect x="${z2(mx + (i * lmm) / 4)}" y="${z2(ly)}" width="${z2(lmm / 4)}" height="${z2(1.4 * f)}" fill="${i % 2 ? "#ffffff" : "#111111"}"/>`);
+    t.push(`<rect x="${z2(mx)}" y="${z2(ly)}" width="${z2(lmm)}" height="${z2(1.4 * f)}" fill="none" stroke="#111111" stroke-width="${z2(0.15 * f)}"/>`);
+    t.push(txt(mx - 0.5 * f, ly + 4.2 * f, "0", 2 * f, `fill="#111111"`), txt(mx + lmm + 2 * f, ly + 4.2 * f, `${fmt(meter)} m`, 2 * f, `text-anchor="end" fill="#111111"`));
   }
-  ctx.strokeStyle = "#111"; ctx.lineWidth = px(0.15 * f); ctx.strokeRect(px(mx), px(ly2), px(lmm), px(1.4 * f));
-  ctx.fillStyle = "#111"; schrift(2 * f);
-  ctx.fillText("0", px(mx - 0.5 * f), px(ly2 + 4.2 * f));
-  ctx.textAlign = "right"; ctx.fillText(`${fmt(meter)} m`, px(mx + lmm + 2 * f), px(ly2 + 4.2 * f)); ctx.textAlign = "left";
-
-  // Quellen (Pflicht laut Lizenz)
-  // Schrift so klein wählen, dass alle Quellen in drei Zeilen passen (nichts darf abgeschnitten werden)
-  ctx.fillStyle = "#444";
+  // Quellen: so klein, dass alles in drei Zeilen passt (Pflicht laut Lizenz, nichts abschneiden)
   const qText = `${quelle} · Erstellt mit Ortsanalyse am ${new Date().toLocaleDateString("de-DE")} · nicht vermessungsgenau`;
-  let groesse = 1.7, zeilen;
-  do { schrift(groesse * f); zeilen = umbrechen(ctx, qText, px(breite - 2 * pad)); groesse -= 0.1; } while (zeilen.length > 3 && groesse > 0.9);
+  let g = 1.7, zeilen;
+  do { zeilen = umbrechenMm(qText, g * f, breite - 2 * pad); g -= 0.1; } while (zeilen.length > 3 && g > 0.9);
   const abstand = Math.min(2.1, (quellenH - 1) / zeilen.length) * f;
-  zeilen.forEach((z, i) => ctx.fillText(z, px(x0 + pad), px(y0 + feldH + 2.4 * f + i * abstand)));
+  zeilen.forEach((z, i) => t.push(txt(x0 + pad, y0 + feldH + 2.4 * f + i * abstand, z, (g + 0.1) * f, `fill="#444444"`)));
+  return t.join("");
 }
 
-// ---------- Plan maßstäblich ----------
-// Web-Mercator: Weltpixel bei Zoomstufe z (MapLibre: Kachelgröße 512)
-const weltPx = (lon, lat, z) => {
-  const W = 512 * 2 ** z;
-  const s = Math.sin((lat * Math.PI) / 180);
-  return [((lon + 180) / 360) * W, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * W];
-};
-const ausWeltPx = (x, y, z) => {
-  const W = 512 * 2 ** z;
-  return [(x / W) * 360 - 180, (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / W))) * 180) / Math.PI];
-};
+const quellText = () => document.getElementById("plan").dataset.quelle || "© OpenStreetMap-Mitwirkende (ODbL)";
 
-// Prüft, wie groß das Gebiet beim gewählten Maßstab auf dem Blatt wird
-function passtAufsBlatt(art, einst) {
+// Schriften der eingebetteten SVG-Teile (Schnitt, Diagramme) für PDF und PNG gleich festlegen
+const BLATT_STIL = `<style>text{font-family:${SCHRIFT}}.sz-text{font-family:courier;font-size:10px;fill:#111111}.sz-klein{font-size:9px;fill:#555555}
+  .sz-fett{font-family:${SCHRIFT};font-weight:bold;font-size:12px;fill:${PLAN_FARBEN.akzent}}.dg-name{font-size:12px;fill:#111111}
+  .dg-wert{font-size:11px;fill:#333333}.dg-achse{font-size:10px;fill:#555555}.dg-titel{font-size:15px;font-weight:bold;fill:#111111}
+  .dg-unter{font-size:11px;fill:#555555}.dg-quelle{font-size:9px;fill:#777777}</style>`;
+
+const blattSvg = (b, inhalt) => `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${b.W}" height="${b.H}" viewBox="0 0 ${b.W} ${b.H}">`
+  + `${BLATT_STIL}<rect width="${b.W}" height="${b.H}" fill="#ffffff"/>${inhalt}</svg>`;
+
+// Inneres eines SVG (ohne äußeres <svg> und ohne eigene <style>-Angaben)
+const svgInneres = (svg) => svg.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "").replace(/<style>[\s\S]*?<\/style>/g, "");
+
+// ---------- Die Blätter ----------
+let blattNr = 0;
+
+function blattPlan(plan, einst) {
   const b = blattMasse(einst);
-  let breiteMm, hoeheMm;
-  if (art === "schnitt") {
-    const erg = berechneSchnitt();
-    if (!erg) return { b, passt: false, text: "Noch keine Schnittlinie." };
-    const k = mmZuPx(1000 / einst.massstab, 96);
-    const s = schnittSvg(erg, { k });
-    breiteMm = (s.W / 96) * 25.4; hoeheMm = (s.H / 96) * 25.4;
-  } else {
-    const [w, s, o, n] = analyseErgebnis.bbox;
-    const [e1, n1] = gradZuUtm(w, s), [e2, n2] = gradZuUtm(o, n);
-    breiteMm = ((e2 - e1) * 1000) / einst.massstab; hoeheMm = ((n2 - n1) * 1000) / einst.massstab;
-  }
-  const passt = breiteMm <= b.rahmen.w + 0.5 && hoeheMm <= b.rahmen.h + 0.5;
-  return { b, passt, breiteMm, hoeheMm };
+  const inhalt = vektorPlanSvg(plan, { rahmen: b.rahmen, massstab: einst.massstab, id: `plan${++blattNr}` });
+  const unter = plan === "wohnen"
+    ? `${ZENSUS_MERKMALE[zensusMerkmal].name}${zensusMerkmal === "vergleich" ? ` (${VERGLEICH_FELDER[vergleichFeld()].text})` : ""}, Zensus 2022`
+    : "Untersuchungsgebiet rot gestrichelt";
+  return { b, name: plan, svg: blattSvg(b, inhalt + schriftfeldSvg(b, { titel: PLAN_TITEL[plan], untertitel: unter, massstab: einst.massstab,
+    legende: exportLegende(plan), quelle: quellText(), mitNord: true })) };
 }
 
-// Unsichtbare Karte mit dem aktuellen Plan-Stil in Druckauflösung; zeichnet den Rahmen Stück für Stück
-async function planAufCanvas(ctx, b, einst, meldung) {
-  const pr = b.dpi / 96;                          // Druckpixel je Bildschirmpixel
-  const [w, s, o, n] = analyseErgebnis.bbox;
-  const mitte = [(w + o) / 2, (s + n) / 2];
-  const meterJePx = (einst.massstab * 0.0254) / 96; // Meter in der Natur je Bildschirmpixel auf dem Papier
-  const z = Math.log2((40075016.686 * Math.cos((mitte[1] * Math.PI) / 180)) / (512 * meterJePx));
-  const rahmenB = mmZuPx(b.rahmen.w, 96), rahmenH = mmZuPx(b.rahmen.h, 96); // in Bildschirmpixeln
-  const [cx, cy] = weltPx(mitte[0], mitte[1], z);
-  const x0 = cx - rahmenB / 2, y0 = cy - rahmenH / 2;
-  // Kachel in Bildschirmpixeln: 1008 und der Überstand 48 ergeben bei 300/200/150 dpi ganze Druckpixel.
-  // Jede Kachel wird mit Überstand gezeichnet und der Rand abgeschnitten (sonst feine Nahtlinien).
-  const T = 1008, U = 48;
+function blattSchnitt(einst) {
+  const b = blattMasse(einst);
+  const erg = berechneSchnitt();
+  const s = schnittSvg(erg, { k: mmZuPx(1000 / einst.massstab, 96) });
+  const bw = s.W * PX_MM, bh = s.H * PX_MM;
+  const dx = b.rahmen.x + Math.max(0, (b.rahmen.w - bw) / 2), dy = b.rahmen.y + Math.max(0, (b.rahmen.h - bh) / 2);
+  const id = `schnitt${++blattNr}`;
+  const innen = svgInneres(s.svg).replace(/sz-streifen/g, `${id}s`).replace(/sz-pfeil/g, `${id}p`);
+  // kleiner Lageplan oben rechts
+  const lageB = 170, lageMm = 45 * b.f, lageS = lageMm / lageB;
+  const lage = svgInneres(schnittLageSvg(lageB)).replace(/sz-pfeil/g, `${id}l`);
+  const inhalt = `<defs><clipPath id="${id}"><rect x="${z2(b.rahmen.x)}" y="${z2(b.rahmen.y)}" width="${z2(b.rahmen.w)}" height="${z2(b.rahmen.h)}"/></clipPath></defs>`
+    + `<g clip-path="url(#${id})"><g transform="translate(${z2(dx)} ${z2(dy)}) scale(${PX_MM.toFixed(5)})">${innen}</g></g>`
+    + `<g transform="translate(${z2(b.rahmen.x + b.rahmen.w - lageMm - 2)} ${z2(b.rahmen.y + 2)}) scale(${lageS.toFixed(5)})">${lage}</g>`;
+  return { b, name: "schnitt", svg: blattSvg(b, inhalt + schriftfeldSvg(b, { titel: "Schnitt A–A′", untertitel: `${schnittTitel(erg).replace("Schnitt A–A′ · ", "")}. Schwarz: geschnitten, grau: Ansicht.`,
+    massstab: einst.massstab, legende: [{ art: "flaeche", farbe: "#111111", text: "Schnitt: Gelände und Gebäude" },
+      { art: "flaeche", farbe: "#c3c3c1", text: "Ansicht, je weiter weg desto heller" }, { art: "kreis", farbe: "#4a5a44", text: "Bäume (Höhe geschätzt)" }],
+    quelle: quellText(), mitNord: false })) };
+}
 
+// 3D: aktuelle Kamera in hoher Auflösung zeichnen (Seitenverhältnis des Zeichenfelds)
+function dreidBild(breitePx, hoehePx) {
+  if (!dreid) return null;
+  const { renderer, scene, camera } = dreid;
+  const groesse = renderer.getSize(new THREE.Vector2()), ratio = renderer.getPixelRatio(), aspekt = camera.aspect;
+  renderer.setPixelRatio(1);
+  renderer.setSize(breitePx, hoehePx, false);
+  camera.aspect = breitePx / hoehePx; camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  const url = renderer.domElement.toDataURL("image/png");
+  renderer.setPixelRatio(ratio);
+  renderer.setSize(groesse.x, groesse.y, false);
+  camera.aspect = aspekt; camera.updateProjectionMatrix();
+  renderer.render(scene, camera);
+  return url;
+}
+
+function blatt3d(einst) {
+  const b = blattMasse(einst);
+  const r = b.rahmen;
+  const breitePx = Math.min(4000, Math.round(mmZuPx(r.w, 200))), hoehePx = Math.round((breitePx * r.h) / r.w);
+  const url = dreidBild(breitePx, hoehePx);
+  const inhalt = url ? `<image x="${z2(r.x)}" y="${z2(r.y)}" width="${z2(r.w)}" height="${z2(r.h)}" preserveAspectRatio="xMidYMid meet" href="${url}" xlink:href="${url}"/>` : "";
+  return { b, name: "3d", svg: blattSvg(b, inhalt + schriftfeldSvg(b, { titel: "3D-Modell", untertitel: "Axonometrie der aktuellen Ansicht, nicht maßstäblich. Gebäude LoD2 bzw. OSM-Klötze, Bäume aus OSM.",
+    massstab: null, legende: [{ art: "flaeche", farbe: "#f7f7f5", text: "Wand (LoD2)" }, { art: "flaeche", farbe: "#c9c6c1", text: "Dach (LoD2)" },
+      { art: "flaeche", farbe: "#eac3b9", text: "Ersatz-Klotz (OSM-Geschosse)" }, { art: "kreis", farbe: "#5b7f4f", text: "Baum" }], quelle: quellText(), mitNord: false })) };
+}
+
+// Kennzahlen als Tabelle (Vektor-Text)
+function kennzahlTabelle(k) {
+  const z = k.zensus || {};
+  const gruppen = [
+    ["Gebiet", [["Gebietsfläche (brutto)", flaecheText(k.gebietM2)], ["Bauland (netto)", flaecheText(k.nettoM2)]]],
+    ["Bebauung und Dichte", [["Gebäude", fmt(k.gebaeudeAnzahl)], ["GRZ brutto / netto", `${fmt(k.grzBrutto, 2)} / ${fmt(k.grzNetto, 2)}`],
+      ["GFZ brutto / netto", `${fmt(k.gfzBrutto, 2)} / ${fmt(k.gfzNetto, 2)}`], ["Mittlere Geschosszahl", fmt(k.mittlereGeschosse, 1)]]],
+    ["Freiraum und Straßen", [["Grünanteil", prozent(k.gruenAnteil)], ["Einzelbäume (OSM)", fmt(k.baeume)], ["Straßenlänge", `${fmt(k.strassenGesamt)} m`]]]
+  ];
+  if (k.parzellenAnzahl) gruppen.push(["Parzellen und Bodenwert", [["Flurstücke", fmt(k.parzellenAnzahl)], ["Mittlere Flurstücksgröße", `${fmt(k.parzellenMittel)} m²`],
+    ...(k.brwMittel ? [["Mittlerer Bodenrichtwert", `${fmt(k.brwMittel)} €/m²`]] : [])]]);
+  const wohnen = [];
+  if (z.miete) wohnen.push(["Nettokaltmiete (Mittel)", `${fmt(z.miete.mittel, 2)} €/m²`]);
+  if (z.leerstand) wohnen.push(["Leerstandsquote", `${fmt(z.leerstand.mittel, 1)} %`]);
+  if (z.flaecheWohnung) wohnen.push(["Fläche je Wohnung", `${fmt(z.flaecheWohnung.mittel)} m²`]);
+  if (z.eigentum) wohnen.push(["Eigentümerquote", `${fmt(z.eigentum.mittel)} %`]);
+  if (wohnen.length) gruppen.push(["Wohnen (Zensus 2022)", wohnen]);
+  if (k.infraAbdeckung) gruppen.push(["Infrastruktur (OSM)", Object.entries(INFRA_RADIEN).map(([key, r]) => [`${r.radius} m um ${r.name}`, prozent(k.infraAbdeckung[key], 0)])]);
+  return gruppen;
+}
+
+function tabelleSvg(gruppen, x, y, breite, f) {
+  const t = [];
+  let yy = y;
+  for (const [titel, zeilen] of gruppen) {
+    t.push(txt(x, yy + 3 * f, titel.toUpperCase(), 2.3 * f, `font-weight="bold" fill="#111111"`));
+    t.push(`<line x1="${z2(x)}" y1="${z2(yy + 4.2 * f)}" x2="${z2(x + breite)}" y2="${z2(yy + 4.2 * f)}" stroke="#111111" stroke-width="${z2(0.2 * f)}"/>`);
+    yy += 5 * f;
+    for (const [name, wert] of zeilen) {
+      t.push(txt(x, yy + 3 * f, name, 2.3 * f, `fill="#333333"`), txt(x + breite, yy + 3 * f, wert, 2.3 * f, `text-anchor="end" font-family="courier" fill="#111111"`));
+      t.push(`<line x1="${z2(x)}" y1="${z2(yy + 4.3 * f)}" x2="${z2(x + breite)}" y2="${z2(yy + 4.3 * f)}" stroke="#dddddd" stroke-width="${z2(0.1 * f)}"/>`);
+      yy += 4.6 * f;
+    }
+    yy += 3 * f;
+  }
+  return { svg: t.join(""), hoehe: yy - y };
+}
+
+// Diagramme in ein Feld setzen (Raster, gleiche Größe)
+function diagrammeSvg(liste, feld, spalten) {
+  if (!liste.length) return "";
+  const zeilen = Math.ceil(liste.length / spalten);
+  const luecke = feld.w * 0.03;
+  const zellB = (feld.w - luecke * (spalten - 1)) / spalten;
+  const hoehen = liste.map((d) => +diagrammSvg(d, true).match(/height="([\d.]+)"/)[1]);
+  let s = zellB / DG.breite;
+  const zeilenH = [];
+  for (let i = 0; i < zeilen; i++) zeilenH.push(Math.max(...hoehen.slice(i * spalten, i * spalten + spalten)));
+  const gesamt = zeilenH.reduce((a, h) => a + h, 0);
+  s = Math.min(s, (feld.h - luecke * (zeilen - 1)) / gesamt);
+  let y = feld.y;
+  return liste.map((d, i) => {
+    const zeile = Math.floor(i / spalten), spalte = i % spalten;
+    if (spalte === 0 && zeile > 0) y += zeilenH[zeile - 1] * s + luecke;
+    const x = feld.x + spalte * (zellB + luecke);
+    return `<g transform="translate(${z2(x)} ${z2(y)}) scale(${s.toFixed(5)})">${svgInneres(diagrammSvg(d, true)).replace(/<rect width="[^"]+" height="[^"]+" fill="#fff"\/>/, "")}</g>`;
+  }).join("");
+}
+
+function blattKennzahlen(einst) {
+  const b = blattMasse(einst);
+  const k = analyseErgebnis.kennzahlen, r = b.rahmen, f = b.f;
+  const tabB = Math.min(r.w * 0.3, 95 * f);
+  const tab = tabelleSvg(kennzahlTabelle(k), r.x + 2 * f, r.y + 2 * f, tabB - 4 * f, f);
+  const feld = { x: r.x + tabB + 6 * f, y: r.y + 2 * f, w: r.w - tabB - 8 * f, h: r.h - 4 * f };
+  const spalten = feld.w / feld.h > 1.6 ? 4 : feld.w / feld.h > 0.9 ? 3 : 2;
+  const inhalt = tab.svg + diagrammeSvg(diagrammListe, feld, spalten);
+  return { b, name: "kennzahlen", svg: blattSvg(b, inhalt + schriftfeldSvg(b, { titel: "Kennzahlen und Diagramme",
+    untertitel: "Werte des Untersuchungsgebiets. GRZ/GFZ brutto: bezogen auf die Gebietsfläche, netto: auf das Bauland.",
+    massstab: null, legende: [], quelle: quellText(), mitNord: false })) };
+}
+
+// Übersicht: vier Pläne klein, Kennzahlen und drei Diagramme auf einem Blatt
+function blattUebersicht(einst) {
+  const b = blattMasse(einst);
+  const r = b.rahmen, f = b.f, luecke = 5 * f;
+  const planFeld = { x: r.x + luecke, y: r.y + luecke, w: r.w * 0.6 - 2 * luecke, h: r.h - 2 * luecke };
+  const plaene = ["schwarzplan", "strassen", "gruen", "lageplan"];
+  const zellB = (planFeld.w - luecke) / 2, zellH = (planFeld.h - luecke) / 2 - 5 * f;
+  const [gw, gh] = groesseAufPapier("plan", 1000); // Gebiet in mm bei 1:1000
+  // gemeinsamer, üblicher Maßstab, bei dem das Gebiet in die Felder passt
+  const noetig = Math.max(gw / zellB, gh / zellH) * 1000;
+  const massstab = [1000, 1500, 2000, 2500, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000].find((m) => m >= noetig) || Math.ceil(noetig / 5000) * 5000;
+  const teile = plaene.map((p, i) => {
+    const x = planFeld.x + (i % 2) * (zellB + luecke), y = planFeld.y + Math.floor(i / 2) * (zellH + 5 * f + luecke);
+    const rahmen = { x, y: y + 5 * f, w: zellB, h: zellH };
+    return txt(x, y + 3.5 * f, PLAN_TITEL[p], 3 * f, `font-weight="bold" fill="#111111"`)
+      + vektorPlanSvg(p, { rahmen, massstab, id: `ueb${++blattNr}` })
+      + `<rect x="${z2(rahmen.x)}" y="${z2(rahmen.y)}" width="${z2(rahmen.w)}" height="${z2(rahmen.h)}" fill="none" stroke="#cccccc" stroke-width="${z2(0.15 * f)}"/>`;
+  }).join("");
+  const rechtsX = r.x + r.w * 0.6 + luecke, rechtsB = r.w * 0.4 - 2 * luecke;
+  const tab = tabelleSvg(kennzahlTabelle(analyseErgebnis.kennzahlen).slice(0, 4), rechtsX, r.y + luecke, rechtsB, f);
+  const auswahl = diagrammListe.filter((d) => ["flaechen", "nutzung", "geschosse"].includes(d.id));
+  const feld = { x: rechtsX, y: r.y + luecke + tab.hoehe + 2 * f, w: rechtsB, h: r.h - 2 * luecke - tab.hoehe - 2 * f };
+  return { b, name: "uebersicht", svg: blattSvg(b, teile + tab.svg + diagrammeSvg(auswahl, feld, 1) + schriftfeldSvg(b, { titel: "Ortsanalyse – Übersicht",
+    untertitel: `Schwarzplan, Straßennetz, Grün und Lageplan je M 1:${fmt(massstab)}, Kennzahlen und Diagramme.`,
+    massstab, legende: [], quelle: quellText(), mitNord: true })) };
+}
+
+// ---------- Ausgabe ----------
+function blattErzeugen(eintrag) {
+  const e = exportStand[eintrag];
+  if (EXPORT_PLAENE.includes(eintrag)) return [blattPlan(eintrag, e)];
+  if (eintrag === "schnitt") return [blattSchnitt(e)];
+  if (eintrag === "3d") return [blatt3d(e)];
+  if (eintrag === "kennzahlen") return [blattKennzahlen(e)];
+  if (eintrag === "uebersicht") return [blattUebersicht(e)];
+  return [];
+}
+
+// Zeichen, die die PDF-Standardschrift nicht kennt, ersetzen
+const pdfZeichen = (t) => t.replace(/′/g, "'").replace(/−/g, "-").replace(/≈/g, "ca.").replace(/[▽▼]/g, "");
+
+async function blaetterAlsPdf(blaetter, meldung) {
+  const { jsPDF } = window.jspdf;
+  let doc = null;
   const box = document.createElement("div");
-  box.style.cssText = `position:fixed;left:-20000px;top:0;width:${T + 2 * U}px;height:${T + 2 * U}px;`;
+  box.style.cssText = "position:fixed;left:-30000px;top:0;";
   document.body.appendChild(box);
-  const karte = new maplibregl.Map({ container: box, style: planKarte.getStyle(), center: mitte, zoom: z, pixelRatio: pr,
-    interactive: false, attributionControl: false, fadeDuration: 0, preserveDrawingBuffer: true, maxZoom: 24, maxCanvasSize: [8192, 8192] });
   try {
-    await new Promise((ok) => karte.once("load", ok));
-    await infraBilderLaden(karte);
-    const px = (mm) => mmZuPx(mm, b.dpi);
-    ctx.save();
-    ctx.beginPath(); ctx.rect(px(b.rahmen.x), px(b.rahmen.y), px(b.rahmen.w), px(b.rahmen.h)); ctx.clip();
-    const nx = Math.ceil(rahmenB / T), ny = Math.ceil(rahmenH / T);
-    for (let j = 0; j < ny; j++) {
-      for (let i = 0; i < nx; i++) {
-        meldung(`Zeichne Teil ${j * nx + i + 1} von ${nx * ny} …`);
-        karte.jumpTo({ center: ausWeltPx(x0 + i * T + T / 2, y0 + j * T + T / 2, z), zoom: z });
-        await new Promise((ok) => { karte.once("idle", ok); karte.triggerRepaint(); });
-        const t = Math.round(T * pr), u = Math.round(U * pr);
-        ctx.drawImage(karte.getCanvas(), u, u, t, t, Math.round(px(b.rahmen.x)) + i * t, Math.round(px(b.rahmen.y)) + j * t, t, t);
+    for (const [i, bl] of blaetter.entries()) {
+      meldung(`PDF: Blatt ${i + 1} von ${blaetter.length} (${bl.name}) …`);
+      await new Promise((r) => setTimeout(r, 20));
+      const ausrichtung = bl.b.W > bl.b.H ? "l" : "p";
+      if (!doc) doc = new jsPDF({ orientation: ausrichtung, unit: "mm", format: [bl.b.W, bl.b.H], compress: true });
+      else doc.addPage([bl.b.W, bl.b.H], ausrichtung);
+      box.innerHTML = bl.svg;
+      const el = box.querySelector("svg");
+      el.querySelectorAll("text").forEach((t) => { t.textContent = pdfZeichen(t.textContent); });
+      await doc.svg(el, { x: 0, y: 0, width: bl.b.W, height: bl.b.H });
+    }
+  } finally { box.remove(); }
+  doc.setProperties({ title: "Ortsanalyse", creator: "Ortsanalyse (Web-Tool)", subject: quellText() });
+  return doc.output("blob");
+}
+
+async function blattAlsPng(bl) {
+  const b = bl.b, breite = Math.round(mmZuPx(b.W, b.dpi)), hoehe = Math.round(mmZuPx(b.H, b.dpi));
+  const svg = bl.svg.replace(`width="${b.W}" height="${b.H}"`, `width="${breite}" height="${hoehe}"`);
+  const bild = new Image();
+  bild.src = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  await bild.decode();
+  const c = document.createElement("canvas");
+  c.width = breite; c.height = hoehe;
+  const ctx = c.getContext("2d");
+  if (!ctx) throw new Error("Bild zu groß für den Browser");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, breite, hoehe);
+  ctx.drawImage(bild, 0, 0, breite, hoehe);
+  URL.revokeObjectURL(bild.src);
+  const blob = await canvasAlsPng(c);
+  if (!blob) throw new Error("Bild zu groß für den Browser");
+  return blob;
+}
+
+const dateiname = (eintrag, endung) => {
+  const e = exportStand[eintrag];
+  return `ortsanalyse_${eintrag}${e.massstab && !["3d", "kennzahlen"].includes(eintrag) ? `_1-${e.massstab}` : ""}_${e.format}_${dateiDatum()}.${endung}`;
+};
+
+// ---------- Reiter „Export“ ----------
+const EXPORT_EINTRAEGE = [
+  ...EXPORT_PLAENE.map((p) => ({ id: p, art: "plan" })),
+  { id: "schnitt", art: "schnitt" },
+  { id: "3d", art: "bild" },
+  { id: "kennzahlen", art: "bild" },
+  { id: "uebersicht", art: "bild" }
+];
+const EXPORT_NAMEN = { schnitt: "Schnitt A–A′", "3d": "3D-Ansicht", kennzahlen: "Kennzahlen und Diagramme", uebersicht: "Übersichtsblatt" };
+let exportStand = {};      // je Eintrag { an, massstab, format, quer }
+let exportFuerAnalyse = null;
+
+// Welche Inhalte gibt es (mit Daten)?
+function exportVerfuegbar(id) {
+  if (!analyseErgebnis) return false;
+  if (id === "flurstuecke") return mitParzellen;
+  if (id === "boden") return !!brwDaten;
+  if (id === "wohnen") return Object.keys(zensusKlassen).length > 0;
+  if (id === "infra") return !!infraDaten;
+  if (id === "schnitt") return !!(schnitt.a && schnitt.b);
+  if (id === "3d") return !!dreid;
+  return true;
+}
+
+// Schnitt: kleinste Maßstabszahl, bei der er auf A4–A1 passt (lange Schnitte sonst sehr groß)
+function schnittVoreinstellung() {
+  if (exportVerfuegbar("schnitt")) {
+    for (const massstab of MASSSTAEBE.schnitt) {
+      for (const format of ["A4", "A3", "A2", "A1"]) {
+        for (const quer of [true, false]) if (passt("schnitt", { massstab, format, quer })) return { an: true, massstab, format, quer };
       }
     }
-    ctx.restore();
-  } finally {
-    karte.remove();
-    box.remove();
+  }
+  return { an: true, massstab: 500, format: "A3", quer: true };
+}
+
+function exportVoreinstellen() {
+  if (exportFuerAnalyse === analyseErgebnis) return;
+  exportFuerAnalyse = analyseErgebnis;
+  exportStand = {};
+  for (const e of EXPORT_EINTRAEGE) {
+    if (e.art === "plan") exportStand[e.id] = { an: true, massstab: 2000, ...passendesFormat("plan", 2000) };
+    else if (e.art === "schnitt") exportStand[e.id] = schnittVoreinstellung();
+    else exportStand[e.id] = { an: true, format: e.id === "uebersicht" ? "A1" : "A3", quer: true };
   }
 }
 
-// ---------- Export-Dialog ----------
-let exportArt = "plan";
+function zeigeExportReiter() {
+  const ziel = document.getElementById("export-inhalt");
+  if (!analyseErgebnis) {
+    ziel.innerHTML = `<div class="placeholder-box"><div><h3>Export</h3><p>Erscheint nach „Analysieren“: Pläne, Schnitt, 3D-Ansicht, Kennzahlen und Übersichtsblatt als PDF (Vektor) oder PNG.</p></div></div>`;
+    return;
+  }
+  exportVoreinstellen();
+  const zeilen = EXPORT_EINTRAEGE.map((e) => {
+    const st = exportStand[e.id], da = exportVerfuegbar(e.id);
+    const name = PLAN_TITEL[e.id] && e.art === "plan" ? PLAN_TITEL[e.id] : EXPORT_NAMEN[e.id];
+    const status = !da ? "keine Daten" : e.art === "bild" ? (e.id === "3d" ? "Bild (nicht Vektor)" : "Vektor")
+      : passt(e.art, st) ? "passt aufs Blatt" : "<span class=\"export-warnung\">nur Ausschnitt</span>";
+    return `<tr class="${da ? "" : "ist-leer"}" data-id="${e.id}">
+      <td><input type="checkbox" data-feld="an" ${st.an && da ? "checked" : ""} ${da ? "" : "disabled"}></td>
+      <td>${name}</td>
+      <td>${e.art === "bild" ? "–" : `<select data-feld="massstab">${MASSSTAEBE[e.art].map((m) => `<option value="${m}" ${m === st.massstab ? "selected" : ""}>1:${fmt(m)}</option>`).join("")}</select>`}</td>
+      <td><select data-feld="format">${Object.keys(PAPIER).map((p) => `<option ${p === st.format ? "selected" : ""}>${p}</option>`).join("")}</select></td>
+      <td><select data-feld="quer"><option value="1" ${st.quer ? "selected" : ""}>quer</option><option value="0" ${st.quer ? "" : "selected"}>hoch</option></select></td>
+      <td class="export-status-zelle">${status}</td>
+      <td class="export-einzeln"><button class="btn btn-klein btn-ghost" data-aktion="pdf" ${da ? "" : "disabled"}>PDF</button>
+        <button class="btn btn-klein btn-ghost" data-aktion="png" ${da ? "" : "disabled"}>PNG</button></td>
+    </tr>`;
+  }).join("");
+  ziel.innerHTML = `
+    <header class="kz-kopf"><h3>Export</h3>
+      <p>Pläne, Schnitt, 3D-Ansicht, Kennzahlen und Übersichtsblatt. Die PDF enthält Vektorgrafik (Linien und Flächen, in Illustrator oder InDesign bearbeitbar),
+      nur die 3D-Ansicht ist ein Bild. Jedes Blatt hat ein Schriftfeld mit Legende, Maßstab, Nordpfeil und Quellen.</p></header>
+    <table class="export-tabelle">
+      <thead><tr><th></th><th>Inhalt</th><th>Maßstab</th><th>Format</th><th>Ausrichtung</th><th>Prüfung</th><th>Einzeln</th></tr></thead>
+      <tbody>${zeilen}</tbody>
+    </table>
+    <p class="hint">Gezeigt wird der Zustand der Reiter: eingeschaltete Ebenen, das gewählte Merkmal im Reiter „Wohnen“, die Schnittlinie und die aktuelle 3D-Ansicht.
+      „Nur Ausschnitt“: Das Gebiet ist beim gewählten Maßstab größer als das Blatt, gezeigt wird die Mitte. PNG: 300 dpi bis A2, A1 200 dpi, A0 150 dpi.</p>
+    <div class="row export-knoepfe">
+      <button class="btn btn-primary" id="export-pdf">Ausgewählte als eine PDF</button>
+      <button class="btn" id="export-png">Ausgewählte als PNG (ZIP)</button>
+    </div>
+    <p class="export-status" id="export-status"></p>
+    <p class="hint hint-klein">Der DXF-Export für Allplan und ArchiCAD kommt im nächsten Schritt hierher.</p>`;
 
-function oeffneExport(art) {
-  if (!analyseErgebnis) return;
-  exportArt = art;
-  const dialog = document.getElementById("export-dialog");
-  const einst = exportEinstellung[art];
-  const titel = art === "schnitt" ? "Schnitt" : PLAN_TITEL[aktuellerPlan];
-  dialog.innerHTML = `<form method="dialog" class="export-form">
-      <h3>PNG exportieren: ${titel}</h3>
-      <label>Maßstab <select id="ex-massstab">${MASSSTAEBE[art].map((m) => `<option value="${m}" ${m === einst.massstab ? "selected" : ""}>1:${fmt(m)}</option>`).join("")}</select></label>
-      <label>Format <select id="ex-format">${Object.keys(PAPIER).map((p) => `<option ${p === einst.format ? "selected" : ""}>${p}</option>`).join("")}</select></label>
-      <label>Ausrichtung <select id="ex-quer"><option value="1" ${einst.quer ? "selected" : ""}>quer</option><option value="0" ${einst.quer ? "" : "selected"}>hoch</option></select></label>
-      <p class="export-info" id="ex-info"></p>
-      <p class="export-status" id="ex-status"></p>
-      <div class="row"><button class="btn btn-primary" id="ex-los" value="los">PNG erstellen</button><button class="btn btn-ghost" value="abbruch">Abbrechen</button></div>
-    </form>`;
-  const lesen = () => {
-    einst.massstab = +dialog.querySelector("#ex-massstab").value;
-    einst.format = dialog.querySelector("#ex-format").value;
-    einst.quer = dialog.querySelector("#ex-quer").value === "1";
-    const p = passtAufsBlatt(art, einst);
-    dialog.querySelector("#ex-info").innerHTML = p.text ? p.text
-      : `Blatt ${p.b.W} × ${p.b.H} mm, ${p.b.dpi} dpi (${fmt(mmZuPx(p.b.W, p.b.dpi))} × ${fmt(mmZuPx(p.b.H, p.b.dpi))} Pixel).<br>`
-        + (art === "schnitt" ? "Schnitt" : "Gebiet") + ` auf dem Papier: ${fmt(p.breiteMm)} × ${fmt(p.hoeheMm)} mm, Zeichenfeld ${fmt(p.b.rahmen.w)} × ${fmt(p.b.rahmen.h)} mm.<br>`
-        + (p.passt ? "<strong>Passt aufs Blatt.</strong>" : `<strong class="export-warnung">Passt nicht ganz:</strong> ${art === "schnitt"
-          ? "Der Schnitt wird am Rand abgeschnitten. Wähle einen kleineren Maßstab oder ein größeres Format."
-          : "Gezeigt wird der Ausschnitt um die Gebietsmitte. Für das ganze Gebiet einen kleineren Maßstab (z. B. 1:2000) oder ein größeres Format wählen."}`);
-    return p;
+  // Einstellungen ändern
+  ziel.querySelectorAll("tbody select, tbody input").forEach((el) => el.addEventListener("change", () => {
+    const st = exportStand[el.closest("tr").dataset.id];
+    const feld = el.dataset.feld;
+    st[feld] = feld === "an" ? el.checked : feld === "quer" ? el.value === "1" : feld === "massstab" ? +el.value : el.value;
+    zeigeExportReiter();
+  }));
+  const status = (t) => { document.getElementById("export-status").textContent = t; };
+  const sperren = (an) => ziel.querySelectorAll("button, select, input").forEach((el) => { if (an) el.dataset.war = el.disabled; el.disabled = an || el.dataset.war === "true"; });
+  const ausfuehren = async (aufgabe) => {
+    sperren(true);
+    try { await aufgabe(); } catch (fehler) { console.error(fehler); status(`Export fehlgeschlagen: ${fehler.message}`); }
+    finally { sperren(false); }
   };
-  dialog.querySelectorAll("select").forEach((s) => s.addEventListener("change", lesen));
-  lesen();
-  dialog.querySelector("#ex-los").addEventListener("click", async (e) => {
-    e.preventDefault();
-    const knopf = e.currentTarget;
-    knopf.disabled = true;
-    const status = dialog.querySelector("#ex-status");
-    try {
-      await erstelleBlatt(art, einst, (t) => { status.textContent = t; });
-      dialog.close();
-    } catch (fehler) {
-      console.error(fehler);
-      status.textContent = `Export fehlgeschlagen: ${fehler.message}`;
-    } finally { knopf.disabled = false; }
-  });
-  dialog.showModal();
-}
-
-async function erstelleBlatt(art, einst, meldung) {
-  const b = { ...blattMasse(einst), format: einst.format, quer: einst.quer };
-  const px = (mm) => mmZuPx(mm, b.dpi);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(px(b.W)); canvas.height = Math.round(px(b.H));
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Bild zu groß für den Browser");
-  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-  const quelle = document.getElementById("plan").dataset.quelle || "© OpenStreetMap-Mitwirkende (ODbL)";
-
-  if (art === "schnitt") {
-    meldung("Zeichne den Schnitt …");
-    const erg = berechneSchnitt();
-    const k = mmZuPx(1000 / einst.massstab, 96);
-    const s = schnittSvg(erg, { k });
-    const bild = await svgAufCanvas(s.svg, s.W, s.H, b.dpi / 96);
-    // mittig ins Zeichenfeld
-    const dx = px(b.rahmen.x) + Math.max(0, (px(b.rahmen.w) - bild.width) / 2);
-    const dy = px(b.rahmen.y) + Math.max(0, (px(b.rahmen.h) - bild.height) / 2);
-    ctx.save(); ctx.beginPath(); ctx.rect(px(b.rahmen.x), px(b.rahmen.y), px(b.rahmen.w), px(b.rahmen.h)); ctx.clip();
-    ctx.drawImage(bild, dx, dy); ctx.restore();
-    // Lageplan klein in die Ecke
-    const lage = document.querySelector("#schnitt-lage svg");
-    if (lage) {
-      const lb = +lage.getAttribute("width"), lh = +lage.getAttribute("height");
-      const lc = await svgAufCanvas(lage.outerHTML, lb, lh, b.dpi / 96);
-      const zielB = px(45 * b.f), zielH = (zielB / lc.width) * lc.height;
-      ctx.drawImage(lc, px(b.rahmen.x + b.rahmen.w) - zielB - px(2), px(b.rahmen.y) + px(2), zielB, zielH);
+  // Einzeln
+  ziel.querySelectorAll("[data-aktion]").forEach((knopf) => knopf.addEventListener("click", () => ausfuehren(async () => {
+    const id = knopf.closest("tr").dataset.id;
+    status("Erzeuge das Blatt …");
+    await new Promise((r) => setTimeout(r, 20));
+    const blaetter = blattErzeugen(id);
+    if (knopf.dataset.aktion === "pdf") herunterladen(await blaetterAlsPdf(blaetter, status), dateiname(id, "pdf"));
+    else { status("Erzeuge das PNG …"); herunterladen(await blattAlsPng(blaetter[0]), dateiname(id, "png")); }
+    status("Fertig.");
+  })));
+  const ausgewaehlt = () => EXPORT_EINTRAEGE.map((e) => e.id).filter((id) => exportStand[id].an && exportVerfuegbar(id));
+  // Alle in eine PDF
+  document.getElementById("export-pdf").addEventListener("click", () => ausfuehren(async () => {
+    const ids = ausgewaehlt();
+    if (!ids.length) { status("Nichts ausgewählt."); return; }
+    const blaetter = [];
+    for (const id of ids) { status(`Erzeuge ${id} …`); await new Promise((r) => setTimeout(r, 20)); blaetter.push(...blattErzeugen(id)); }
+    herunterladen(await blaetterAlsPdf(blaetter, status), `ortsanalyse_${dateiDatum()}.pdf`);
+    status(`Fertig: ${blaetter.length} Blätter in einer PDF.`);
+  }));
+  // Alle als PNG in einer ZIP
+  document.getElementById("export-png").addEventListener("click", () => ausfuehren(async () => {
+    const ids = ausgewaehlt();
+    if (!ids.length) { status("Nichts ausgewählt."); return; }
+    const zip = new JSZip();
+    for (const [i, id] of ids.entries()) {
+      status(`PNG ${i + 1} von ${ids.length} (${id}) …`);
+      await new Promise((r) => setTimeout(r, 20));
+      zip.file(dateiname(id, "png"), await blattAlsPng(blattErzeugen(id)[0]));
     }
-    zeichneSchriftfeld(ctx, b, { titel: "Schnitt A–A′", untertitel: schnittTitel(erg).replace("Schnitt A–A′ · ", "") + ". Schwarz: geschnitten, grau: Ansicht.",
-      massstab: einst.massstab, legende: [{ art: "flaeche", farbe: "#111", text: "Schnitt: Gelände und Gebäude" },
-        { art: "flaeche", farbe: "#c3c3c1", text: "Ansicht, je weiter weg desto heller" }, { art: "kreis", farbe: "#4a5a44", text: "Bäume (Höhe geschätzt)" }],
-      quelle, mitNord: false });
-  } else {
-    await planAufCanvas(ctx, b, einst, meldung);
-    zeichneSchriftfeld(ctx, b, { titel: PLAN_TITEL[aktuellerPlan],
-      untertitel: aktuellerPlan === "wohnen" ? `${ZENSUS_MERKMALE[zensusMerkmal].name}${zensusMerkmal === "vergleich" ? ` (${VERGLEICH_FELDER[vergleichFeld()].text})` : ""}, Zensus 2022` : "Untersuchungsgebiet (rot gestrichelt)",
-      massstab: einst.massstab, legende: exportLegende(aktuellerPlan), quelle, mitNord: true });
-  }
-  meldung("Speichere das Bild …");
-  const blob = await canvasAlsPng(canvas);
-  if (!blob) throw new Error("Bild zu groß für den Browser");
-  const name = art === "schnitt" ? "schnitt" : aktuellerPlan;
-  herunterladen(blob, `ortsanalyse_${name}_1-${einst.massstab}_${einst.format}_${dateiDatum()}.png`);
+    status("Packe die ZIP …");
+    herunterladen(await zip.generateAsync({ type: "blob" }), `ortsanalyse_png_${dateiDatum()}.zip`);
+    status(`Fertig: ${ids.length} PNG in einer ZIP.`);
+  }));
 }
-
-// Knöpfe anmelden
-document.getElementById("plan-export").addEventListener("click", () => oeffneExport("plan"));
-document.getElementById("schnitt-export").addEventListener("click", () => oeffneExport("schnitt"));
-document.getElementById("dreid-export").addEventListener("click", dreidAlsPng);

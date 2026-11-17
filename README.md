@@ -11,8 +11,9 @@ erscheinen die Dächer als schattierte Dachaufsicht, Straßen als Flächen mit R
 Eigene Daten lassen sich per Drag & Drop importieren: amtliche LoD2-Kacheln (CityGML, auch als ZIP)
 und topoexport-Dateien (DXF, auch als ZIP). Das Tool zeigt an, welche Kacheln für das Gebiet nötig
 sind, verortet topoexport automatisch und nutzt amtliche Höhen und Gebäudefunktionen für die Kennzahlen.
-Diagramme stehen im Reiter „Kennzahlen“. Pläne und Schnitt lassen sich maßstäblich als PNG
-(A4–A0, mit Schriftfeld und Quellen) speichern, dazu die 3D-Ansicht und jedes Diagramm. Der DXF-Export folgt.
+Diagramme stehen im Reiter „Kennzahlen“. Im Reiter „Export“ lassen sich alle Pläne, der Schnitt, die 3D-Ansicht,
+Kennzahlen und ein Übersichtsblatt maßstäblich (A4–A0, mit Schriftfeld und Quellen) als PDF mit Vektorgrafik oder
+als PNG speichern. Der DXF-Export folgt.
 
 **Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
 `python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.
@@ -25,7 +26,7 @@ LGLN, CC BY 4.0 bzw. Geobasis NRW (dl-de/zero-2-0). Bodenrichtwerte: Gutachterau
 Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0). Wohnen (Nettokaltmiete, Leerstand, Wohnfläche,
 Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zensus 2022, 100-m-Gitter (dl-de/by-2-0),
 teils abgerufen über die destatis-Seite „Mietvergleich“ (Miete nach Baualter und Wohnungsgröße).
-Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js.
+Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js, jsPDF, svg2pdf.js.
 Piktogramme im Reiter „Infrastruktur“: Maki von Mapbox (https://github.com/mapbox/maki), Lizenz CC0.
 
 - [`PLAN.md`](PLAN.md): Umsetzungsplan (Ziel, Must/Should/Could, Datenquellen, Export, Reihenfolge, Risiken)

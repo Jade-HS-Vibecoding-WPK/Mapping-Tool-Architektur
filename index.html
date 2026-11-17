@@ -21,6 +21,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <!-- Liest Geländemodelle im GeoTIFF-Format -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+  <!-- PDF-Export: jsPDF schreibt die PDF, svg2pdf überträgt Vektorgrafik (SVG) hinein -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svg2pdf.js@2.2.3/dist/svg2pdf.umd.min.js"></script>
 
   <link rel="stylesheet" href="style.css">
 </head>
@@ -109,6 +112,7 @@
         <button class="tab" data-view="schnitt" role="tab">Schnitt</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
+        <button class="tab" data-view="export" role="tab">Export</button>
       </nav>
 
       <div class="views">
@@ -122,13 +126,11 @@
         <section class="view" data-view="plan">
           <div id="plan"></div>
           <div class="plan-legende" id="plan-legende"></div>
-          <button class="btn btn-klein export-knopf" id="plan-export" title="Plan maßstäblich als PNG speichern">PNG exportieren</button>
           <!-- Steckbrief eines angeklickten Flurstücks (Reiter „Flurstücke“) -->
           <aside class="flurstueck-info" id="flurstueck-info" hidden></aside>
           <!-- Schnittzeichnung (Reiter „Schnitt“): unten, der Plan rückt nach oben -->
           <div class="schnitt-panel" id="schnitt-panel" hidden>
-            <header><h3 id="schnitt-titel">Schnitt</h3>
-              <button class="btn btn-klein btn-ghost" id="schnitt-export" title="Schnitt maßstäblich als PNG speichern">Schnitt als PNG</button></header>
+            <header><h3 id="schnitt-titel">Schnitt</h3></header>
             <div class="schnitt-inhalt">
               <div class="schnitt-zeichnung" id="schnitt-zeichnung"></div>
               <div class="schnitt-lage" id="schnitt-lage"></div>
@@ -147,7 +149,6 @@
         <section class="view" data-view="3d">
           <div id="dreid"></div>
           <div class="plan-legende" id="dreid-legende"></div>
-          <button class="btn btn-klein export-knopf" id="dreid-export" title="Aktuelle 3D-Ansicht als hochaufgelöstes PNG speichern">Bild speichern</button>
           <div class="placeholder-box" id="dreid-leer">
             <div><h3>3D-Modell</h3><p>Erscheint nach „Analysieren“. Im Beispiel Oldenburg mit amtlichen LoD2-Gebäuden (echte Dachformen) und Bäumen, sonst mit einfachen Klötzen aus OSM.</p></div>
           </div>
@@ -157,13 +158,12 @@
             <div class="placeholder-box"><div><h3>Kennzahlen</h3><p>Bebauungsanteil (brutto/netto), Dichte, Grünanteil, Straßenlänge und Nutzungen. Erscheinen nach „Analysieren“.</p></div></div>
           </div>
         </section>
+        <section class="view" data-view="export">
+          <div class="kennzahlen export-inhalt" id="export-inhalt"></div>
+        </section>
       </div>
     </main>
   </div>
-
-  <!-- Export-Dialog (Maßstab, Format, Ausrichtung) -->
-  <dialog class="export-dialog" id="export-dialog"></dialog>
-
   <script src="osm.js"></script>
   <script src="kennzahlen.js"></script>
   <script src="diagramme.js"></script>
@@ -172,6 +172,7 @@
   <script src="plaene.js"></script>
   <script src="steckbrief.js"></script>
   <script src="schnitt.js"></script>
+  <script src="vektorplan.js"></script>
   <script src="lod2.js"></script>
   <script src="kataster.js"></script>
   <script src="zensus.js"></script>

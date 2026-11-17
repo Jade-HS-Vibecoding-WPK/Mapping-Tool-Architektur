@@ -384,5 +384,4 @@ function zeigeKennzahlen(k, quelle) {
 
     ${diagrammeHtml(k)}
   `;
-  diagrammeAnmelden(ziel);
 }

@@ -476,6 +476,21 @@ function zeigeLegende() {
   if (grundriss) grundriss.addEventListener("change", () => { grundrisseSichtbar = grundriss.checked; zeigePlan(aktuellerPlan); });
 }
 
+// Welche Ebenen sind in einem Plan sichtbar (mit allen Schaltern)? Auch für den Vektor-Export.
+function sichtbareEbenen(plan) {
+  const sichtbar = new Set(PLAN_EBENEN[plan]);
+  if (!nebenSichtbar) { sichtbar.delete("gebaeude-neben"); sichtbar.delete("gebaeude-neben-hell"); }
+  // Lageplan mit LoD2: nur die Dachaufsichten, die OSM-Grundrisse darunter nur auf Wunsch
+  if (mitDaechern && !grundrisseSichtbar) ["gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss"].forEach((e) => sichtbar.delete(e));
+  if (!parzellenSichtbar) sichtbar.delete("parzellen");
+  // Reiter „Flurstücke“ ohne LoD2-Daten: Grundrisse statt Dachaufsichten
+  if (plan === "flurstuecke" && !mitDaechern) ["gebaeude-lage", "gebaeude-umriss"].forEach((e) => sichtbar.add(e));
+  // Infrastruktur: ausgeschaltete Ebenen und Radien weglassen
+  for (const e of Object.keys(INFRA_EBENEN)) if (!infraSichtbar[e]) sichtbar.delete(`infra-${e}`);
+  for (const r of Object.keys(INFRA_RADIEN)) if (!radienSichtbar[r]) { sichtbar.delete(`infra-radius-${r}`); sichtbar.delete(`infra-radius-${r}-rand`); }
+  return sichtbar;
+}
+
 // Einen Plan zeigen: passende Ebenen ein-, alle anderen ausblenden
 function zeigePlan(plan) {
   aktuellerPlan = plan;
@@ -490,17 +505,8 @@ function zeigePlan(plan) {
   planKarte.resize();
   // Plan wird kleiner bzw. größer: ganzes Gebiet wieder einpassen
   if (groesseGeaendert && analyseErgebnis) planKarte.fitBounds(analyseErgebnis.bbox, { padding: 30, duration: 0 });
-  const sichtbar = new Set(PLAN_EBENEN[plan]);
-  if (!nebenSichtbar) { sichtbar.delete("gebaeude-neben"); sichtbar.delete("gebaeude-neben-hell"); }
-  // Lageplan mit LoD2: nur die Dachaufsichten, die OSM-Grundrisse darunter nur auf Wunsch
-  if (mitDaechern && !grundrisseSichtbar) ["gebaeude-lage", "gebaeude-neben-hell", "gebaeude-umriss"].forEach((e) => sichtbar.delete(e));
-  if (!parzellenSichtbar) sichtbar.delete("parzellen");
-  // Reiter „Flurstücke“ ohne LoD2-Daten: Grundrisse statt Dachaufsichten
-  if (plan === "flurstuecke" && !mitDaechern) ["gebaeude-lage", "gebaeude-umriss"].forEach((e) => sichtbar.add(e));
+  const sichtbar = sichtbareEbenen(plan);
   if (plan !== "flurstuecke") schliesseSteckbrief();
-  // Infrastruktur: ausgeschaltete Ebenen und Radien weglassen
-  for (const e of Object.keys(INFRA_EBENEN)) if (!infraSichtbar[e]) sichtbar.delete(`infra-${e}`);
-  for (const r of Object.keys(INFRA_RADIEN)) if (!radienSichtbar[r]) { sichtbar.delete(`infra-radius-${r}`); sichtbar.delete(`infra-radius-${r}-rand`); }
   if (infraPopup && plan !== "infra") { infraPopup.remove(); infraPopup = null; }
   // Beschriftung der Bodenrichtwerte nur im Plan „Bodenrichtwerte“
   brwMarker.forEach((m) => m.remove());
@@ -533,9 +539,7 @@ function zeigePlan(plan) {
 async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   const breitengrad = (bbox[1] + bbox[3]) / 2;
   document.getElementById("plan").dataset.quelle = quelleText;
-  document.getElementById("plan-leer").hidden = true;
-  document.querySelector('.view[data-view="plan"]').classList.add("ist-bereit"); // Export-Knopf zeigen
-  if (!planKarte) {
+  document.getElementById("plan-leer").hidden = true;  if (!planKarte) {
     await erstellePlanKarte(bbox);
     ebenenAnlegen(breitengrad);
   } else {

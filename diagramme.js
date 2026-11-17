@@ -200,14 +200,7 @@ function diagrammeHtml(k) {
           <figcaption><strong>${d.titel}</strong><small>${d.unter}</small></figcaption>
           ${diagrammSvg(d, false)}
           ${d.legende || ""}
-          <footer><span>Quelle: ${d.quelle}</span><button class="btn btn-klein btn-ghost" data-diagramm="${d.id}">PNG speichern</button></footer>
+          <footer><span>Quelle: ${d.quelle}</span></footer>
         </figure>`).join("")}</div>
     </section>`;
-}
-
-function diagrammeAnmelden(ziel) {
-  ziel.querySelectorAll("[data-diagramm]").forEach((b) => b.addEventListener("click", () => {
-    const d = diagrammListe.find((x) => x.id === b.dataset.diagramm);
-    if (d) diagrammAlsPng(d);
-  }));
 }

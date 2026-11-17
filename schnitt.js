@@ -376,11 +376,16 @@ function zeichneSchnittLage() {
   const c = schnittDaten();
   // (auf schmalen Bildschirmen ist der Lageplan ausgeblendet: Breite 0)
   if (!ziel || !c || !schnitt.a || ziel.clientWidth < 40) { if (ziel) ziel.innerHTML = ""; return; }
+  ziel.innerHTML = `${schnittLageSvg(ziel.clientWidth - 8)}<p class="schnitt-lage-text">Lage im Plan · Norden oben</p>`;
+}
+
+// Mini-Lageplan als SVG (Breite in Pixeln), auch für den Export
+function schnittLageSvg(B) {
+  const c = schnittDaten();
   const [w, s, o, n] = analyseErgebnis.bbox;
   const ecken = [[w, s], [o, s], [o, n], [w, n]].map(([lon, lat]) => gradZuUtm(lon, lat));
   const eMin = Math.min(...ecken.map((p) => p[0])), eMax = Math.max(...ecken.map((p) => p[0]));
   const nMin = Math.min(...ecken.map((p) => p[1])), nMax = Math.max(...ecken.map((p) => p[1]));
-  const B = ziel.clientWidth - 8;
   const m = B / Math.max(eMax - eMin, nMax - nMin);
   const Hh = (nMax - nMin) * m;
   const px = ([E, N]) => `${((E - eMin) * m).toFixed(1)},${((nMax - N) * m).toFixed(1)}`;
@@ -392,7 +397,7 @@ function zeichneSchnittLage() {
     const q = [p[0] + blick[0] * pl, p[1] + blick[1] * pl];
     return `<line x1="${px(p).split(",")[0]}" y1="${px(p).split(",")[1]}" x2="${px(q).split(",")[0]}" y2="${px(q).split(",")[1]}" marker-end="url(#sz-pfeil)"/>`;
   };
-  ziel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${B}" height="${Hh}" viewBox="0 0 ${B} ${Hh}">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${B}" height="${Hh}" viewBox="0 0 ${B} ${Hh}">
     <defs><marker id="sz-pfeil" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto">
       <path d="M0,0L10,5L0,10Z" fill="${PLAN_FARBEN.akzent}"/></marker></defs>
     <rect width="${B}" height="${Hh}" fill="#fff" stroke="#111" stroke-width="0.8"/>
@@ -402,7 +407,7 @@ function zeichneSchnittLage() {
       <line x1="${px(A).split(",")[0]}" y1="${px(A).split(",")[1]}" x2="${px(Bp).split(",")[0]}" y2="${px(Bp).split(",")[1]}" stroke-dasharray="6 2 1 2"/>
       ${pfeil(A)}${pfeil(Bp)}
     </g>
-  </svg><p class="schnitt-lage-text">Lage im Plan · Norden oben</p>`;
+  </svg>`;
 }
 
 // ---------- Linie im Plan ----------

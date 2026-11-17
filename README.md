@@ -15,7 +15,7 @@ Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen auto
 | **Projekt von** | _[Namen der Gruppe eintragen]_ |
 | **Kurs / Dozent\*in** | _[Kurs und Dozent\*in eintragen]_ |
 | **Stand** | _[Datum der Abgabe eintragen]_ |
-| **Lizenz** | Apache License 2.0 (siehe [`LICENSE`](LICENSE)) |
+| **Lizenz** | MIT License (siehe [`LICENSE`](LICENSE)) |
 
 ---
 

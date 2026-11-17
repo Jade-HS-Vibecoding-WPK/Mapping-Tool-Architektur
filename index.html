@@ -250,14 +250,70 @@
           <div class="kz-inhalt" id="kz-inhalt"></div>
         </section>
       </div>
+      <!-- Export (siehe export.js): unten rechts, gilt für den Reiter, der gerade offen ist -->
+      <button id="export-knopf" class="btn export-knopf" disabled>Exportieren …</button>
     </main>
   </div>
+
+
+  <!-- Export-Fenster (siehe export.js) -->
+  <dialog class="export-dialog" id="export-dialog">
+    <div class="ex-kopf"><h2 id="ex-kopf-titel">Plan exportieren</h2><button type="button" class="ex-zu" id="ex-zu" aria-label="Schließen">×</button></div>
+    <div class="ex-inhalt">
+      <div class="ex-form">
+        <label class="ex-nurblatt">Blattgröße
+          <select id="ex-format"><option>A4</option><option selected>A3</option><option>A2</option><option>A1</option><option>A0</option></select></label>
+        <label class="ex-nurblatt">Ausrichtung
+          <select id="ex-richtung"><option value="auto" selected>automatisch</option><option value="quer">quer</option><option value="hoch">hoch</option></select></label>
+        <label class="ex-nurblatt" id="ex-massstab-feld">Maßstab (beliebig, 1 : …)
+          <input type="number" id="ex-massstab" min="10" max="200000" step="50" value="2000" list="ex-massstab-liste" inputmode="numeric">
+          <datalist id="ex-massstab-liste"><option value="200"><option value="500"><option value="1000"><option value="1250"><option value="1500"><option value="2000"><option value="2500"><option value="5000"><option value="10000"></datalist></label>
+        <button type="button" class="btn ex-klein ex-nurblatt" id="ex-passend">Ganzes Gebiet aufs Blatt</button>
+        <div class="ex-versatz ex-nurblatt" id="ex-versatz" hidden>
+          <p class="ex-klein-text" id="ex-versatz-text">Das Gebiet ist größer als das Blatt: Es ist nur ein Ausschnitt zu sehen. <strong>Zieh den Plan im Vorschaubild mit der Maus</strong>, um den Ausschnitt zu verschieben.</p>
+          <button type="button" class="btn ex-klein" id="ex-mitte">Ausschnitt zentrieren</button>
+          <input type="hidden" id="ex-vx" value="0"><input type="hidden" id="ex-vy" value="0">
+        </div>
+        <label>Titel <input type="text" id="ex-titel"></label>
+        <label>Untertitel <input type="text" id="ex-untertitel"></label>
+        <label>Verfasser <input type="text" id="ex-verfasser" placeholder="Name"></label>
+        <label>Kurs / Dozent <input type="text" id="ex-kurs" placeholder="Kurs, Dozent*in"></label>
+        <label>Datum <input type="text" id="ex-datum"></label>
+        <label class="ex-check ex-nurblatt"><input type="checkbox" id="ex-legende" checked> Legende im Plankopf</label>
+        <label class="ex-nurblatt">PNG-Auflösung <select id="ex-dpi"><option value="150">150 dpi</option><option value="300" selected>300 dpi</option></select></label>
+        <p class="ex-klein-text">Name und Kurs bleiben nur in deinem Browser gespeichert.</p>
+      </div>
+      <div class="ex-rechts">
+        <div class="ex-vorschau ex-nurblatt" id="ex-vorschau"></div>
+        <p class="ex-info ex-nurblatt" id="ex-info"></p>
+        <div class="ex-knoepfe">
+          <button type="button" class="btn ex-haupt" data-ziel="pdf">PDF (Vektor)</button>
+          <button type="button" class="btn" data-ziel="png">PNG</button>
+          <button type="button" class="btn" data-ziel="svg">SVG (Vektor)</button>
+          <button type="button" class="btn" data-ziel="dxf-allplan" title="Absolute UTM-32-Koordinaten, Meter">DXF für Allplan 2024</button>
+          <button type="button" class="btn" data-ziel="dxf-archicad" title="Lokaler Nullpunkt, Bezugskoordinaten als Text, Meter">DXF für ArchiCAD 29</button>
+          <button type="button" class="btn" data-ziel="dxf3d-allplan" title="3D-Flächen (LoD2) und Gelände, absolute UTM-32-Koordinaten, Höhen über NHN, Meter" hidden>3D-DXF für Allplan 2024</button>
+          <button type="button" class="btn" data-ziel="dxf3d-archicad" title="3D-Flächen (LoD2) und Gelände, lokaler Nullpunkt, Höhen über NHN, Meter" hidden>3D-DXF für ArchiCAD 29</button>
+          <button type="button" class="btn" data-ziel="dxf-schnitt" title="X = Abstand entlang der Linie, Y = Höhe über NHN, Meter" hidden>DXF für CAD</button>
+          <button type="button" class="btn" data-ziel="geojson" title="Rohdaten mit Länge/Breite (WGS84) für GIS" hidden>GeoJSON (GIS)</button>
+          <button type="button" class="btn" data-ziel="csv" title="Tabelle für Excel (Semikolon, UTF-8)" hidden>CSV (Excel)</button>
+          <button type="button" class="btn ex-haupt" data-ziel="kz-pdf" hidden>Kennzahlen als PDF</button>
+          <button type="button" class="btn" data-ziel="kz-csv" title="Tabelle für Excel (Semikolon, UTF-8)" hidden>Kennzahlen als CSV</button>
+        </div>
+        <p class="ex-klein-text ex-warnung" id="ex-dxf-hinweis" hidden>Im DXF steht nur der Lageplan. Die Schatten oder die Besonnungsdauer sind Pixelbilder und kommen nur in PDF, PNG und SVG.</p>
+        <p class="ex-status" id="ex-status" role="status"></p>
+        <p class="ex-klein-text">Für maßstäbliches Drucken „tatsächliche Größe“ (100 %) wählen. DXF: Meter, Layer je Kategorie, Flächen als geschlossene Linien ohne Füllung; in Allplan und ArchiCAD noch nicht getestet.</p>
+      </div>
+    </div>
+  </dialog>
 
   <!-- 3D: three.js (ältere Version ohne Modul-Technik) und Maussteuerung zum Drehen -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
   <!-- Liest die Höhenmodell-Dateien des LGLN (GeoTIFF), nur das benötigte Stück -->
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
+  <!-- PDF-Erzeugung für den Export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
   <script src="ladeleiste.js"></script>
   <script src="gelaende.js"></script>
@@ -268,6 +324,7 @@
   <script src="wirtschaft.js"></script>
   <script src="schnitt.js"></script>
   <script src="sonne.js"></script>
+  <script src="export.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

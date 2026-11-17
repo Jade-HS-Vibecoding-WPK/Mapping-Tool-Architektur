@@ -222,6 +222,7 @@ function zeigeAnsicht(ziel) {
   }
   if (ziel === "kennzahlen") aktualisiereKennzahlen();
   if (ziel === "3d") aktualisiere3D();
+  aktualisiereExport();
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
@@ -577,6 +578,8 @@ function verwerfeDaten() {
   lod2Mittelpunkte = [];
   lod2Meta = [];
   lod2Gebaeude = [];
+  lod2DachFeatures = [];
+  kennzahlenLetzte = null;
   alkisFlaechen = [];
   baumFeatures = [];
   alkisVorhanden = false;
@@ -675,6 +678,7 @@ function wendeAnsichtAn() {
   aktualisiereLuftbild();      // Luftbild und seine Linien
   aktualisiereInfos();         // Infos: Schalter und Ebenen
   aktualisiereSonne();         // Sonne und Schatten: Bild und Panel
+  aktualisiereExport();        // Knopf "Exportieren" nur in den Plan-Reitern
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
@@ -983,6 +987,7 @@ function baueDachflaechen(gebaeudeListe) {
 // Wird aufgerufen, sobald beides da ist (egal, was zuerst fertig wurde).
 let lod2Mittelpunkte = [];
 let lod2Meta = [];   // Merkmale der LoD2-Gebäude (Nutzung, Dachform, Höhen) für die Kennzahlen
+let lod2DachFeatures = [];  // die Dachflächen als GeoJSON (für den Export)
 let lod2Gebaeude = [];   // die LoD2-Gebäude mit allen Dach- und Wandflächen (für die 3D-Ansicht)
 function markiereOsmGebaeude(mittelpunkte) {
   if (!mittelpunkte.length || !osmFeatures.length) return 0;
@@ -1028,6 +1033,7 @@ function wendeLod2An(ergebnis) {
   lod2Mittelpunkte = mittelpunkte;
   lod2Meta = meta;
   lod2Gebaeude = ergebnis.gebaeude;
+  lod2DachFeatures = features;
   const ersetzt = markiereOsmGebaeude(mittelpunkte);
   map.getSource("lod2-dach").setData({ type: "FeatureCollection", features });
   if (osmFeatures.length) map.getSource("osm-daten").setData({ type: "FeatureCollection", features: osmFeatures });
@@ -1500,6 +1506,8 @@ function kennzahlenAlsText(k, abschnitte) {
   return zeilen.join("\n");
 }
 
+let kennzahlenLetzte = null;   // zuletzt berechnete Kennzahlen (für den Export)
+
 function aktualisiereKennzahlen() {
   if (!gebiet || !datenVorhanden) {
     kzFeld.innerHTML = `<div class="kz-leer"><h3>Noch keine Kennzahlen</h3><p>Wähle im Reiter „Karte“ ein Gebiet und klicke auf „Analysieren“. Die Kennzahlen erscheinen, sobald Daten geladen sind.</p></div>`;
@@ -1512,6 +1520,8 @@ function aktualisiereKennzahlen() {
       const abschnitte = baueAbschnitte(k);
       kzFeld.innerHTML = kennzahlenAlsHtml(k, abschnitte);
       const text = kennzahlenAlsText(k, abschnitte);
+      kennzahlenLetzte = { k, abschnitte };
+      aktualisiereExport();
       document.getElementById("kz-kopieren").addEventListener("click", async (e) => {
         try { await navigator.clipboard.writeText(text); e.target.textContent = "Kopiert ✓"; }
         catch (_) { e.target.textContent = "Kopieren nicht möglich"; }

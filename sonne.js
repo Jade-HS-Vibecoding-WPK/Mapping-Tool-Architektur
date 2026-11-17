@@ -46,6 +46,7 @@ let sonneDsm = { stand: "", r: {} };                       // Höhenraster je Ra
 let sonneErgebnis = null;                                  // { art: "schatten"|"dauer", werte, dsm, ... } für Karte und Klick
 let sonneRechenNummer = 0;                                 // zum Abbrechen veralteter Rechnungen
 let sonneBildStand = "";
+let sonneLetztesBild = null;                               // { leinwand, x0, y1, nx, ny, c } für den Export (export.js)
 
 // ---------- 1. Sonnenstand ----------
 const GRAD = Math.PI / 180;
@@ -268,6 +269,7 @@ function sonneBildSetzen(dsm, farbeFuer) {
   ctx.putImageData(bild, 0, 0);
   const lonlat = (x, y) => utmWandler.inverse([x, y]);
   const coordinates = [lonlat(x0, y1), lonlat(x0 + nx * c, y1), lonlat(x0 + nx * c, y1 - ny * c), lonlat(x0, y1 - ny * c)];
+  sonneLetztesBild = { leinwand, x0, y1, nx, ny, c };
   const url = leinwand.toDataURL("image/png");
   const quelle = map.getSource("sonne-bild");
   if (!quelle) {
@@ -384,6 +386,7 @@ function sonneNeuRechnen(verzoegert, grob) {
       sonneEl.info.textContent = "Berechnung nicht möglich: " + fehler.message;
     }
     sonneBildSichtbar();
+    if (typeof aktualisiereExport === "function") aktualisiereExport();   // Exportknopf erscheint, sobald es ein Bild gibt
   };
   if (verzoegert) sonneZeitgeber = setTimeout(los, verzoegert); else los();
 }
@@ -486,6 +489,7 @@ function aktualisiereSonne() {
 function verwerfeSonne() {
   sonneDsm = { stand: "", r: {} };
   sonneErgebnis = null;
+  sonneLetztesBild = null;
   sonneBildStand = "";
   sonneRechenNummer++;
   if (kartenBereit && map.getLayer("sonne-bild")) map.setLayoutProperty("sonne-bild", "visibility", "none");

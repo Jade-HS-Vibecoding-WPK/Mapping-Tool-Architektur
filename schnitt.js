@@ -780,6 +780,7 @@ function zeichneSchnitt() {
     `<rect x="-100000" y="-100000" width="200000" height="200000" fill="#fff"/>` +
     `<g id="s-geo">${baueSchnittSvg(D)}</g><g id="s-text"></g>`;
   zeichneSchnittText();
+  if (typeof aktualisiereExport === "function") aktualisiereExport();
 }
 
 function zeichneSchnittText() {

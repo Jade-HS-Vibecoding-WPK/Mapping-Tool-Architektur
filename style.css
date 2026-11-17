@@ -48,6 +48,7 @@ html, body {
 }
 
 .main {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -288,7 +289,7 @@ html, body {
 .d3-leiste .btn { padding: 6px 10px; font-size: 13px; }
 .d3-check { background: var(--paper); border: 1px solid var(--line); padding: 5px 10px; font-size: 13px; display: flex; gap: 6px; align-items: center; cursor: pointer; }
 .d3-check input { accent-color: var(--accent); }
-.d3-info { position: absolute; left: 10px; right: 10px; bottom: 8px; z-index: 2; font-size: 11px; color: var(--ink-soft); background: rgba(255,255,255,0.85); padding: 3px 8px; pointer-events: none; }
+.d3-info { position: absolute; left: 10px; right: 150px; bottom: 8px; z-index: 2; font-size: 11px; color: var(--ink-soft); background: rgba(255,255,255,0.85); padding: 3px 8px; pointer-events: none; }
 
 /* Hinweis im Zeichenmodus */
 .map-mode {
@@ -475,3 +476,38 @@ html, body {
 .sonne-skala-zahlen { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
 .sonne-skala-legende { width: 100%; height: 10px; }
 li.sonne-skala-zahlen { display: flex; justify-content: space-between; list-style: none; padding-left: 0; }
+
+/* ---------- Export-Fenster ---------- */
+.export-dialog { border: 1px solid var(--ink); padding: 0; width: min(1180px, 96vw); max-height: 94vh; background: var(--paper); color: var(--ink); }
+.export-dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
+.ex-kopf { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--ink); }
+.ex-kopf h2 { margin: 0; font-size: 16px; letter-spacing: 0.04em; text-transform: uppercase; }
+.ex-zu { font: inherit; font-size: 22px; background: none; border: 0; cursor: pointer; line-height: 1; padding: 0 4px; }
+.ex-inhalt { display: grid; grid-template-columns: 270px 1fr; gap: 16px; padding: 14px 16px; overflow: auto; max-height: calc(94vh - 56px); }
+.ex-form { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.ex-form label { display: flex; flex-direction: column; gap: 2px; }
+.ex-form input[type="text"], .ex-form select { font: inherit; font-size: 13px; padding: 5px 6px; border: 1px solid var(--line); background: #fff; }
+.ex-form .ex-check { flex-direction: row; align-items: center; gap: 6px; }
+.ex-klein { font-size: 12px; padding: 4px 8px; align-self: flex-start; }
+.ex-rechts { min-width: 0; }
+.ex-vorschau { border: 1px solid var(--line); background: #e9e9e9; padding: 8px; max-height: 58vh; overflow: auto; }
+.ex-vorschau svg { box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); }
+.ex-info { font-size: 12px; margin: 8px 0 0; color: var(--ink-soft); }
+.ex-info.ex-warnung { color: #b3261e; }
+.ex-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ex-knoepfe .btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.ex-haupt { background: var(--ink); color: var(--paper); }
+.ex-status { min-height: 18px; font-size: 12px; margin: 8px 0 0; }
+.ex-klein-text { font-size: 11px; color: var(--ink-soft); margin: 4px 0 0; }
+@media (max-width: 900px) { .ex-inhalt { grid-template-columns: 1fr; } }
+.ex-klein-text.ex-warnung { color: #b3261e; }
+.export-dialog[data-art="text"] .ex-nurblatt { display: none; }
+.export-dialog[data-art="text"] .ex-inhalt { grid-template-columns: 300px 1fr; }
+.ex-knoepfe .btn[hidden] { display: none; }
+.ex-versatz { display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--line); padding-top: 6px; }
+.ex-versatz input[type="range"] { width: 100%; }
+.export-knopf { position: absolute; right: 14px; bottom: 58px; z-index: 6; background: var(--paper); box-shadow: 0 1px 6px rgba(0,0,0,0.25); }
+.export-knopf:disabled { box-shadow: none; }
+.map-source { max-width: calc(100% - 160px); }
+.ex-vorschau svg.ex-schiebbar { cursor: grab; touch-action: none; user-select: none; }
+.ex-vorschau svg.ex-zieht { cursor: grabbing; }

@@ -497,6 +497,7 @@ function d3Baue() {
 
   d3SetzeAnsicht("schraeg");
   d3SonneAnwenden();
+  if (typeof aktualisiereExport === "function") aktualisiereExport();
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 

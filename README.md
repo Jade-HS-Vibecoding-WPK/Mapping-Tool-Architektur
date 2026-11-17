@@ -63,7 +63,7 @@ das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download vo
 2. **Analysieren:** Den Knopf „Analysieren“ klicken. Das Tool lädt die Daten (mit den 3D-Dachformen etwa 40 Sekunden, ohne LoD2 deutlich schneller).
    Der Ladestand zeigt, welche Quelle gerade geholt wird.
 3. **Reiter durchklicken:** Alle Ansichten benutzen dieselben Daten. Oben die Reiter wechseln.
-4. **Kennzahlen, Bilder und DXF** mitnehmen (siehe [Export](#export)).
+4. **Exportieren:** Unten rechts auf „Exportieren …“ klicken, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern (siehe [Export](#export)).
 
 Die Dachformen (LoD2) gibt es nur in Niedersachsen. Wer das Häkchen „LoD2-Dachformen laden“ wegnimmt, bekommt
 eine schnellere Analyse mit einfachen Gebäudeblöcken.
@@ -167,16 +167,30 @@ Grünanteil, Kronenüberdeckung u. a. Mit Hinweisen zur Genauigkeit und Knopf �
 
 ## Export
 
-Was heute funktioniert:
+Unten rechts im Tool steht in jedem Reiter der Knopf **„Exportieren …“**. In Karte ist er ausgegraut, in allen anderen Reitern gilt er für die gerade offene Ansicht.
+Es öffnet sich ein Fenster mit **Vorschau**:
 
-| Was | Wo | Format |
-|---|---|---|
-| Schnitt oder Straßenansicht für CAD | Reiter „Schnitt & Ansicht“, Knopf „DXF speichern“ | DXF (R12, Meter, ohne Füllungen, Layer pro Kategorie, Quellenangabe im Layer `BESCHRIFTUNG`) |
-| 3D-Ansicht als Bild | Reiter „3D-Modell“, Knopf „Bild speichern“ | PNG mit Quellenangabe |
-| Kennzahlen | Reiter „Kennzahlen“, Knopf „Kennzahlen als Text kopieren“ | Text in der Zwischenablage |
+- **Blatt:** A4 bis A0, quer, hoch oder automatisch.
+- **Maßstab:** frei wählbar (1 : beliebige Zahl). Der Knopf „Ganzes Gebiet aufs Blatt“ wählt den kleinsten runden Maßstab, bei dem alles passt.
+  Ist das Gebiet größer als das Blatt, zeigt das Blatt einen **Ausschnitt**, den man im Vorschaubild **mit der Maus verschiebt**. Nichts ragt über das Planfeld hinaus.
+- **Plankopf:** Titel, Untertitel, Maßstab, Datum, Verfasser, Kurs/Dozent, Legende, Nordpfeil, Maßstabsleiste, Quellen und Lizenzen.
+  Verfasser und Kurs bleiben nur in deinem Browser gespeichert.
 
-Der DXF-Export wurde mit der Python-Bibliothek ezdxf auf Gültigkeit geprüft. **In Allplan und ArchiCAD ist er noch nicht getestet.**
-Weitere Exporte (Pläne maßstäblich mit Plankopf, PDF, DXF für Allplan 2024 und ArchiCAD 29) sind geplant, siehe [Geplant](#geplant).
+| Reiter | Formate |
+|---|---|
+| Schwarzplan, Straßennetz, Grün & Wasser, Lageplan, Umgebung | PDF (Vektor), PNG (150/300 dpi), SVG (Vektor), **DXF für Allplan 2024 und ArchiCAD 29**, GeoJSON (Umgebung auch CSV-Liste der Orte) |
+| Sonne & Schatten | PDF, PNG, SVG, DXF (nur der Lageplan; die Schatten sind ein Pixelbild und stehen nur in PDF, PNG und SVG) |
+| Flurstücke, Mietpreise, Wirtschaftlichkeit | PDF, PNG, SVG, DXF Allplan/ArchiCAD, GeoJSON, CSV (Tabelle für Excel); die Einfärbung entspricht der gewählten Karte |
+| Luftbild | PDF, PNG, SVG: Foto (25 cm je Pixel) mit den angehakten Linien. Kein DXF, ein Foto hat keine CAD-Linien |
+| Schnitt & Ansicht | PDF, PNG, SVG mit Plankopf im gewählten Maßstab (Beschriftung passt sich an), DXF mit X = Abstand entlang der Linie und Y = Höhe über NHN |
+| 3D-Modell | PDF, PNG, SVG (Bild mit Plankopf, ohne Maßstab); **3D-DXF für Allplan und ArchiCAD** mit LoD2-Wänden und -Dächern als 3D-Flächen und dem Gelände als 5-m-Netz (Höhen über NHN) |
+| Kennzahlen | PDF (A4-Seiten) und CSV |
+
+**DXF-Dateien:** Version R12 (AC1009), Einheit Meter, ein Layer je Kategorie (ohne Umlaute und Leerzeichen), Flächen als geschlossene Linien **ohne Füllung**, Quellenangabe als Text im Layer `BESCHRIFTUNG`.
+Allplan bekommt absolute UTM-32-Koordinaten, ArchiCAD einen lokalen Nullpunkt (UTM minus Bezugspunkt, die Bezugskoordinaten stehen als Text in der Datei).
+Alle DXF-Dateien wurden mit der Python-Bibliothek ezdxf auf Gültigkeit geprüft. **In Allplan und ArchiCAD sind sie noch nicht getestet.**
+
+Der Maßstab stimmt auf dem Papier nur, wenn beim Drucken „tatsächliche Größe“ (100 %) gewählt wird.
 
 ---
 
@@ -218,6 +232,8 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 - **Mieten** sind Bestandsmieten 2022 im 100-m-Raster, keine aktuellen Angebotsmieten. Je Flurstück sind sie eine Schätzung aus dem Raster.
 - **Wirtschaftlichkeit:** Überschlag ohne Gutachterqualität. Baukosten nach Normalherstellungskosten liegen oft unter den Marktpreisen. Ein Bebauungsplan fehlt.
 - **Fremdserver:** Fällt einer der Datendienste aus (z. B. ein Overpass-Server), erscheint eine Meldung im Ladestand; das Tool probiert mehrere Overpass-Server nacheinander.
+- **Export:** Das DXF kennt keine Füllungen und keine Pixelbilder (Schatten, Luftbild). Die 3D-DXF ist groß (etwa 16 MB für 62 ha). Sehr große Blätter (A0 als PNG) werden automatisch in der Auflösung verringert.
+  Das Luftbild lädt das Tool beim Export neu vom Dienst des LGLN, dazu braucht es Internet.
 - **Nicht getestet:** Smartphone, andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, sehr große oder dicht bebaute Gebiete.
 - Der **Datei-Import** (topoexport-DXF, CityGML) ist in der Oberfläche nur angedeutet und noch nicht gebaut.
 
@@ -228,7 +244,7 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 Reine Website aus HTML, CSS und JavaScript, **kein Build-Schritt, kein eigener Server** (`server.py` ist nur ein Hilfsserver für den lokalen Start, der das Zwischenspeichern ausschaltet).
 Bibliotheken kommen per CDN: [MapLibre GL JS](https://maplibre.org/) 4.7.1 (Karte), [Turf.js](https://turfjs.org/) 7.1.0 (Flächen und Längen),
 [osmtogeojson](https://github.com/tyrasd/osmtogeojson) (OSM-Daten umwandeln), [proj4js](http://proj4js.org/) (UTM 32 ↔ Länge/Breite),
-[three.js](https://threejs.org/) 0.147 (3D) und [geotiff.js](https://geotiffjs.github.io/) (Geländemodell).
+[three.js](https://threejs.org/) 0.147 (3D), [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (PDF-Export) und [geotiff.js](https://geotiffjs.github.io/) (Geländemodell).
 Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 
 | Datei | Inhalt |
@@ -241,6 +257,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `luftbild.js`, `infos.js` | Luftbild und Umgebung |
 | `schnitt.js` | Schnitt, Straßenansicht, DXF-Export |
 | `sonne.js` | Sonnenstand, Schattenplan, Besonnungsdauer |
+| `export.js` | Export-Fenster: Blatt, Maßstab, Plankopf, PDF/PNG/SVG/DXF/GeoJSON/CSV |
 | `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
@@ -264,7 +281,6 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 
 ## Geplant
 
-- Export maßstäblich mit Plankopf (A4 bis A0), als PDF, PNG und DXF, mit Voreinstellungen für **Allplan 2024** und **ArchiCAD 29**
 - Schwarzplan nach Gebäudehöhe einfärbbar (ein- und ausschaltbar)
 - Erreichbarkeit zu Fuß, denkmalgeschützte Gebäude in der Umgebung
 - Mehrere Schnittlinien speichern, Projekt speichern und laden

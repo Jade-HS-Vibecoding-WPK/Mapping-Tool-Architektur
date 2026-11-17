@@ -777,8 +777,24 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     (′, −) werden ersetzt.
   - Test Oldenburg: PDF mit 8 Blättern 5,6 MB in 47 s (mit pdf.js geprüft: nur die 3D-Seite enthält ein Bild),
     ZIP mit 3 PNG. Große Blätter (Übersicht, Lageplan) haben sehr viele Flächen und brauchen beim Öffnen etwas Zeit.
-- [ ] **Nächster Schritt:** DXF-Export für CAD (Schritt 8, Abschnitt 4c): 2D-Layer, dann 3D (3DFACE), Voreinstellungen
-  Allplan 2024 (UTM 32) und ArchiCAD 29 (lokaler Nullpunkt), Test in beiden Programmen. Danach Import Teil 2: allgemeine DXF
+- [x] **DXF-Export für CAD** (17.11.2026), im Reiter „Export“ (Knopf „DXF“ je Zeile, „Ausgewählte als DXF (ZIP)“):
+  - Entscheidungen: Gelände in den Farben der Bodenkarte geteilt (eigene Layer), getrennte Dateien je Inhalt,
+    2D: alle 8 Pläne + Schnitt, Höhen echt in m ü. NHN.
+  - `dxf.js`: eigener DXF-Schreiber AutoCAD 2013 (AC1027), Meter, True Color (420) + ACI-Ersatzfarbe, Handles,
+    Layout-Objekte. Voreinstellung Allplan = UTM 32, ArchiCAD = lokaler Nullpunkt Südwestecke (ganze Meter),
+    Bezug und Quellen als Text im Layer BESCHRIFTUNG.
+  - 3D aus `dreid.modell` (in `zeichne3D` gespeichert, gleiche Geometrie wie die Ansicht): LoD2 1:1 als 3DFACE
+    (bis 4 Ecken direkt, sonst Dreiecke mit unsichtbaren Teilungskanten), Ersatz-Klötze, Bäume (6-seitiger Stamm,
+    Ikosaeder-Krone), Gelände-Dreiecksnetz (höchstens 80 000 Zellen, Oldenburg 4 m) mit Klasse aus der Bodentextur
+    (GELAENDE, _WIESE, _PARK, _WALD, _WASSER, _PLATZ, _STRASSE, _WEG, _BAHN), Gebietsrahmen als 3D-Polylinie, Nordpfeil.
+  - 2D aus dem Stil der Planansicht wie `vektorplan.js`: Flächen als SOLID-Schraffur, Linien als Polylinien
+    (ab 0,5 mm auf dem Papier mit Breite in m, sonst Strichstärke; Strichlinien als eigener Linientyp), Kreise,
+    Infrastruktur als Punkt + Text, Flurstücksnummern, Bodenrichtwerte. Schnitt: x = Meter ab A, y = m ü. NHN.
+  - Test Oldenburg: alle 10 Dateien mit ezdxf geprüft (0 Fehler). 3D 281 000 Flächen, 61 MB (ZIP aller 10: 8,8 MB);
+    Gebäude stehen auf dem Gelände (Median 2 cm); DXF wieder eingelesen und aus derselben Kamera gerendert = gleiches
+    Bild wie die App (nur zusätzliche Kanten zwischen LoD2-Wandteilen).
+  - **Offen:** Test in Allplan 2024 und ArchiCAD 29 durch die Nutzerin / den Nutzer (Screenshots).
+- [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.
 - [ ] Offen aus Schritt 3: Datenquellen prüfen (topoexport: Koordinaten des Ausschnitts, UTM-32-Export, Kosten)

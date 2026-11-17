@@ -42,7 +42,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   `diagramme.js`: eigene SVG-Diagramme (kein Chart.js) im Reiter „Kennzahlen“. Reiter „Export“ (`export.js`): alle
   Inhalte als Blätter in Vektorgrafik (SVG in mm, Schriftfeld mit Quellen), PDF über jsPDF + svg2pdf.js, PNG durch
   Rastern desselben Blatts. `vektorplan.js` zeichnet die 2D-Pläne aus dem MapLibre-Stil als SVG (neue Ebenen-Ausdrücke
-  ggf. in `auswerten` ergänzen). Exporte nur im Reiter „Export“.
+  ggf. in `auswerten` ergänzen). Exporte nur im Reiter „Export“. `dxf.js`: DXF-Schreiber (AC1027, True Color) für
+  Pläne (aus dem Plan-Stil), Schnitt und 3D (aus `dreid.modell`, das `zeichne3D` füllt; Neues im 3D dort ergänzen).
   `steckbrief.js`: Klick auf ein Flurstück im Reiter „Flurstücke“ zeigt dessen Kennzahlen.
 - Lokal testen: Seite über einen Webserver öffnen (z. B. `python -m http.server`), nicht per Doppelklick.
 - Zusatzdaten per Datei-Import (z. B. topoexport, amtliche LoD2-Modelle Niedersachsen).

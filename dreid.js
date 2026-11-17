@@ -237,7 +237,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
   }
 
   // Ersatz-Klötze aus OSM (nur wo keine LoD2-Kachel vorliegt)
-  const ersatz = [];
+  const ersatz = [], ersatzListe = []; // ersatzListe: dieselben Klötze für den DXF-Export
   let ersatzAnzahl = 0;
   for (const f of osmGebaeude) {
     const mittelpunkt = turf.centroid(f).geometry.coordinates;
@@ -248,6 +248,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
       const ringe = poly.map((r) => r.slice(0, -1).map(([lon, lat]) => lokal(...gradZuUtm(lon, lat))));
       if (ringe[0].length < 3) continue;
       const boden = Math.min(...ringe[0].map((p) => hoehe(...p))); // tiefster Geländepunkt unter dem Klotz
+      ersatzListe.push({ ringe, boden, hoehe: klotzHoehe });
       const form = new THREE.Shape(ringe[0].map((p) => new THREE.Vector2(...p)));
       form.holes = ringe.slice(1).map((r) => new THREE.Path(r.map((p) => new THREE.Vector2(...p))));
       const geo = new THREE.ExtrudeGeometry(form, { depth: klotzHoehe, bevelEnabled: false });
@@ -269,6 +270,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
 
   // Bäume: Stamm (Zylinder) und Krone (Kugel), als „Instanzen“ für gute Geschwindigkeit
   const liste = baeume.features;
+  const baumListe = []; // { x, y, z, h, r } für den DXF-Export
   if (liste.length) {
     const stammGeo = new THREE.CylinderGeometry(0.25, 0.3, 1, 6).rotateX(Math.PI / 2).translate(0, 0, 0.5);
     const kroneGeo = new THREE.IcosahedronGeometry(1, 1);
@@ -280,6 +282,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
       const r = Math.min(8, Math.max(2, b.properties.kronenradius));
       const h = Math.max(6, r * 2.4); // Baumhöhe grob aus der Krone geschätzt
       const z = hoehe(x, y);          // Geländehöhe am Stamm
+      baumListe.push({ x, y, z, h, r });
       staemme.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z), new THREE.Quaternion(), new THREE.Vector3(1, 1, h - r)));
       kronen.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z + h - r), new THREE.Quaternion(), new THREE.Vector3(r, r, r * 0.9)));
     });
@@ -300,6 +303,11 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
   d.controls.maxDistance = groesse * 3;
   d.controls.update();
   d.startAnsicht = d.camera.position.clone();
+
+  // Alles, was der DXF-Export braucht, um genau dieses Modell zu schreiben (Koordinaten lokal, z über z0)
+  d.modell = { mitte, z0, mitGelaende: !!gelaende, hoehe, rahmen: [minX, minY, maxX, maxY], eckenLokal,
+    leinwand: textur ? textur.image : null, lod2: lod2 || [], lod2Versatz: lod2 ? lokal(lod2Daten.nullpunkt[0], lod2Daten.nullpunkt[1]) : [0, 0],
+    ersatz: ersatzListe, baeume: baumListe, nordY, quelle: quelleText };
 
   // Legende
   const lod2Anzahl = lod2 ? lod2.filter((g) => g.quelle === "citygml").length : 0;

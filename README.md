@@ -13,7 +13,8 @@ und topoexport-Dateien (DXF, auch als ZIP). Das Tool zeigt an, welche Kacheln f�
 sind, verortet topoexport automatisch und nutzt amtliche Höhen und Gebäudefunktionen für die Kennzahlen.
 Diagramme stehen im Reiter „Kennzahlen“. Im Reiter „Export“ lassen sich alle Pläne, der Schnitt, die 3D-Ansicht,
 Kennzahlen und ein Übersichtsblatt maßstäblich (A4–A0, mit Schriftfeld und Quellen) als PDF mit Vektorgrafik oder
-als PNG speichern. Der DXF-Export folgt.
+als PNG speichern. Pläne, Schnitt und das komplette 3D-Modell (Gelände, LoD2-Gebäude, Bäume) gibt es dort auch als
+DXF für Allplan 2024 (UTM 32) und ArchiCAD 29 (lokaler Nullpunkt), mit Layern und Farben wie in der App.
 
 **Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
 `python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.

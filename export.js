@@ -457,7 +457,8 @@ function zeigeExportReiter() {
       <td><select data-feld="quer"><option value="1" ${st.quer ? "selected" : ""}>quer</option><option value="0" ${st.quer ? "" : "selected"}>hoch</option></select></td>
       <td class="export-status-zelle">${status}</td>
       <td class="export-einzeln"><button class="btn btn-klein btn-ghost" data-aktion="pdf" ${da ? "" : "disabled"}>PDF</button>
-        <button class="btn btn-klein btn-ghost" data-aktion="png" ${da ? "" : "disabled"}>PNG</button></td>
+        <button class="btn btn-klein btn-ghost" data-aktion="png" ${da ? "" : "disabled"}>PNG</button>
+        ${mitDxf(e.id) ? `<button class="btn btn-klein btn-ghost" data-aktion="dxf" ${da ? "" : "disabled"}>DXF</button>` : ""}</td>
     </tr>`;
   }).join("");
   ziel.innerHTML = `
@@ -475,7 +476,18 @@ function zeigeExportReiter() {
       <button class="btn" id="export-png">Ausgewählte als PNG (ZIP)</button>
     </div>
     <p class="export-status" id="export-status"></p>
-    <p class="hint hint-klein">Der DXF-Export für Allplan und ArchiCAD kommt im nächsten Schritt hierher.</p>`;
+    <section class="export-dxf">
+      <h4>DXF für CAD</h4>
+      <p>Pläne, Schnitt und das komplette 3D-Modell als DXF (AutoCAD 2013, Einheit 1 m, je Kategorie ein Layer, Farben wie in der App).
+        Das 3D-Modell enthält Gelände, LoD2-Wände und -Dächer, Ersatz-Klötze, Bäume, Gebietsrahmen und Nordpfeil als 3D-Flächen.</p>
+      <div class="row">
+        <label>Für <select id="dxf-ziel">${Object.entries(DXF_ZIELE).map(([key, z]) => `<option value="${key}" ${key === dxfZiel ? "selected" : ""}>${z.name} – ${z.text}</option>`).join("")}</select></label>
+        <button class="btn" id="export-dxf">Ausgewählte als DXF (ZIP)</button>
+      </div>
+      <p class="hint">Allplan: Datei → Importieren → DXF, Einheit Meter, Koordinaten unverändert übernehmen. ArchiCAD: Datei → Interoperabilität → Zusammenführen
+        (3D-Inhalt als Morph oder Objekt); der Bezugspunkt steht als Text im Layer BESCHRIFTUNG. Linienbreiten und Schrift der Pläne richten sich nach dem
+        gewählten Maßstab. Das 3D-Modell kann je nach Gebiet 20–60 MB groß werden.</p>
+    </section>`;
 
   // Einstellungen ändern
   ziel.querySelectorAll("tbody select, tbody input").forEach((el) => el.addEventListener("change", () => {
@@ -496,6 +508,14 @@ function zeigeExportReiter() {
     const id = knopf.closest("tr").dataset.id;
     status("Erzeuge das Blatt …");
     await new Promise((r) => setTimeout(r, 20));
+    if (knopf.dataset.aktion === "dxf") {
+      status("Erzeuge die DXF …");
+      await new Promise((r) => setTimeout(r, 20));
+      const { blob, anzahl } = dxfErzeugen(id);
+      herunterladen(blob, dxfDateiname(id));
+      status(`Fertig: ${fmt(anzahl)} Zeichnungselemente, ${fmt(blob.size / 1e6, 1)} MB.`);
+      return;
+    }
     const blaetter = blattErzeugen(id);
     if (knopf.dataset.aktion === "pdf") herunterladen(await blaetterAlsPdf(blaetter, status), dateiname(id, "pdf"));
     else { status("Erzeuge das PNG …"); herunterladen(await blattAlsPng(blaetter[0]), dateiname(id, "png")); }
@@ -525,4 +545,22 @@ function zeigeExportReiter() {
     herunterladen(await zip.generateAsync({ type: "blob" }), `ortsanalyse_png_${dateiDatum()}.zip`);
     status(`Fertig: ${ids.length} PNG in einer ZIP.`);
   }));
+  // DXF: Zielprogramm und alle ausgewählten als ZIP
+  document.getElementById("dxf-ziel").addEventListener("change", (e) => { dxfZiel = e.target.value; });
+  document.getElementById("export-dxf").addEventListener("click", () => ausfuehren(async () => {
+    const ids = ausgewaehlt().filter(mitDxf);
+    if (!ids.length) { status("Nichts ausgewählt (DXF gibt es für Pläne, Schnitt und 3D)."); return; }
+    const zip = new JSZip();
+    for (const [i, id] of ids.entries()) {
+      status(`DXF ${i + 1} von ${ids.length} (${id}) …`);
+      await new Promise((r) => setTimeout(r, 20));
+      zip.file(dxfDateiname(id), dxfErzeugen(id).blob);
+    }
+    status("Packe die ZIP …");
+    herunterladen(await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } }), `ortsanalyse_dxf_${dxfZiel}_${dateiDatum()}.zip`);
+    status(`Fertig: ${ids.length} DXF in einer ZIP.`);
+  }));
 }
+
+// DXF gibt es für die Pläne, den Schnitt und das 3D-Modell
+const mitDxf = (id) => EXPORT_PLAENE.includes(id) || id === "schnitt" || id === "3d";

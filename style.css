@@ -306,6 +306,11 @@ html, body {
 .export-knoepfe { margin: 16px 0 6px; gap: 10px; }
 .export-warnung { color: var(--accent); }
 .export-status { font-size: 13px; margin: 8px 0; min-height: 1.2em; }
+.export-dxf { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line, #ddd); }
+.export-dxf h4 { margin: 0 0 6px; font-size: 14px; }
+.export-dxf p { font-size: 13px; margin: 0 0 10px; max-width: 900px; }
+.export-dxf .row { gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.export-dxf select { max-width: 100%; }
 @media (max-width: 900px) { .export-tabelle { font-size: 12px; } .export-tabelle th:nth-child(6), .export-tabelle td:nth-child(6) { display: none; } }
 .schnitt-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 /* Reiter „Schnitt“: Plan oben, Schnittzeichnung unten */

@@ -381,5 +381,8 @@ function zeigeKennzahlen(k, quelle) {
         ? `Bei ${fmt(k.nutzungAmtlich)} von ${fmt(k.gebaeudeAnzahl)} Gebäuden stammt die Nutzung aus der amtlichen Gebäudefunktion (ALKIS, über LoD2), sonst aus OSM.`
         : "Die Nutzung stammt aus den OSM-Gebäudeangaben. Viele Gebäude sind dort nur als „Gebäude“ ohne Nutzung erfasst. Genauere Werte liefern amtliche LoD2-Daten (Gebäudefunktion)."}</p>
     </section>
+
+    ${diagrammeHtml(k)}
   `;
+  diagrammeAnmelden(ziel);
 }

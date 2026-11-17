@@ -534,6 +534,7 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   const breitengrad = (bbox[1] + bbox[3]) / 2;
   document.getElementById("plan").dataset.quelle = quelleText;
   document.getElementById("plan-leer").hidden = true;
+  document.querySelector('.view[data-view="plan"]').classList.add("ist-bereit"); // Export-Knopf zeigen
   if (!planKarte) {
     await erstellePlanKarte(bbox);
     ebenenAnlegen(breitengrad);

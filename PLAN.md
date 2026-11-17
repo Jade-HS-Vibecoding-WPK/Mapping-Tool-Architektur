@@ -748,7 +748,21 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
     (gemeinsame Farbstufen über alle vier Varianten), mittlere Kaltmiete im Gebiet. Kennzahlen: vier Vergleichsmieten
     und Beispielwohnung; Steckbrief: Vergleichsmieten der Zelle und Kaltmiete der eingestellten Wohnung.
   - Oldenburg: vor 1991 bis 65 m² 8,83 €/m², über 65 m² 7,55; ab 1991 bis 65 m² 9,46, über 65 m² 8,46.
-- [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
+- [x] **Diagramme und PNG-Export (Schritt 7)** (17.11.2026):
+  - `diagramme.js`: acht eigene SVG-Diagramme im Reiter „Kennzahlen“ (statt Chart.js, damit sie im Planstil und
+    scharf exportierbar sind): Flächenanteile, Gebäude nach Nutzung, Geschosse (gestapelt: LoD2/OSM vs. geschätzt),
+    Dachlandschaft (LoD2), Baualter, Nettokaltmiete (Durchschnitt + 4 Vergleichsmieten), Flurstücksgrößen,
+    Infrastruktur je Ebene. Hover-Hinweis je Balken. Je Diagramm „PNG speichern“ (4-fach, mit Titel und Quelle).
+  - `export.js`: Knopf „PNG exportieren“ in allen 2D-Plänen → Dialog Maßstab (1:500/1000/2000/5000), Format A4–A0,
+    hoch/quer, mit Prüfung „passt aufs Blatt“. Der aktuelle Plan (mit allen Schaltern) wird in einer unsichtbaren
+    zweiten Karte in Druckauflösung (300 dpi bis A2, A1 200 dpi, A0 150 dpi; Speichergrenze im Browser) Kachel für
+    Kachel gezeichnet (1008 px + 48 px Überstand, keine Nahtlinien). Blatt mit Rahmen und Schriftfeld: Titel,
+    Legende, Maßstab, Format/dpi, Nordpfeil, Maßstabsleiste, vollständige Quellen. A3 1:2000 in ca. 2,5 s, A0 20 Kacheln.
+  - Schnitt: „Schnitt als PNG“ maßstäblich (1:200/500/1000/2000) mit Schriftfeld und kleinem Lageplan
+    (`schnittSvg` getrennt von der Bildschirmgröße). 3D: „Bild speichern“ (ca. 4-fache Auflösung, Quellen darunter).
+  - Nicht im PNG: die Wertbeschriftungen der Bodenrichtwerte (HTML-Etiketten auf der Karte).
+- [ ] **Nächster Schritt:** DXF-Export für CAD (Schritt 8, Abschnitt 4c): 2D-Layer, dann 3D (3DFACE), Voreinstellungen
+  Allplan 2024 (UTM 32) und ArchiCAD 29 (lokaler Nullpunkt), Test in beiden Programmen. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.
 - [ ] Offen aus Schritt 3: Datenquellen prüfen (topoexport: Koordinaten des Ausschnitts, UTM-32-Export, Kosten)

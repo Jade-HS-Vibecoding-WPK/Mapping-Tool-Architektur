@@ -242,9 +242,17 @@ function zeichneSchnitt() {
     titel.textContent = "Schnitt";
     return;
   }
-  const { L, T, n, profil, horizont, elemente, schnittFlaechen, c } = erg;
-  const W = ziel.clientWidth, H = ziel.clientHeight;
-  if (W < 50 || H < 50) return;
+  if (ziel.clientWidth < 50 || ziel.clientHeight < 50) return;
+  ziel.innerHTML = schnittSvg(erg, { W: ziel.clientWidth, H: ziel.clientHeight }).svg;
+  titel.textContent = schnittTitel(erg);
+  zeichneSchnittLage();
+}
+
+const schnittTitel = (erg) => `Schnitt A–A′ · ${fmt(erg.L)} m lang · Blick nach ${richtungName(erg.n)} · Tiefe ${fmt(erg.T)} m`;
+
+// SVG des Schnitts. vorgabe = { W, H } (in die Fläche einpassen) oder { k } (fester Maßstab: Pixel je Meter, für den Export)
+function schnittSvg(erg, vorgabe) {
+  const { L, T, profil, horizont, elemente, schnittFlaechen, c } = erg;
 
   // Höhenbereich
   let zMin = Math.min(...profil.map((p) => p[1])), zMax = Math.max(...horizont.map((p) => p[1]));
@@ -256,7 +264,9 @@ function zeichneSchnitt() {
   const sockel = Math.floor(zMin) - 4; // Unterkante des geschnittenen Geländes
   zMax = Math.ceil(zMax) + 3;
   const R = SCHNITT_RAND;
-  const k = Math.min((W - R.links - R.rechts) / L, (H - R.oben - R.unten) / (zMax - sockel)); // Pixel je Meter
+  const k = vorgabe.k || Math.min((vorgabe.W - R.links - R.rechts) / L, (vorgabe.H - R.oben - R.unten) / (zMax - sockel)); // Pixel je Meter
+  const W = vorgabe.k ? Math.ceil(R.links + R.rechts + L * k) : vorgabe.W;
+  const H = vorgabe.k ? Math.ceil(R.oben + R.unten + (zMax - sockel) * k) : vorgabe.H;
   const X = (s) => R.links + s * k, Y = (z) => R.oben + (zMax - z) * k;
   const pfad = (pts) => pts.map(([s, z], i) => `${i ? "L" : "M"}${X(s).toFixed(1)},${Y(z).toFixed(1)}`).join("") + "Z";
   const unterkante = Y(sockel);
@@ -329,11 +339,13 @@ function zeichneSchnitt() {
     + `<line x1="${X(0)}" y1="${R.oben - 8}" x2="${X(0)}" y2="${unterkante}" stroke="${PLAN_FARBEN.akzent}" stroke-width="0.8" stroke-dasharray="6 2 1 2"/>`
     + `<line x1="${X(L)}" y1="${R.oben - 8}" x2="${X(L)}" y2="${unterkante}" stroke="${PLAN_FARBEN.akzent}" stroke-width="0.8" stroke-dasharray="6 2 1 2"/>`;
 
-  ziel.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="schnitt-svg">
+  // Schriften direkt im SVG festlegen (damit auch das exportierte Bild stimmt)
+  const stil = `<style>.sz-text{font:10px Menlo,Consolas,monospace;fill:#111}.sz-klein{font-size:9px;fill:#555}
+    .sz-fett{font:600 12px Helvetica,Arial,sans-serif;fill:${PLAN_FARBEN.akzent}}</style>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="schnitt-svg">${stil}
     <defs><clipPath id="sz-streifen"><rect x="${X(0)}" y="0" width="${X(L) - X(0)}" height="${H}"/></clipPath></defs>
     <rect width="${W}" height="${H}" fill="#fff"/><g clip-path="url(#sz-streifen)">${teile.join("")}</g>${skala.join("")}${leiste}${ende}</svg>`;
-  titel.textContent = `Schnitt A–A′ · ${fmt(L)} m lang · Blick nach ${richtungName(n)} · Tiefe ${fmt(T)} m`;
-  zeichneSchnittLage();
+  return { svg, W, H };
 }
 
 // Baum als lockere Silhouette: unregelmäßiger Kronenrand, Stamm mit zwei Ästen

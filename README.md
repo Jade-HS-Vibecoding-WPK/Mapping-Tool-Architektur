@@ -11,7 +11,8 @@ erscheinen die Dächer als schattierte Dachaufsicht, Straßen als Flächen mit R
 Eigene Daten lassen sich per Drag & Drop importieren: amtliche LoD2-Kacheln (CityGML, auch als ZIP)
 und topoexport-Dateien (DXF, auch als ZIP). Das Tool zeigt an, welche Kacheln für das Gebiet nötig
 sind, verortet topoexport automatisch und nutzt amtliche Höhen und Gebäudefunktionen für die Kennzahlen.
-Diagramme und Export folgen.
+Diagramme stehen im Reiter „Kennzahlen“. Pläne und Schnitt lassen sich maßstäblich als PNG
+(A4–A0, mit Schriftfeld und Quellen) speichern, dazu die 3D-Ansicht und jedes Diagramm. Der DXF-Export folgt.
 
 **Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
 `python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.

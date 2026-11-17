@@ -290,6 +290,19 @@ html, body {
 .mietrechner-flaeche input { width: 64px; font: inherit; padding: 2px 4px; border: 1px solid var(--ink); }
 .mietrechner-ergebnis { margin: 4px 0 0; }
 .mietrechner-ergebnis strong { color: var(--accent); }
+/* Export */
+.export-knopf { position: absolute; top: 16px; right: 100px; z-index: 2; background: #fff; }
+.view:not(.ist-bereit) .export-knopf { display: none; }
+.export-dialog { border: 1px solid var(--ink); padding: 0; max-width: 460px; width: calc(100% - 32px); }
+.export-dialog::backdrop { background: rgba(17, 17, 17, 0.35); }
+.export-form { display: grid; gap: 10px; padding: 18px 20px; }
+.export-form h3 { margin: 0 0 4px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; }
+.export-form label { display: grid; grid-template-columns: 110px 1fr; align-items: center; font-size: 13px; }
+.export-form select { font: inherit; padding: 4px 6px; border: 1px solid var(--ink); background: #fff; }
+.export-info { font-size: 12px; color: var(--ink-soft); margin: 4px 0 0; }
+.export-warnung { color: var(--accent); }
+.export-status { font-size: 12px; margin: 0; min-height: 1em; }
+.schnitt-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 /* Reiter „Schnitt“: Plan oben, Schnittzeichnung unten */
 .view.mit-schnitt #plan { bottom: 48%; }
 .view.mit-schnitt .plan-legende { max-height: calc(52% - 32px); }
@@ -401,6 +414,20 @@ html, body {
   align-content: start;
 }
 .kz-kopf, .kz-breit { grid-column: 1 / -1; }
+/* Diagramme */
+.dg-raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 28px 32px; margin-top: 8px; }
+.dg-karte { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dg-karte figcaption strong { display: block; font-size: 13px; }
+.dg-karte figcaption small { color: var(--ink-soft); font-size: 11px; }
+.dg-karte svg { width: 100%; max-width: 460px; height: auto; overflow: visible; }
+.dg-karte svg text { font-family: var(--font); fill: var(--ink); }
+.dg-karte .dg-name { font-size: 12px; }
+.dg-karte .dg-wert { font-size: 11px; fill: #333; font-family: var(--mono); }
+.dg-karte .dg-achse { font-size: 10px; fill: var(--ink-soft); }
+.dg-karte g:hover > rect[fill="transparent"] { fill: rgba(17, 17, 17, 0.04); }
+.dg-karte footer { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--ink-soft); font-size: 10px; border-top: 1px solid var(--line); padding-top: 6px; }
+.dg-legende { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 11px; color: var(--ink-soft); }
+.dg-legende i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
 .kz-kopf h3 { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
 .kz-kopf p { margin: 4px 0 0; color: var(--ink-soft); font-size: 12px; }
 .kz-block h4 {

@@ -144,6 +144,7 @@ function zeichne3D({ bbox, lod2, lod2Daten, osmGebaeude, baeume, plan, quelleTex
   const d = dreidStarten();
   leeren(d.gruppe);
   document.getElementById("dreid-leer").hidden = true;
+  document.querySelector('.view[data-view="3d"]').classList.add("ist-bereit"); // Export-Knopf zeigen
 
   const [w, s, o, n] = bbox;
   const ecken = [[w, s], [o, s], [o, n], [w, n]].map(([lon, lat]) => gradZuUtm(lon, lat));

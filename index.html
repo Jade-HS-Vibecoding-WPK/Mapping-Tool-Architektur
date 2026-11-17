@@ -122,11 +122,13 @@
         <section class="view" data-view="plan">
           <div id="plan"></div>
           <div class="plan-legende" id="plan-legende"></div>
+          <button class="btn btn-klein export-knopf" id="plan-export" title="Plan maßstäblich als PNG speichern">PNG exportieren</button>
           <!-- Steckbrief eines angeklickten Flurstücks (Reiter „Flurstücke“) -->
           <aside class="flurstueck-info" id="flurstueck-info" hidden></aside>
           <!-- Schnittzeichnung (Reiter „Schnitt“): unten, der Plan rückt nach oben -->
           <div class="schnitt-panel" id="schnitt-panel" hidden>
-            <header><h3 id="schnitt-titel">Schnitt</h3></header>
+            <header><h3 id="schnitt-titel">Schnitt</h3>
+              <button class="btn btn-klein btn-ghost" id="schnitt-export" title="Schnitt maßstäblich als PNG speichern">Schnitt als PNG</button></header>
             <div class="schnitt-inhalt">
               <div class="schnitt-zeichnung" id="schnitt-zeichnung"></div>
               <div class="schnitt-lage" id="schnitt-lage"></div>
@@ -145,6 +147,7 @@
         <section class="view" data-view="3d">
           <div id="dreid"></div>
           <div class="plan-legende" id="dreid-legende"></div>
+          <button class="btn btn-klein export-knopf" id="dreid-export" title="Aktuelle 3D-Ansicht als hochaufgelöstes PNG speichern">Bild speichern</button>
           <div class="placeholder-box" id="dreid-leer">
             <div><h3>3D-Modell</h3><p>Erscheint nach „Analysieren“. Im Beispiel Oldenburg mit amtlichen LoD2-Gebäuden (echte Dachformen) und Bäumen, sonst mit einfachen Klötzen aus OSM.</p></div>
           </div>
@@ -158,8 +161,12 @@
     </main>
   </div>
 
+  <!-- Export-Dialog (Maßstab, Format, Ausrichtung) -->
+  <dialog class="export-dialog" id="export-dialog"></dialog>
+
   <script src="osm.js"></script>
   <script src="kennzahlen.js"></script>
+  <script src="diagramme.js"></script>
   <script src="piktogramme.js"></script>
   <script src="infrastruktur.js"></script>
   <script src="plaene.js"></script>
@@ -171,5 +178,6 @@
   <script src="dreid.js"></script>
   <script src="app.js"></script>
   <script src="import.js"></script>
+  <script src="export.js"></script>
 </body>
 </html>

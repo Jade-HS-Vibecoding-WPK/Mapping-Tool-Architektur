@@ -376,3 +376,24 @@ html, body {
   .flst-modus { bottom: 96px; }
   .flst-info { right: 12px; top: auto; bottom: 96px; width: calc(100% - 24px); max-height: 45%; }
 }
+
+/* ---------- Reiter "Luftbild" und "Infos" ---------- */
+.schalter, .schalter-regler { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; cursor: pointer; }
+.schalter-regler { gap: 8px; }
+.schalter-regler input[type="range"] { flex: 1; min-width: 0; }
+.schalter.ist-aus { color: var(--ink-soft); opacity: 0.55; cursor: default; }
+.linien-marke { display: inline-block; width: 20px; height: 0; border-top: 3px solid; flex: none; }
+.linien-marke.gestrichelt { border-top-style: dashed; }
+#luft-hinweis[hidden] { display: none; }
+
+.info-panel { width: 320px; }
+.info-kopf { display: flex; gap: 6px; margin: 8px 0 2px; }
+.info-kopf button { font: inherit; font-size: 11px; padding: 3px 8px; background: none; border: 1px solid var(--ink); cursor: pointer; }
+.info-kopf button:hover { background: var(--ink); color: var(--paper); }
+.info-zeile { display: flex; align-items: center; gap: 8px; margin: 3px 0; cursor: pointer; }
+.info-name { flex: 1; min-width: 0; }
+.info-zahl { font-family: var(--mono); color: var(--ink-soft); min-width: 28px; text-align: right; }
+.info-marke { flex: none; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,0.2); }
+.info-marke.info-linie { border-radius: 0; height: 0; width: 22px; border: 0; border-top: 4px solid; box-shadow: none; background: none; }
+.maplibregl-popup-content { font: 12px/1.45 var(--font); border-radius: 0; border: 1px solid var(--ink); box-shadow: none; padding: 10px 12px; }
+.pop-art { color: var(--ink-soft); font-size: 11px; }

@@ -745,6 +745,29 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   Flurstücke-Infofeld (944 Flurstücke mit Miete, 65 ohne), alle neun Reiter ohne Fehlermeldung.
   **Nicht getestet:** Gebiete außerhalb Oldenburgs, Handy, andere Browser, Richtigkeit der Schätzwerte (kein Vergleich mit Mietspiegel oder Marktdaten),
   ob der Esri-Dienst dauerhaft erreichbar bleibt, Gebiete ganz ohne Mietwerte (nur Code).
+- [x] **Reiter „Luftbild“ und „Infos“** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**): Neue Dateien `luftbild.js` und `infos.js`.
+  **Luftbild:** Das LGLN stellt die Digitalen Orthophotos (DOP20, 20 cm, **Flugzeugaufnahmen, keine Satellitenbilder**, CC BY 4.0) als WMS bereit
+  (`https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms`, Ebene `ni_dop20`, Browser-Zugriff erlaubt, auch in EPSG:3857). Die Karte lädt nur die
+  sichtbaren Kacheln. Der Reiter zeigt das Luftbild sofort (ohne „Analysieren“), mit Regler für Deckkraft, Schwarz-Weiß und ein- und ausschaltbaren Linien
+  darüber: Gebäudeumrisse (OSM, gelb), Flurstücksgrenzen (blau gestrichelt), amtliche Straßenflächen (rosa); die Schalter sind grau, bis die Daten da sind.
+  Quellenvermerk „Luftbild: LGLN (Jahr), CC BY 4.0“ (Jahr = Jahr des Datenbezugs, wie vom LGLN verlangt) in Kartenunterkante, Legende und Kartenattribution.
+  Nur Niedersachsen: außerhalb Hinweis. Ein weltweites Satellitenbild (z. B. Esri World Imagery) ist **nicht** eingebaut (Lizenz und Dauer ungeklärt; entschieden:
+  nur LGLN).
+  **Infos:** 26 einzeln schaltbare Gruppen in 6 Bereichen aus OpenStreetMap: Kinder und Bildung (Kitas, Schulen, Hochschulen, Spielplätze), Einkaufen
+  (Lebensmittel, Einkaufszentren, weitere Geschäfte), Verkehr (Bushaltestellen, Straßenbahnhaltestellen, Bahnhöfe und Haltepunkte, Bahnstrecken,
+  Straßenbahn- und Stadtbahngleise, Fahrradverleih, Fahrradabstellanlagen, Parken, Ladesäulen, Carsharing), Gesundheit (Ärzte, Apotheken, Krankenhäuser),
+  Essen, Kultur, Freizeit (Gastronomie, Kultur, Sport, Kirchen), Öffentliche Einrichtungen (Ämter/Polizei/Feuerwehr/Post, Toiletten). Am Anfang an:
+  Kitas, Schulen, Spielplätze, Lebensmittel, Einkaufszentren, Bushaltestellen, Straßenbahnhaltestellen, Bahnhöfe, Bahnstrecken, Straßenbahngleise.
+  Infofeld mit Kästchen je Gruppe (Anzahl dahinter), „Standard“, „Alle an“, „Alle aus“; die Auswahl wird im Browser gemerkt. Orte als farbige Kreise mit
+  Kürzel (ohne Beschriftung auf der Karte), Bahnstrecken als Band mit hellen Strichen; Klick auf einen Ort öffnet ein Fenster mit Name, Art, Adresse,
+  Betreiber, Öffnungszeiten (soweit in OSM eingetragen). **Ablauf:** zweite Overpass-Abfrage, die erst startet, wenn die Hauptabfrage von OSM durch ist (damit
+  sie sich nicht ausbremsen); im Ladestand als „Infos“ sichtbar. Nur das gewählte Rechteck; Orte knapp außerhalb (z. B. Bahnhof am Rand) fehlen.
+  **Getestet** (echte Daten): Luftbild Oldenburg Innenstadt (sofort sichtbar, Deckkraft, Schwarz-Weiß, drei Überlagerungen, Hinweis ohne Analyse, Quellenvermerk);
+  Infos: 809 Orte im Testgebiet (z. B. 359 weitere Geschäfte, 142 Gastronomie, 24 Lebensmittel, 16 Bushaltestellen, 3 Schulen, 1 Kita, 4 Spielplätze), Ein-
+  und Ausschalten einzeln und alle, Popup, Bahnhof und 14 Bahnabschnitte am Hauptbahnhof Oldenburg, Fehlerfall (502), alle elf Reiter ohne Fehlermeldung.
+  **Befund:** Nur 1 Kita im Testgebiet ist ein Hinweis auf Lücken in OSM oder wenige Kitas in der Innenstadt, nicht geprüft. Keine Straßenbahn in Oldenburg.
+  **Nicht getestet:** Luftbild außerhalb Niedersachsens (nur Code), Handy, andere Browser, sehr dichte Gebiete mit tausenden Orten (Tempo), Straßenbahn- und
+  U-Bahn-Gleise (kein Testgebiet), ob die Kürzel verständlich sind (Geschmackssache), Lücken und Fehler in den OSM-Daten.
 - [ ] **Nächster Schritt:** Datei-Import mit Qualitätsvergleich (ohne Beispieldateien, nur nach Spezifikation, **ungetestet**), dann Feinschliff
   (README, Poster, GitHub Pages)
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein

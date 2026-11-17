@@ -18,7 +18,8 @@ const LADE_QUELLEN = {
   alkis: { name: "Amtliche Straßenflächen (LGLN)", gewicht: 10 },
   dgm:   { name: "Gelände (LGLN)", gewicht: 10 },
   flst:  { name: "Flurstücke und Bodenrichtwerte (LGLN)", gewicht: 10 },
-  mieten: { name: "Mieten (Zensus 2022)", gewicht: 5 }
+  mieten: { name: "Mieten (Zensus 2022)", gewicht: 5 },
+  infos: { name: "Infos: Kitas, Läden, Haltestellen … (OSM)", gewicht: 10 }
 };
 const ladeFeld = document.getElementById("ladeleiste");
 const ladeListe = document.getElementById("lade-liste");
@@ -32,7 +33,8 @@ let ladeZeichnenGeplant = false;
 function ladeStart(mitLod2) {
   clearTimeout(ladeAusblenden);
   ladeZustand = {};
-  for (const schluessel of Object.keys(LADE_QUELLEN)) ladeZustand[schluessel] = { z: "laedt", p: null, text: "wartet auf Antwort …", unter: new Map() };
+  for (const schluessel of Object.keys(LADE_QUELLEN)) ladeZustand[schluessel] = { z: "laedt", p: null, unter: new Map(),
+    text: schluessel === "infos" ? "startet nach den Hauptdaten …" : "wartet auf Antwort …" };
   if (!mitLod2) ladeZustand.lod2 = { z: "aus", p: 1, text: "abgeschaltet (Haken)", unter: new Map() };
   ladeFeld.hidden = false;
   ladeStreifen.hidden = false;

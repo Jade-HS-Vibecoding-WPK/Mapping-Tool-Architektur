@@ -23,6 +23,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Mietpreise (Reiter „Mietpreise“, `mieten.js`): Zensus 2022, Nettokaltmiete je m² im 100-m-Raster, Bestandsmieten (keine Angebotsmieten), abgefragt über den
   offenen Esri-Dienst `Zensus2022_grid_final` (Kopie, kein amtlicher Dienst). Quellenvermerk „© Statistische Ämter des Bundes und der Länder, Zensus 2022
   (dl-de/by-2-0), Daten geändert“.
+- Luftbild (Reiter „Luftbild“, `luftbild.js`): LGLN-Orthophotos DOP20 per WMS (https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms, Ebene ni_dop20),
+  CC BY 4.0, Quellenvermerk „LGLN (Jahr des Datenbezugs)“. Nur Niedersachsen. Flugzeugaufnahmen, keine Satellitenbilder.
+- Infos (Reiter „Infos“, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.
 - Daten: OpenStreetMap über die Overpass-API. Gebiet maximal ca. 1 km².

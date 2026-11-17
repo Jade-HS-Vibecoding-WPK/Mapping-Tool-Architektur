@@ -75,6 +75,8 @@ map.on("load", () => {
     paint: { "fill-color": "#e2482d", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
     paint: { "line-color": "#e2482d", "line-width": 2, "line-dasharray": [3, 2] } });
+  legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
+  legeInfoEbenenAn();       // Reiter Infos (infos.js)
   kartenBereit = true;
   wendeAnsichtAn();
 });
@@ -196,7 +198,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -451,7 +453,12 @@ const ANSICHTEN = {
   flurstuecke: { basiskarte: false, ebenen: ["kontext", "flurstuecke"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
                  text: "Flurstücke mit Bodenrichtwert und Bestand." },
   mieten:      { basiskarte: false, ebenen: ["kontext", "mieten"], kontextFarbe: FARBE.flst.gebaeude, kontextOpacity: 0.4,
-                 text: "Mietpreise aus dem Zensus-Raster." }
+                 text: "Mietpreise aus dem Zensus-Raster." },
+  // Luftbild und Infos: Rechteck wie im Reiter "Karte" (rot gestrichelt), keine weiße Maske, Quellenangabe immer sichtbar
+  luftbild:    { basiskarte: false, ebenen: [], rahmenWieKarte: true, rahmenFuellung: 0, quelleImmer: true,
+                 text: "Luftbild des LGLN mit Überlagerungen." },
+  infos:       { basiskarte: true, ebenen: [], rahmenWieKarte: true, quelleImmer: true,
+                 text: "Orte aus OpenStreetMap, einzeln schaltbar." }
 };
 
 let datenVorhanden = false;
@@ -564,6 +571,7 @@ function verwerfeDaten() {
   osmFeatures = [];
   verwerfeFlurstuecke();
   verwerfeMieten();
+  verwerfeInfos();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -585,7 +593,7 @@ function wendeAnsichtAn() {
   if (!kartenBereit) return;
   const einstellung = ANSICHTEN[aktuelleAnsicht];
   if (!einstellung) return; // 3D oder Kennzahlen: die Karte ist nicht sichtbar
-  const imPlan = aktuelleAnsicht !== "karte";
+  const imPlan = aktuelleAnsicht !== "karte" && !einstellung.rahmenWieKarte;
   const sichtbar = (an) => (an ? "visible" : "none");
 
   map.setLayoutProperty("osm", "visibility", sichtbar(einstellung.basiskarte));
@@ -622,7 +630,7 @@ function wendeAnsichtAn() {
   map.setFilter("gebaeude-umriss", gebaeudeFilter);
 
   // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
-  map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : 0.08);
+  map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : (einstellung.rahmenFuellung ?? 0.08));
   map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#e2482d");
   map.setPaintProperty("gebiet-rand", "line-width", imPlan ? 1 : 2);
   map.setPaintProperty("gebiet-rand", "line-dasharray", imPlan ? [1, 0] : [3, 2]);
@@ -638,10 +646,13 @@ function wendeAnsichtAn() {
   const quellen = document.getElementById("map-source");
   quellen.textContent = "Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau" + (lod2Vorhanden ? " · " + lod2Quelle : "") + (alkisVorhanden ? " · " + alkisQuelle : "") +
     (aktuelleAnsicht === "flurstuecke" && flurstueckeVorhanden ? " · " + flurstueckeQuelle : "") +
-    (aktuelleAnsicht === "mieten" && mietVorhanden ? " · " + mietQuelle : "");
-  quellen.hidden = !(imPlan && datenVorhanden);
+    (aktuelleAnsicht === "mieten" && mietVorhanden ? " · " + mietQuelle : "") +
+    (aktuelleAnsicht === "luftbild" ? ` · Luftbild: LGLN (${luftJahr}), CC BY 4.0` : "");
+  quellen.hidden = !((imPlan && datenVorhanden) || einstellung.quelleImmer);
   aktualisiereFlurstuecke();   // rechnet und zeichnet nur im Reiter "Flurstücke"
   aktualisiereMieten();        // dito für "Mietpreise"
+  aktualisiereLuftbild();      // Luftbild und seine Linien
+  aktualisiereInfos();         // Infos: Schalter und Ebenen
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 
@@ -679,6 +690,7 @@ btnAnalyse.addEventListener("click", async () => {
   zeigeGelaendeStatus("");
   zeigeFlstStatus("");
   zeigeMietStatus("");
+  zeigeInfoStatus("");
   btnAnalyse.disabled = true;
   btnAnalyse.textContent = "Lädt …";
   analyseHint.textContent = "Daten werden geladen. OpenStreetMap kann bis zu einer Minute brauchen, die amtlichen Daten sind meist schneller.";
@@ -758,6 +770,8 @@ btnAnalyse.addEventListener("click", async () => {
     if (aktuell()) {
       btnAnalyse.textContent = "Analysieren";
       btnAnalyse.disabled = !gebiet || turf.area(gebiet) > MAX_FLAECHE_M2;
+      // Die Orte für den Reiter "Infos" kommen erst jetzt, damit sie die Hauptabfrage nicht ausbremsen
+      starteInfos(rahmen, meineNummer).then((ergebnis) => { if (aktuell()) wendeInfosAn(ergebnis); });
     }
   }
 });

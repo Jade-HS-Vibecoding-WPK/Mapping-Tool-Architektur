@@ -69,6 +69,7 @@
         <p class="hint" id="lod2-status" hidden></p>
         <p class="hint" id="flst-status" hidden></p>
         <p class="hint" id="miet-status" hidden></p>
+        <p class="hint" id="info-status-seite" hidden></p>
         <p class="warning" id="analyse-fehler" role="alert" hidden></p>
       </section>
 
@@ -85,18 +86,20 @@
       </div>
       <nav class="tabs" role="tablist" aria-label="Ansichten">
         <button class="tab is-active" data-view="karte" role="tab">Karte</button>
+        <button class="tab" data-view="luftbild" role="tab">Luftbild</button>
         <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
         <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
         <button class="tab" data-view="gruen" role="tab">Grün</button>
         <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
+        <button class="tab" data-view="infos" role="tab">Infos</button>
         <button class="tab" data-view="3d" role="tab">3D</button>
         <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für sieben Reiter: Karte, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke und Mietpreise.
+        <!-- Eine Karte für neun Reiter: Karte, Luftbild, Schwarzplan, Straßennetz, Grün, Lageplan, Flurstücke, Mietpreise und Infos.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -113,6 +116,32 @@
           <div class="flst-info" id="flst-info" hidden></div>
           <!-- Nur im Reiter "Mietpreise": Infofeld zur gewählten Rasterzelle (siehe mieten.js) -->
           <div class="flst-info" id="miet-info" hidden></div>
+          <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
+          <div class="flst-info" id="luft-info" hidden>
+            <h3>Luftbild</h3>
+            <p class="flst-sub">Digitales Orthophoto (DOP20), 20 cm, Flugzeugaufnahme</p>
+            <label class="schalter-regler">Deckkraft
+              <input type="range" id="luft-deckkraft" min="0.2" max="1" step="0.05" value="1"> <span id="luft-deckkraft-wert">100 %</span></label>
+            <label class="schalter"><input type="checkbox" id="luft-sw"> Schwarz-Weiß</label>
+            <h4>Darüberlegen</h4>
+            <label class="schalter"><input type="checkbox" id="luft-gebaeude" checked disabled> <span class="linien-marke" style="border-color:#ffd43b"></span> Gebäudeumrisse (OSM)</label>
+            <label class="schalter"><input type="checkbox" id="luft-flst" disabled> <span class="linien-marke gestrichelt" style="border-color:#5fd4ff"></span> Flurstücksgrenzen</label>
+            <label class="schalter"><input type="checkbox" id="luft-strassen" disabled> <span class="linien-marke" style="border-color:#ff9ec0"></span> Straßen, Wege, Plätze (amtlich)</label>
+            <p class="flst-hinweis" id="luft-hinweis" hidden></p>
+            <p class="flst-klein">Luftbild: LGLN, CC BY 4.0, nur Niedersachsen. Es sind Flugzeugaufnahmen, keine Satellitenbilder; Aufnahmejahr je nach Ort verschieden. Linien: OpenStreetMap und LGLN.</p>
+          </div>
+          <!-- Nur im Reiter "Infos": einzeln schaltbare Orte aus OpenStreetMap (siehe infos.js) -->
+          <div class="flst-info info-panel" id="info-panel" hidden>
+            <h3>Infos im Gebiet</h3>
+            <p class="flst-sub">Orte aus OpenStreetMap, einzeln schaltbar. Klick auf einen Punkt zeigt Einzelheiten.</p>
+            <p class="flst-hinweis" id="info-status"></p>
+            <div class="info-kopf">
+              <button type="button" data-aktion="standard">Standard</button>
+              <button type="button" data-aktion="alle">Alle an</button>
+              <button type="button" data-aktion="keine">Alle aus</button>
+            </div>
+            <div id="info-gruppen"></div>
+          </div>
           <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
@@ -151,6 +180,8 @@
   <script src="gelaende.js"></script>
   <script src="flurstuecke.js"></script>
   <script src="mieten.js"></script>
+  <script src="luftbild.js"></script>
+  <script src="infos.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

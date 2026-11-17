@@ -72,6 +72,16 @@ function farbschluessel(ansicht) {
     case "flurstuecke":
       e.push(flurstueckeVorhanden ? flstLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
+    case "luftbild":
+      e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"));
+      if (osmFeatures.length) e.push(eintrag(linienfeld("#ffd43b", 2), "Gebäudeumrisse (wenn an)"));
+      if (flurstueckeVorhanden) e.push(eintrag(linienfeld("#5fd4ff", 2), "Flurstücksgrenzen (wenn an)"));
+      if (alkisVorhanden) e.push(eintrag(linienfeld("#ff9ec0", 2), "Straßenflächen (wenn an)"));
+      break;
+    case "infos":
+      e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"));
+      e.push(eintrag(`<span class="sw" style="background:#7a4aa8"></span>`, "Schalter: Infofeld rechts"));
+      break;
     case "mieten":
       e.push(mietVorhanden ? mietLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;
@@ -105,6 +115,8 @@ function eckdaten(ansicht) {
   if (!datenVorhanden) return zeilen;
   if (ansicht === "flurstuecke") return zeilen.concat(flstEckdaten());
   if (ansicht === "mieten") return zeilen.concat(mietEckdaten());
+  if (ansicht === "infos") return zeilen.concat(infoEckdaten());
+  if (ansicht === "luftbild") return zeilen;
   const k = kennzahlenMitMerker();
   const A = k.flaeche;
   if (ansicht === "schwarzplan" && k.hatOsm) {
@@ -140,6 +152,7 @@ function quellenzeile() {
   if (alkisVorhanden) q.push(alkisQuelle);
   if (flurstueckeVorhanden && aktuelleAnsicht === "flurstuecke") q.push(flurstueckeQuelle);
   if (mietVorhanden && aktuelleAnsicht === "mieten") q.push(mietQuelle);
+  if (aktuelleAnsicht === "luftbild") q.push(`Luftbild: LGLN (${luftJahr}), CC BY 4.0`);
   if (gelaende) q.push(gelaendeQuelle);
   return q.join(" · ");
 }

@@ -1,7 +1,7 @@
 # Ortsanalyse – Mapping-Tool für Architektur
 
 Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
-**Schwarzplan, Straßennetz, Grünplan, Lageplan, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
+**Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonne und Schatten, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
 Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt.
 Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen automatisch aus offenen Quellen
 (OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start.
@@ -9,6 +9,8 @@ Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen auto
 ![Lageplan der Oldenburger Innenstadt, erzeugt mit dem Tool](docs/bilder/lageplan.jpg)
 
 *Lageplan des Testgebiets Oldenburg Innenstadt (800 × 778 m), erzeugt mit dem Tool.*
+
+**Live-Demo:** https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/
 
 | | |
 |---|---|
@@ -47,11 +49,13 @@ Ohne Windows reicht im Ordner dieser Befehl, danach `http://localhost:8765/index
 python server.py 8765
 ```
 
-**Variante B: im Browser über GitHub Pages**
+**Variante B: Live-Demo im Browser (nichts installieren)**
 
-Die Seite ist reine HTML/CSS/JavaScript-Technik und braucht keinen eigenen Server. Sobald GitHub Pages für dieses Repository
-aktiviert ist, steht das Tool unter `https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/`.
-_Hinweis: Das ist noch nicht getestet. Verlässlich ist bisher nur der lokale Start (Variante A)._
+**https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/**
+
+Die Seite läuft über GitHub Pages direkt aus diesem Repository, es ist kein eigener Server nötig. Getestet am 17.11.2026 im Chromium-Browser mit dem Testgebiet
+Oldenburg Innenstadt (Analyse mit LoD2, alle Reiter, 3D-Modell). Die Datendienste sind bei den ersten Aufrufen manchmal überlastet (Overpass meldet gelegentlich Fehler 502);
+das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB, bei schwacher Leitung das Häkchen „LoD2-Dachformen laden“ abschalten.
 
 **Benutzung in vier Schritten**
 
@@ -68,7 +72,7 @@ eine schnellere Analyse mit einfachen Gebäudeblöcken.
 
 ## Was das Tool kann
 
-Die Reiter sind nach Arbeitsablauf geordnet: **Orientierung → Pläne → Grundstück und Markt → Darstellung → Zahlen.**
+Die Reiter sind nach Arbeitsablauf geordnet: **Orientierung → Pläne und Sonne → Grundstück und Markt → Darstellung → Zahlen.**
 
 ### 1. Orientierung
 
@@ -82,7 +86,7 @@ Die Oberkategorien lassen sich auch als Ganzes schalten. Ein Klick auf einen Pun
 
 ![Umgebung mit schaltbaren Orten](docs/bilder/umgebung.jpg)
 
-### 2. Pläne
+### 2. Pläne und Sonne
 
 **Schwarzplan** – Gebäude schwarz auf weiß (Figur-Grund), Nebengebäude getrennt in Grau.
 
@@ -97,6 +101,20 @@ Die Oberkategorien lassen sich auch als Ganzes schalten. Ein Klick auf einen Pun
 ![Grün und Wasser](docs/bilder/gruen-wasser.jpg)
 
 **Lageplan** – alles zusammen: Gebäude (bei LoD2 mit Dachflächen), Straßen, Grün, Wasser, Bäume. Mit Legende, Maßstabsleiste und Quellenangabe.
+
+**Sonne & Schatten** – Zwei Darstellungen auf dem Lageplan, für jedes Datum:
+
+- **Schatten:** Schattenplan für Datum und Uhrzeit (Regler), mit Sonnenhöhe, Himmelsrichtung und dem Anteil der Freifläche im Schatten.
+  Schnellauswahl für 21. März, 21. Juni, 21. September und 21. Dezember.
+- **Besonnungsdauer:** Wie viele Stunden direkte Sonne jeder Punkt an dem Tag bekommt (Farbskala 0 bis 14 Stunden, Auswertung mit Mittelwert und Anteil mit mindestens 4 Stunden).
+  Ein Klick auf die Karte zeigt den Wert an der Stelle.
+
+Gerechnet wird mit Gebäuden (LoD2-Dächer), Bäumen (Krone mit Unterkante, abschaltbar) und Gelände (DGM1) in einem feinen Raster: Schatten **0,5 m**, Besonnungsdauer **1 m**
+(einstellbar von 2 m bis 0,5 m; beim Ziehen des Zeitreglers rechnet das Tool kurz grob mit 2 m, damit es flüssig bleibt). Der Sonnenstand kommt aus der astronomischen Formel
+(Genauigkeit etwa 0,1 Grad), die Uhrzeit ist MEZ im Winter und MESZ im Sommer.
+
+![Schattenplan am 21. März, 15 Uhr](docs/bilder/sonne-schatten.jpg)
+![Besonnungsdauer am 21. März](docs/bilder/besonnungsdauer.jpg)
 
 ### 3. Grundstück und Markt
 
@@ -133,8 +151,10 @@ Mit dem Schalter **Straßenansicht** sieht man stattdessen die Gebäudefassaden 
 ![Straßenansicht](docs/bilder/strassenansicht.jpg)
 
 **3D-Modell** – Gebäude mit echten Dachformen (LoD2), Gelände mit Höhenlinien, Bäume. Drehen mit der Maus, Draufsicht, Überhöhung, Bild speichern.
+Mit dem Haken **„Sonne“** werfen alle Gebäude und Bäume Schatten nach Datum und Uhrzeit (gleiche Einstellung wie im Reiter „Sonne & Schatten“).
 
 ![3D-Modell](docs/bilder/3d-modell.jpg)
+![3D-Modell mit Schatten, 21. März, 16:40 Uhr](docs/bilder/3d-schatten.jpg)
 
 ### 5. Zahlen
 
@@ -190,6 +210,9 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 - **Höchstens 1 km²** pro Analyse.
 - **OpenStreetMap ist von Freiwilligen gepflegt** und nicht überall vollständig. Gebäudehöhen und Geschosse fehlen oft und werden dann geschätzt.
 - **Bäume:** Position aus OpenStreetMap; die Höhe ist meist geschätzt (zweifache Kronenbreite), die Kronenform ist schematisch.
+- **Sonne und Schatten:** Nur Gebäude und Bäume im gewählten Rechteck werfen Schatten, am Rand sind die Flächen daher zu sonnig. Bäume zählen im Winter wie im Sommer als undurchsichtig
+  (zu viel Schatten bei Laubbäumen im Winter), ihre Höhe ist meist geschätzt. Dachüberstände, Balkone und Zäune fehlen, das Raster ist 0,5 bis 1 m fein. Es ist die mögliche Sonnenscheindauer bei klarem
+  Himmel, **kein Nachweis nach Norm** (DIN 5034) und kein Gutachten.
 - **Schnitt:** LoD2 hat keine Innenräume, geschnittene Gebäude sind deshalb Vollkörper. Die Gewässertiefe ist unbekannt (nur Wasserlinie dargestellt). Das Gelände hinter der Linie
   ist nur im Höhenraster vorhanden.
 - **Mieten** sind Bestandsmieten 2022 im 100-m-Raster, keine aktuellen Angebotsmieten. Je Flurstück sind sie eine Schätzung aus dem Raster.
@@ -217,7 +240,8 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `flurstuecke.js`, `mieten.js`, `wirtschaft.js` | Flurstücke und Bodenrichtwert, Mietraster, Wirtschaftlichkeit |
 | `luftbild.js`, `infos.js` | Luftbild und Umgebung |
 | `schnitt.js` | Schnitt, Straßenansicht, DXF-Export |
-| `ansicht3d.js` | 3D-Modell |
+| `sonne.js` | Sonnenstand, Schattenplan, Besonnungsdauer |
+| `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
@@ -240,7 +264,6 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 
 ## Geplant
 
-- Sonnen- und Verschattungsstudie (Datum und Uhrzeit einstellbar)
 - Export maßstäblich mit Plankopf (A4 bis A0), als PDF, PNG und DXF, mit Voreinstellungen für **Allplan 2024** und **ArchiCAD 29**
 - Schwarzplan nach Gebäudehöhe einfärbbar (ein- und ausschaltbar)
 - Erreichbarkeit zu Fuß, denkmalgeschützte Gebäude in der Umgebung

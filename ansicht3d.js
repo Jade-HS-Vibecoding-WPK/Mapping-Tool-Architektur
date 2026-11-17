@@ -39,23 +39,31 @@ function d3Starte() {
 
   const szene = new THREE.Scene();
   szene.background = new THREE.Color(D3_FARBEN.hintergrund);
-  szene.add(new THREE.HemisphereLight(0xffffff, 0xb9b4a9, 0.85));
+  const himmel = new THREE.HemisphereLight(0xffffff, 0xb9b4a9, 0.85);
+  szene.add(himmel);
   const sonne = new THREE.DirectionalLight(0xffffff, 0.75);
-  sonne.position.set(-300, 500, -300);   // Licht von Nordwesten, wie im 2D-Lageplan
+  sonne.position.set(-300, 500, -300);   // Licht von Nordwesten, wie im 2D-Lageplan (ohne Sonnenstudie)
   szene.add(sonne);
+  szene.add(sonne.target);
+  renderer.shadowMap.enabled = true;     // Schatten gibt es nur, wenn "Sonne" angehakt ist (castShadow des Lichts)
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-  const kamera = new THREE.PerspectiveCamera(40, 1, 1, 30000);
+  const kamera = new THREE.PerspectiveCamera(40, 1, 5, 20000);
   const steuerung = new THREE.OrbitControls(kamera, renderer.domElement);
   steuerung.maxPolarAngle = Math.PI / 2 - 0.03;   // nicht unter den Boden schauen
   steuerung.addEventListener("change", d3Zeichne);
 
-  d3 = { renderer, szene, kamera, steuerung, gruppe: null, stand: "", ausdehnung: 500 };
+  d3 = { renderer, szene, kamera, steuerung, gruppe: null, stand: "", ausdehnung: 500, sonneLicht: sonne, himmelLicht: himmel, fang: null, sonneAn: false };
   new ResizeObserver(() => { d3PasseGroesseAn(); d3Zeichne(); }).observe(d3Buehne);
 
   document.getElementById("d3-reset").addEventListener("click", () => d3SetzeAnsicht("schraeg"));
   document.getElementById("d3-oben").addEventListener("click", () => d3SetzeAnsicht("oben"));
   document.getElementById("d3-baeume").addEventListener("change", (e) => { if (d3.baeume) d3.baeume.visible = e.target.checked; d3Zeichne(); });
   document.getElementById("d3-png").addEventListener("click", d3SpeichereBild);
+  // Sonne: Datum und Uhrzeit gelten auch im Reiter "Sonne & Schatten" (sonneZustand in sonne.js)
+  document.getElementById("d3-sonne").addEventListener("change", () => d3SonneAnwenden());
+  document.getElementById("d3-datum").addEventListener("change", (e) => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { sonneZustand.datum = e.target.value; d3SonneAnwenden(); } });
+  document.getElementById("d3-zeit").addEventListener("input", (e) => { sonneZustand.minuten = Number(e.target.value); d3SonneAnwenden(); });
   document.getElementById("d3-hoehenlinien").addEventListener("change", (e) => { if (d3.boden) { d3.boden.zeichneAnzeige(e.target.checked); d3Zeichne(); } });
   // Überhöhung: erst beim Loslassen neu bauen (das Bauen dauert einen Moment)
   const regler = document.getElementById("d3-ueberhoehung");
@@ -397,6 +405,16 @@ function d3Baue() {
   const textur = d3BodenTextur(xmin, ymin, B, H, mass);
   const boden = d3BodenFormen(xmin, ymin, B, H, cx, cy, hoeheLokal, textur.material);
   gruppe.add(boden);
+  // Der Boden ist ein Bild ohne Lichtberechnung. Für die Schatten liegt eine durchsichtige Fläche mit gleicher Form knapp darüber, die nur Schatten zeigt.
+  const fangForm = boden.geometry.clone();
+  fangForm.computeVertexNormals();   // das Höhenrelief hat keine Normalen, ohne sie zeigt die Schattenfläche nichts
+  const fang = new THREE.Mesh(fangForm, new THREE.ShadowMaterial({ opacity: 0.4, polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
+  fang.rotation.copy(boden.rotation);
+  fang.position.copy(boden.position);
+  fang.position.y += 0.15;
+  fang.receiveShadow = true;
+  fang.visible = false;
+  gruppe.add(fang);
 
   // LoD2-Gebäude: absolute Höhen (über NHN) minus Nullhöhe; bei Überhöhung wird das ganze Gebäude mit dem Gelände angehoben
   const wandPos = [], dachPos = [];
@@ -443,8 +461,10 @@ function d3Baue() {
   const baeume = d3Baeume(([lon, lat]) => { const [x, y] = utmWandler.forward([lon, lat]); return [x - cx, -(y - cy), hoeheLokal(x, y)]; });
   if (baeume) { baeume.visible = document.getElementById("d3-baeume").checked; gruppe.add(baeume); }
 
+  gruppe.traverse((o) => { if (o.isMesh && o !== boden && o !== fang) { o.castShadow = true; o.receiveShadow = true; } });
   if (d3.gruppe) { d3.szene.remove(d3.gruppe); d3Raeume(d3.gruppe); }
   d3.gruppe = gruppe;
+  d3.fang = fang;
   d3.baeume = baeume;
   d3.boden = textur;
   d3.szene.add(gruppe);
@@ -476,7 +496,56 @@ function d3Baue() {
   d3.quellenText = "Ortsanalyse 3D · " + quellen.join(" · ") + " · nicht vermessungsgenau";
 
   d3SetzeAnsicht("schraeg");
+  d3SonneAnwenden();
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
+}
+
+// ----- Sonne und Schatten im 3D-Modell -----
+// Sonnenstand aus sonne.js (sonnenstandFuerGebiet). Ohne Haken "Sonne" bleibt das Licht wie bisher (von Nordwesten, ohne Schatten).
+function d3SonneAnwenden() {
+  if (!d3) return;
+  const an = document.getElementById("d3-sonne").checked;
+  document.getElementById("d3-sonne-feld").hidden = !an;
+  const licht = d3.sonneLicht;
+  d3.sonneAn = false;
+  if (!an || !d3.gruppe || !gebiet) {
+    licht.castShadow = false;
+    licht.position.set(-300, 500, -300);
+    licht.intensity = 0.75;
+    d3.himmelLicht.intensity = 0.85;
+    if (d3.fang) d3.fang.visible = false;
+    d3Zeichne();
+    return;
+  }
+  document.getElementById("d3-datum").value = sonneZustand.datum;
+  document.getElementById("d3-zeit").value = String(sonneZustand.minuten);
+  const s = sonnenstandFuerGebiet();
+  document.getElementById("d3-zeit-wert").textContent = `${uhrzeit(sonneZustand.minuten)} ${s.mez} · ${zahl(s.hoehe, 0)}°`;
+  d3.fang.visible = true;
+  if (s.hoehe < 1) {                                                       // Sonne unter dem Horizont: kein Schatten, dunkleres Licht
+    licht.castShadow = false;
+    licht.intensity = 0;
+    d3.himmelLicht.intensity = 0.35;
+    d3.sonneAn = true;
+    d3.fang.visible = false;
+    d3Zeichne();
+    return;
+  }
+  const D = d3.ausdehnung;
+  const az = s.azimut * Math.PI / 180, el = s.hoehe * Math.PI / 180;
+  licht.position.set(Math.sin(az) * Math.cos(el) * D * 2, Math.sin(el) * D * 2, -Math.cos(az) * Math.cos(el) * D * 2);   // x = Ost, -z = Nord
+  licht.target.position.set(0, 0, 0);
+  licht.intensity = 1.1;
+  d3.himmelLicht.intensity = 0.5;
+  licht.castShadow = true;
+  const k = licht.shadow.camera, halb = D * 0.8;
+  k.left = -halb; k.right = halb; k.top = halb; k.bottom = -halb; k.near = 1; k.far = D * 5;
+  k.updateProjectionMatrix();
+  licht.shadow.mapSize.set(4096, 4096);
+  licht.shadow.bias = -0.0006;
+  licht.shadow.normalBias = 0.4;
+  d3.sonneAn = true;
+  d3Zeichne();
 }
 
 // ----- Aufruf aus app.js -----
@@ -488,6 +557,7 @@ function aktualisiere3D() {
   try { d3Starte(); } catch (fehler) { d3ZeigeHinweis("3D nicht möglich: " + fehler.message); return; }
   d3ZeigeHinweis("");
   d3PasseGroesseAn();
+  if (d3.gruppe && document.getElementById("d3-sonne").checked) d3SonneAnwenden();   // Datum und Uhrzeit können im Reiter Sonne & Schatten geändert worden sein
   const stand = [turf.bbox(gebiet).join(","), osmFeatures.length, lod2Gebaeude.length, alkisFlaechen.length, baumFeatures.length,
     gelaende ? `${gelaende.min}-${gelaende.max}` : "flach", document.getElementById("d3-ueberhoehung").value].join("|");
   if (stand === d3.stand) { d3Zeichne(); return; }
@@ -522,7 +592,8 @@ function d3SpeichereBild() {
   ctx.fillStyle = "#555555";
   ctx.font = `${Math.round(leiste * 0.46)}px sans-serif`;
   ctx.textBaseline = "middle";
-  ctx.fillText(d3.quellenText, 10, quelle.height + leiste / 2, bild.width - 20);   // Quellenangabe ist Pflicht (Lizenzen)
+  const sonnenText = d3.sonneAn ? ` · Sonnenstand ${sonneZustand.datum.split("-").reverse().join(".")} ${uhrzeit(sonneZustand.minuten)}` : "";
+  ctx.fillText(d3.quellenText + sonnenText, 10, quelle.height + leiste / 2, bild.width - 20);   // Quellenangabe ist Pflicht (Lizenzen)
   bild.toBlob((blob) => {
     const verweis = document.createElement("a");
     verweis.href = URL.createObjectURL(blob);

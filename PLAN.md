@@ -873,7 +873,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   (`docs/bilder/`, mit dem Tool in Oldenburg aufgenommen), Export (nur was heute geht), Datenquellen mit Lizenzen, Grenzen, Technik, KI-Hinweis, Geplant.
   **Platzhalter für die Nutzerin / den Nutzer:** Namen der Gruppe, Kurs/Dozent, Datum, genaue Angaben zur KI-Nutzung nach den Regeln der Hochschule. Beschreibung der Rolle der
   Studierenden im KI-Hinweis ist eine Annahme und muss geprüft werden. Screenshots sind 800 px breit (Vorschau-Browser), Tab-Leiste teils abgeschnitten.
-- [ ] **Vereinbarte Reihenfolge (Nutzerin / Nutzer, Stand 17.11.2026):** (1) README (gemacht, Platzhalter offen), (2) **Sonnen- und Verschattungsstudie**, (3) **Export** in allen Reitern:
+- [x] **Live-Demo über GitHub Pages geprüft** (17.11.2026): `https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/` (Quelle: Branch `main`, Ordner `/`). Analyse Oldenburg Innenstadt mit
+  LoD2 (1.078 Gebäude), Flurstücke (1.025), Bodenrichtwert-Zonen (67), Mietzellen (64), Gelände, Umgebung (724 Orte) und 3D-Modell laufen, keine Fehler außer dem erwarteten Overpass-502 (andere Server übernehmen).
+  Alle Datendienste erlauben den Zugriff (CORS). **Nicht geprüft:** Schnitt und DXF auf der Live-Seite, Handy, Firefox/Safari.
+  Hinweis: `main` enthält jetzt die Version von feature-osm-2d-plaene (zusammengeführt am 17.11.2026); `entwicklung` ist die zweite Version des Partners und unverändert.
+- [x] **Sonne & Schatten** (Branch `feature-osm-2d-plaene`, nur lokal, **nicht committet**; Wunsch der Nutzerin / des Nutzers: Schattenplan, Besonnungsdauer, 3D mit Schatten, Bäume immer mit): Neue Datei `sonne.js`, neuer Reiter
+  „Sonne & Schatten“ (nach Lageplan), Schalter „Sonne“ mit Datum und Uhrzeit im 3D-Modell (`ansicht3d.js`, gleiche Einstellung `sonneZustand`).
+  **Rechnung:** Höhenraster (nach Rückmeldung „pixelig“ feiner: Schatten 0,5 m, Besonnungsdauer 1 m, einstellbar 2 / 1 / 0,5 m; beim Ziehen des Reglers 2 m, sanfte Skalierung im Bild; Strahlschritt mindestens 1 m, ab 120 m doppelt; Rechenzeit 0,5 m Schatten ca. 1 s, Besonnungsdauer 21.6. mit 1 m ca. 12 s) (Dächer aus LoD2 als Ebenen je Fläche, Ersatzblöcke aus OSM, Baumkronen als Ellipsoid/Kegel mit Unterkante, Gelände DGM1), Sonnenstand nach NOAA-Formel (geprüft: 21.6. Mittag in Oldenburg
+  60,3 Grad, 21.12. etwa 13 Grad), Zeit MEZ/MESZ nach EU-Sommerzeitregel, je Zelle ein Strahl zur Sonne (bis 500 m, ab 1 Grad Sonnenhöhe). Besonnungsdauer alle 15 Minuten.
+  **Getestet** (Oldenburg Innenstadt, 62 ha, LoD2): Schattenplan live per Regler; Besonnungsdauer 21.6. 16,3 h möglich, Mittel 8,2 h, Rechenzeit 2,3 s; 21.12. 7,0 h möglich, Mittel 1,1 h (0,8 s); 21.3. 11,8 h möglich, Mittel 4,6 h;
+  Klick auf die Karte liefert Wert an der Stelle; 3D-Schatten (21.3. 16:40, 21.12. 13:30, 21.6. 16:00) sichtbar auf Boden und Gebäuden; Kamera-Nahebene von 1 auf 5 m gesetzt (sonst Flackern der Schattenfläche).
+  **Gelernt:** Das Höhenrelief hatte keine Normalen, die Schattenfläche (`ShadowMaterial`) zeigte erst nach `computeVertexNormals()` etwas.
+  **Grenzen:** Schatten von außerhalb des Rechtecks fehlen (Rand zu sonnig); Bäume im Winter undurchsichtig; Baumhöhen geschätzt; keine Dachüberstände, Balkone, Zäune; 2-m-Raster; mögliche Sonnenscheindauer bei klarem
+  Himmel, kein Nachweis nach DIN 5034; **nicht geprüft:** Handy, Firefox/Safari, Gebiete ohne LoD2 (Ersatzblöcke) und ohne Gelände, 3D-Schatten bei sehr tiefer Sonne (unter 5 Grad).
+- [ ] **Vereinbarte Reihenfolge (Nutzerin / Nutzer, Stand 17.11.2026):** (1) README (gemacht, Platzhalter offen), (2) **Sonnen- und Verschattungsstudie** (gemacht, Schatten + Besonnungsdauer + 3D), (3) **Export** in allen Reitern:
   maßstäblich mit Plankopf, als PDF und PNG, und vor allem **DXF für Allplan 2024 und ArchiCAD 29** (Test in den Programmen macht die Nutzerin / der Nutzer), (4) **Schwarzplan nach Höhe
   einfärben, ein- und ausschaltbar**, (5) Erreichbarkeit zu Fuß, Denkmalgeschützte Gebäude, mehrere Schnittlinien speichern, Projekt speichern/laden, Datei-Import mit Qualitätsvergleich
   (ohne Beispieldateien nur nach Spezifikation, **ungetestet**). **Nicht gewünscht:** Knopf „Beispiel Oldenburg laden“. Danach Poster und GitHub Pages prüfen.

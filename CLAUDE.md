@@ -34,6 +34,8 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   amtliche Straßenflächen, Flurstücksgrenzen, Bäume (OSM, Höhe meist geschätzt), Wasser (OSM, Gewässertiefe unbekannt) und Gelände dahinter; die Tiefe der Ansicht ist als Band auf der Karte
   sichtbar. Straßenansicht aus den LoD2-Flächen. Export nur DXF (R12, Meter, X = Abstand entlang der Linie, Y = Höhe über NHN, keine Füllungen). DXF mit ezdxf
   geprüft, in Allplan/ArchiCAD ungetestet (das macht die Nutzerin / der Nutzer).
+- Sonne & Schatten (Reiter „Sonne & Schatten“, `sonne.js`, Schatten auch in `ansicht3d.js`): Höhenraster 2 m aus LoD2-Dächern/OSM-Blöcken, Bäumen (Krone mit Unterkante) und DGM1, Sonnenstand astronomisch
+  (NOAA-Formel, Zeit MEZ/MESZ nach EU-Regel), Schattenstrahlen je Zelle; Besonnungsdauer alle 15 Minuten. Mögliche Sonnenscheindauer bei klarem Himmel, kein Normnachweis, Schatten von außerhalb des Rechtecks fehlen.
 - Umgebung (Reiter „Umgebung“, früher „Infos“, intern `infos`, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
   Einlesen im Hintergrundprogramm `lod2-worker.js`. Quellenvermerk „© GeoBasis-DE/LGLN <Jahr>, Daten geändert“.

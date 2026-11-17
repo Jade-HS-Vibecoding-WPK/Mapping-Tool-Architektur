@@ -200,7 +200,7 @@ document.addEventListener("keydown", (e) => {
 // ---------- 3. Reiter (Tabs) ----------
 // Fünf Reiter benutzen dieselbe Karte und schalten nur Ebenen um (siehe ANSICHTEN unten).
 // 3D und Kennzahlen sind noch Platzhalter-Seiten.
-const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos", "wirtschaft", "schnitt"];
+const KARTEN_REITER = ["karte", "schwarzplan", "strassen", "gruen", "lageplan", "flurstuecke", "mieten", "luftbild", "infos", "wirtschaft", "schnitt", "sonne"];
 let aktuelleAnsicht = "karte";
 
 function zeigeAnsicht(ziel) {
@@ -464,6 +464,11 @@ const ANSICHTEN = {
                  alkis: { strasse: FARBE.plan.fahrbahn, weg: FARBE.plan.weg, platz: FARBE.plan.platz, kante: FARBE.plan.kante },
                  gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
                  text: "Linie ziehen, Schnitt und Straßenansicht." },
+  // Sonne und Schatten: Lageplan-Grundlage, darüber das Bild aus Schatten oder Besonnungsdauer (siehe sonne.js)
+  sonne:       { basiskarte: false, ebenen: ["gruen", "wasser", "strassen", "alkis", "baeume", "gebaeude", "umriss", "dach"],
+                 alkis: { strasse: FARBE.plan.fahrbahn, weg: FARBE.plan.weg, platz: FARBE.plan.platz, kante: FARBE.plan.kante },
+                 gebaeude: FARBE.gebaeudeLageplan, neben: FARBE.nebenLageplan, strasse: FARBE.strasseLageplan,
+                 text: "Sonne und Schatten." },
   // Luftbild und Infos: Rechteck wie im Reiter "Karte" (rot gestrichelt), keine weiße Maske, Quellenangabe immer sichtbar
   luftbild:    { basiskarte: false, ebenen: [], rahmenWieKarte: true, rahmenFuellung: 0, quelleImmer: true,
                  text: "Luftbild des LGLN mit Überlagerungen." },
@@ -584,6 +589,7 @@ function verwerfeDaten() {
   verwerfeInfos();
   verwerfeWirtschaft();
   verwerfeSchnitt();
+  verwerfeSonne();
   if (kartenBereit) {
     map.getSource("osm-daten").setData(leer);
     map.getSource("lod2-dach").setData(leer);
@@ -636,7 +642,7 @@ function wendeAnsichtAn() {
 
   // Im Lageplan zeichnen wir Gebäude, für die LoD2-Dächer da sind, nicht doppelt (als OSM-Fläche).
   // In den anderen Plänen bleiben alle OSM-Gebäude.
-  const gebaeudeFilter = (aktuelleAnsicht === "lageplan" || aktuelleAnsicht === "schnitt") && lod2Vorhanden
+  const gebaeudeFilter = (aktuelleAnsicht === "lageplan" || aktuelleAnsicht === "schnitt" || aktuelleAnsicht === "sonne") && lod2Vorhanden
     ? ["all", istKat("gebaeude", "nebengebaeude"), ["==", ["coalesce", ["get", "lod2"], 0], 0]]
     : istKat("gebaeude", "nebengebaeude");
   map.setFilter("gebaeude-flaeche", gebaeudeFilter);
@@ -668,6 +674,7 @@ function wendeAnsichtAn() {
   aktualisiereWirtschaft();    // Wirtschaftlichkeit: Bestand rechnen, Karte, Panel
   aktualisiereLuftbild();      // Luftbild und seine Linien
   aktualisiereInfos();         // Infos: Schalter und Ebenen
+  aktualisiereSonne();         // Sonne und Schatten: Bild und Panel
   if (typeof aktualisiereLegende === "function") aktualisiereLegende();
 }
 

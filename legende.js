@@ -75,6 +75,9 @@ function farbschluessel(ansicht) {
     case "schnitt":
       e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"), schnittLegendeEintraege());
       break;
+    case "sonne":
+      e.push(eintrag(rahmenGebiet, "Untersuchungsgebiet"), sonneLegendeEintraege());
+      break;
     case "wirtschaft":
       e.push(flurstueckeVorhanden ? wirtLegendeEintraege() : eintrag(rahmenGebiet, "Untersuchungsgebiet"));
       break;

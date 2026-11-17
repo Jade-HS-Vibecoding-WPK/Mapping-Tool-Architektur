@@ -92,7 +92,8 @@
         <button class="tab" data-view="schwarzplan" role="tab">Schwarzplan</button>
         <button class="tab" data-view="strassen" role="tab">Straßennetz</button>
         <button class="tab" data-view="gruen" role="tab">Grün &amp; Wasser</button>
-        <button class="tab tab-trenner" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab" data-view="lageplan" role="tab">Lageplan</button>
+        <button class="tab tab-trenner" data-view="sonne" role="tab">Sonne &amp; Schatten</button>
         <button class="tab" data-view="flurstuecke" role="tab">Flurstücke</button>
         <button class="tab" data-view="mieten" role="tab">Mietpreise</button>
         <button class="tab tab-trenner" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
@@ -102,7 +103,7 @@
       </nav>
 
       <div class="views">
-        <!-- Eine Karte für elf Reiter: Karte, Luftbild, Umgebung (data-view infos), Schwarzplan, Straßennetz, Grün &amp; Wasser, Lageplan, Flurstücke, Mietpreise, Wirtschaftlichkeit und Schnitt &amp; Ansicht.
+        <!-- Eine Karte für zwölf Reiter: Karte, Luftbild, Umgebung (data-view infos), Schwarzplan, Straßennetz, Grün &amp; Wasser, Lageplan, Sonne &amp; Schatten, Flurstücke, Mietpreise, Wirtschaftlichkeit und Schnitt &amp; Ansicht.
              Der Reiter bestimmt nur, welche Ebenen sichtbar sind (siehe app.js, ANSICHTEN). -->
         <section class="view is-active" data-view="karte">
           <div id="map"></div>
@@ -198,6 +199,27 @@
             </div>
             <div id="info-gruppen"></div>
           </div>
+          <!-- Nur im Reiter "Sonne & Schatten": Schattenplan und Besonnungsdauer (siehe sonne.js) -->
+          <div class="flst-info sonne-panel" id="sonne-panel" hidden>
+            <h3>Sonne und Schatten</h3>
+            <p class="flst-sub">Direktes Sonnenlicht aus Gebäuden, Bäumen und Gelände gerechnet, bei klarem Himmel.</p>
+            <div class="sonne-umschalter" id="sonne-modus">
+              <button type="button" data-modus="schatten" class="is-active">Schatten</button><button type="button" data-modus="dauer">Besonnungsdauer</button>
+            </div>
+            <label class="sonne-feld">Datum <input type="date" id="sonne-datum" value="2026-06-21"></label>
+            <div class="sonne-schnell" id="sonne-schnell">
+              <button type="button" data-tag="03-21">21. März</button><button type="button" data-tag="06-21">21. Juni</button><button type="button" data-tag="09-21">21. Sept.</button><button type="button" data-tag="12-21">21. Dez.</button>
+            </div>
+            <label class="sonne-feld" id="sonne-zeit-feld">Uhrzeit <input type="range" id="sonne-zeit" min="0" max="1430" step="10" value="780"> <span id="sonne-zeit-wert">13:00</span></label>
+            <label class="schalter"><input type="checkbox" id="sonne-baeume" checked> Bäume mitrechnen</label>
+            <label class="sonne-feld">Genauigkeit <select id="sonne-genau"><option value="2">Grob, 2 m (schnell)</option><option value="1">Fein, 1 m</option><option value="0.5">Sehr fein, 0,5 m</option></select></label>
+            <p class="flst-hinweis" id="sonne-genau-hinweis" hidden>Besonnungsdauer mit 0,5 m dauert bei langen Tagen knapp eine Minute (mit 1 m etwa 12 Sekunden).</p>
+            <div class="sonne-skala" id="sonne-skala" hidden><span class="sonne-skala-balken"></span><span class="sonne-skala-zahlen"><span>0 h</span><span>4</span><span>8</span><span>14 h</span></span></div>
+            <p class="sonne-info" id="sonne-info"></p>
+            <p class="sonne-punkt" id="sonne-punkt"></p>
+            <p class="flst-hinweis" id="sonne-hinweis" hidden></p>
+            <p class="flst-klein">Gebäude: LGLN LoD2 oder OpenStreetMap, Bäume: OpenStreetMap (Höhe meist geschätzt), Gelände: LGLN DGM1. Nur Objekte im gewählten Rechteck werfen Schatten, am Rand ist es daher zu sonnig. Mögliche Sonnenscheindauer, keine Normnachweise. Schatten gibt es auch im Reiter „3D-Modell“.</p>
+          </div>
           <div class="map-source" id="map-source" hidden>Daten © OpenStreetMap-Mitwirkende (ODbL) · nicht vermessungsgenau</div>
         </section>
 
@@ -209,6 +231,11 @@
             <button class="btn" id="d3-reset" type="button">Ansicht zurücksetzen</button>
             <button class="btn" id="d3-oben" type="button">Draufsicht</button>
             <label class="d3-check"><input type="checkbox" id="d3-baeume" checked> Bäume</label>
+            <label class="d3-check" title="Schatten nach Datum und Uhrzeit, gleiche Einstellung wie im Reiter Sonne &amp; Schatten"><input type="checkbox" id="d3-sonne"> Sonne</label>
+            <span class="d3-check" id="d3-sonne-feld" hidden>
+              <input type="date" id="d3-datum" value="2026-06-21" aria-label="Datum">
+              <input type="range" id="d3-zeit" min="0" max="1430" step="10" value="780" aria-label="Uhrzeit"> <span id="d3-zeit-wert">13:00</span>
+            </span>
             <label class="d3-check" id="d3-hoehenlinien-feld" hidden><input type="checkbox" id="d3-hoehenlinien" checked> Höhenlinien</label>
             <label class="d3-check" id="d3-ueberhoehung-feld" hidden title="Überhöht nur das Gelände, Gebäude behalten ihre Höhe">Überhöhung
               <input type="range" id="d3-ueberhoehung" min="1" max="5" step="0.5" value="1"> <span id="d3-ueberhoehung-wert">1×</span></label>
@@ -240,6 +267,7 @@
   <script src="infos.js"></script>
   <script src="wirtschaft.js"></script>
   <script src="schnitt.js"></script>
+  <script src="sonne.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

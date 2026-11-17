@@ -16,8 +16,9 @@ Kennzahlen und ein Übersichtsblatt maßstäblich (A4–A0, mit Schriftfeld und 
 als PNG speichern. Pläne, Schnitt und das komplette 3D-Modell (Gelände, LoD2-Gebäude, Bäume) gibt es dort auch als
 DXF für Allplan 2024 (UTM 32) und ArchiCAD 29 (lokaler Nullpunkt), mit Layern und Farben wie in der App.
 
-**Ausprobieren:** Die Seite über einen kleinen lokalen Webserver öffnen, z. B. im Projektordner
-`python -m http.server` ausführen und dann http://localhost:8000 im Browser öffnen.
+**Ausprobieren (Windows):** Doppelklick auf `Ortsanalyse starten.bat`. Die Datei startet einen kleinen Webserver nur auf
+diesem Rechner (Python nötig) und öffnet http://localhost:8642 im Browser. Zum Beenden das schwarze Fenster schließen.
+Sonst: im Projektordner `python -m http.server` ausführen und http://localhost:8000 öffnen.
 
 **Quellen:** Kartendaten © OpenStreetMap-Mitwirkende, Lizenz ODbL
 (https://www.openstreetmap.org/copyright), abgefragt über die Overpass-API.

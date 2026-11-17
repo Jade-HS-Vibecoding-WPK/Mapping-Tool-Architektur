@@ -820,6 +820,10 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   und Auswahl, Gelb #ffc900 für Hinweise. Schrift Space Grotesk (SIL OFL, 400/500/700 in `schriften/`).
   Akzentfarbe in Plänen, 3D, Diagrammen und Exporten (PDF/PNG/DXF) jetzt Pink #e535b8 (kräftiger als #ff90e8, damit
   dünne Linien auf Weiß sichtbar bleiben); Bodenrichtwert- und Baujahr-Stufen als Pink-Verlauf statt Rot.
+- [x] **Startdatei `Ortsanalyse starten.bat`** (17.11.2026): Doppelklick startet `python -m http.server 8642` nur für
+  diesen Rechner (127.0.0.1) und öffnet den Standard-Browser. Läuft schon ein Server auf 8642, wird nur der Browser
+  geöffnet (Prüfung sprachunabhängig über netstat, deutsches Windows zeigt „ABHÖREN“). Ohne Python: Hinweis zur
+  Installation. Schalter `/ohne-browser` nur zum Testen.
 - [ ] **Nächster Schritt:** Rückmeldung aus Allplan/ArchiCAD einarbeiten. Danach Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

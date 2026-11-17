@@ -70,6 +70,8 @@ let brwMarker = [];             // Beschriftungen der Bodenrichtwerte
 let brwDaten = null;
 let zensusKlassen = {};         // Farbklassen je Zensus-Merkmal (Reiter „Wohnen“)
 let zensusMerkmal = "miete";    // gerade gezeigtes Merkmal im Reiter „Wohnen“
+let zensusQuellen = {};         // woher jedes Merkmal stammt (Import, destatis, Beispiel)
+let zensusVergleichWerte = [];  // alle Vergleichsmieten im Gebiet (für gemeinsame Farbstufen)
 let infraDaten = null;          // Punkte und Einzugsradien (Reiter „Infrastruktur“)
 const infraSichtbar = Object.fromEntries(Object.keys(INFRA_EBENEN).map((e) => [e, true])); // Ebenen an/aus
 const radienSichtbar = { halt: false, spiel: false };                                     // Einzugsradien an/aus
@@ -349,12 +351,34 @@ function legendeInfraHtml() {
 function legendeWohnen() {
   const d = ZENSUS_MERKMALE[zensusMerkmal];
   const klassen = zensusKlassen[zensusMerkmal] && zensusKlassen[zensusMerkmal].klassen;
-  if (!klassen) return [["text", "", `Keine Zensus-Daten „${d.name}“ für dieses Gebiet. Lege die ZIP „${d.zip}“ von destatis.de ins Ablagefeld.`]];
+  if (!klassen) return [["text", "", d.zip
+    ? `Keine Zensus-Daten „${d.name}“ für dieses Gebiet. Lege die ZIP „${d.zip}“ von destatis.de ins Ablagefeld.`
+    : `Keine Daten „${d.name}“: Sie werden beim Analysieren automatisch von destatis geladen, der Dienst war nicht erreichbar.`]];
+  const quelle = { destatis: "live von destatis", beispiel: "eingebaute Beispieldaten", import: "importierte Zensus-Tabelle" }[zensusQuellen[zensusMerkmal]] || "";
+  const titel = zensusMerkmal === "vergleich" ? `${VERGLEICH_FELDER[vergleichFeld()].text}: ` : "";
   return [
     ...klassen.map(([farbe, text]) => ["flaeche", farbe, zensusMerkmal === "baujahr" ? text : `${text}${d.einheit ? ` ${d.einheit}` : ""}`]),
     ["linie", 0.5, "Gebäude (Umriss)"],
-    ["text", "", `${d.name}: ${d.erklaerung}. Wert je 100-m-Zelle am 15.05.2022. Zellen ohne Wohnungen fehlen.`]
+    ["text", "", `${titel}${d.name}: ${d.erklaerung}. Wert je 100-m-Zelle am 15.05.2022${quelle ? ` (${quelle})` : ""}. Zellen ohne passende Wohnungen fehlen.`]
   ];
+}
+
+// Mietrechner in der Legende (nur bei „Miete vergleichbar“): Baualter und Größe der Wohnung
+function mietrechnerHtml() {
+  if (zensusMerkmal !== "vergleich" || !zensusKlassen.vergleich) return "";
+  const feld = vergleichFeld();
+  const werte = (analyseErgebnis && analyseErgebnis.daten.zensus ? analyseErgebnis.daten.zensus.features : [])
+    .map((f) => f.properties[feld]).filter((v) => v != null).sort((a, b) => a - b);
+  const mittel = werte.length ? werte.reduce((a, b) => a + b, 0) / werte.length : null;
+  return `<div class="mietrechner">
+      <p class="mietrechner-titel">Mietrechner: Meine Wohnung …</p>
+      <label><input type="radio" name="mr-alter" value="alt" ${mietrechner.neu ? "" : "checked"}> vor 1991 gebaut</label>
+      <label><input type="radio" name="mr-alter" value="neu" ${mietrechner.neu ? "checked" : ""}> ab 1991 gebaut</label>
+      <label class="mietrechner-flaeche">und hat <input type="number" id="mr-flaeche" min="6" max="250" value="${mietrechner.flaeche}"> m²</label>
+      ${mittel != null ? `<p class="mietrechner-ergebnis">So eine Wohnung kostet hier im Mittel <strong>ca. ${fmt(kaltmiete(mittel))} € kalt</strong>
+        (${fmt(mittel, 2)} €/m², Spanne ${fmt(kaltmiete(werte[0]))}–${fmt(kaltmiete(werte[werte.length - 1]))} €)</p>`
+        : `<p class="mietrechner-ergebnis">Für diese Auswahl gibt es hier zu wenige vergleichbare Mietwohnungen.</p>`}
+    </div>`;
 }
 
 // Fünf Stufen mit etwa gleich vielen Zellen (Quantile) oder feste Grenzen: [Farbausdruck, Legenden-Klassen]
@@ -380,8 +404,13 @@ const BAUJAHR_FARBEN = ["#5e1a0e", "#8f2615", "#e2482d", "#ec8a72", "#f5c4b6", "
 // Im Reiter „Wohnen“ ein anderes Merkmal zeigen (Knöpfe in der Legende)
 function zeigeZensusMerkmal(m) {
   zensusMerkmal = m;
+  // Vergleichsmiete: Farbe nach der Auswahl im Mietrechner, Stufen über alle vier Varianten (damit vergleichbar)
+  if (m === "vergleich" && zensusVergleichWerte.length) {
+    const [ausdruck, klassen] = quantilStufen(zensusVergleichWerte, vergleichFeld(), 2);
+    zensusKlassen.vergleich = { ausdruck, klassen };
+  }
   if (planKarte && planKarte.getLayer("zensus-flaeche")) {
-    const feld = m === "baujahr" ? "baujahr" : m;
+    const feld = m === "vergleich" ? vergleichFeld() : m;
     planKarte.setFilter("zensus-flaeche", ["has", feld]);
     planKarte.setFilter("zensus-rand", ["has", feld]);
     const stufen = zensusKlassen[m];
@@ -389,12 +418,14 @@ function zeigeZensusMerkmal(m) {
   }
   planLegenden.wohnen = legendeWohnen();
   if (aktuellerPlan === "wohnen") zeigeLegende();
+  // Kennzahlen-Tafel zeigt die Beispielwohnung des Mietrechners: neu zeichnen
+  if (m === "vergleich" && analyseErgebnis && analyseErgebnis.kennzahlen) zeigeKennzahlen(analyseErgebnis.kennzahlen, analyseErgebnis.quelleText);
 }
 
 // Umschaltknöpfe über der Legende (Merkmale ohne Daten sind ausgegraut)
 function zensusKnoepfe() {
   return `<div class="zensus-knoepfe">${Object.entries(ZENSUS_MERKMALE).map(([m, d]) =>
-    `<button class="btn btn-klein ${m === zensusMerkmal ? "" : "btn-ghost"}" data-merkmal="${m}" ${zensusKlassen[m] ? "" : "disabled"}
+    `<button class="btn btn-klein ${m === zensusMerkmal ? "ist-aktiv" : "btn-ghost"}" data-merkmal="${m}" ${zensusKlassen[m] ? "" : "disabled"}
       title="${d.name}">${d.knopf}</button>`).join("")}</div>`;
 }
 
@@ -414,7 +445,7 @@ function zeigeLegende() {
   const eintraege = planLegenden[aktuellerPlan] || [];
   box.innerHTML = `
     <h3>${PLAN_TITEL[aktuellerPlan]}</h3>
-    ${aktuellerPlan === "wohnen" ? zensusKnoepfe() : ""}
+    ${aktuellerPlan === "wohnen" ? zensusKnoepfe() + mietrechnerHtml() : ""}
     ${aktuellerPlan === "infra" ? legendeInfraHtml() : ""}
     ${aktuellerPlan === "schnitt" ? legendeSchnittHtml() : ""}
     <ul>${eintraege.map((e) => `<li>${zeichen(e)}<span>${e[2]}</span>${
@@ -425,6 +456,16 @@ function zeigeLegende() {
     <p class="legende-quelle">${document.getElementById("plan").dataset.quelle || ""}</p>`;
   box.querySelectorAll(".zensus-knoepfe button").forEach((b) => b.addEventListener("click", () => zeigeZensusMerkmal(b.dataset.merkmal)));
   if (aktuellerPlan === "schnitt") schnittLegendeAnmelden(box);
+  // Mietrechner: Auswahl ändert Karte, Legende und Steckbrief
+  box.querySelectorAll('input[name="mr-alter"]').forEach((r) => r.addEventListener("change", () => {
+    mietrechner.neu = r.value === "neu"; zeigeZensusMerkmal("vergleich");
+  }));
+  const mrFlaeche = box.querySelector("#mr-flaeche");
+  if (mrFlaeche) mrFlaeche.addEventListener("change", () => {
+    const v = Math.round(+mrFlaeche.value);
+    mietrechner.flaeche = v >= 6 && v <= 250 ? v : 75;
+    zeigeZensusMerkmal("vergleich");
+  });
   box.querySelectorAll("input[data-ebene]").forEach((c) => c.addEventListener("change", () => { infraSichtbar[c.dataset.ebene] = c.checked; zeigePlan(aktuellerPlan); }));
   box.querySelectorAll("input[data-radius]").forEach((c) => c.addEventListener("change", () => { radienSichtbar[c.dataset.radius] = c.checked; zeigePlan(aktuellerPlan); }));
   const parz = document.getElementById("parzellen-schalter");
@@ -535,7 +576,14 @@ async function zeichnePlaene(daten, bbox, kennzahlen, quelleText, daecher) {
   // Wohnen (Zensus): Farbstufen je Merkmal; Baualter nach Epochen, alles andere in fünf Quantil-Stufen
   zensusKlassen = {};
   const zellen = daten.zensus ? daten.zensus.features : [];
+  zensusQuellen = daten.zensus ? daten.zensus.quellen : {};
+  zensusVergleichWerte = zellen.flatMap((f) => Object.keys(VERGLEICH_FELDER).map((k) => f.properties[k]).filter((v) => v != null));
   for (const [m, d] of Object.entries(ZENSUS_MERKMALE)) {
+    if (m === "vergleich") {
+      // Platzhalter: die Stufen setzt zeigeZensusMerkmal je nach Mietrechner
+      if (zensusVergleichWerte.length) zensusKlassen.vergleich = { ausdruck: "#f3d6cd", klassen: [] };
+      continue;
+    }
     if (m === "baujahr") {
       const vorhanden = [...new Set(zellen.map((f) => f.properties.baujahr).filter((e) => e != null))].sort((a, b) => a - b);
       if (vorhanden.length) zensusKlassen[m] = {

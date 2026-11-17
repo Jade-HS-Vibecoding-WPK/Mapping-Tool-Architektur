@@ -215,6 +215,16 @@ function wohnenBlock(z) {
     zeilen.push(zeile("Spanne der Miete", `${fmt(m.min, 2)}–${zensusWert("miete", m.max)}`,
       `${fmt(m.zellen)} Zellen${m.unsicher ? `, davon ${fmt(m.unsicher)} mit unsicherem Wert (wenige Wohnungen)` : ""}`));
   }
+  if (z.vergleich) {
+    // Vergleichsmieten nach Baualter und Größe (Mittel der Zellen), dazu die Beispielwohnung aus dem Mietrechner
+    for (const [feld, f] of Object.entries(VERGLEICH_FELDER)) {
+      const m = z.vergleich[feld];
+      if (m) zeilen.push(zeile(`Miete ${f.text}`, zensusWert("vergleich", m.mittel), `Mittel aus ${fmt(m.zellen)} Zellen, Spanne ${fmt(m.min, 2)}–${fmt(m.max, 2)} €/m²`));
+    }
+    const wahl = z.vergleich[vergleichFeld()];
+    if (wahl) zeilen.push(zeile(`Beispielwohnung ${fmt(mietrechner.flaeche)} m², ${mietrechner.neu ? "ab" : "vor"} 1991`,
+      `ca. ${fmt(kaltmiete(wahl.mittel))} € kalt`, "Mietrechner im Reiter „Wohnen“ (Knopf „Miete vergleichbar“)"));
+  }
   for (const key of ["leerstand", "flaecheWohnung", "flaecheBewohner", "eigentum"]) {
     if (!z[key]) continue;
     const d = ZENSUS_MERKMALE[key], m = z[key];
@@ -234,7 +244,8 @@ function wohnenBlock(z) {
             <span class="kz-balken-spur"><span class="kz-balken-wert" style="width:${(b.epochen[i] / b.gebaeude) * 100}%;background:${BAUJAHR_FARBEN[i]}"></span></span>
             <span class="kz-balken-zahl">${prozent(b.epochen[i] / b.gebaeude, 0)}</span>
           </div>`).join("")}</div>` : ""}
-      <p class="kz-hinweis">Stichtag 15.05.2022. Werte je 100-m-Rasterzelle; Mittelwerte sind ungewichtete Durchschnitte der Zellen.</p>
+      <p class="kz-hinweis">Stichtag 15.05.2022. Werte je 100-m-Rasterzelle; Mittelwerte sind ungewichtete Durchschnitte der Zellen.
+        ${Object.values(z.quellen || {}).includes("destatis") ? "Vergleichsmieten, Baualter, Fläche je Wohnung und Eigentümerquote live von destatis („Mietvergleich“)." : ""}</p>
     </section>`;
 }
 

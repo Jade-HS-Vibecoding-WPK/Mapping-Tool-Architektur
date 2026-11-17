@@ -283,17 +283,19 @@ async function analysiere(nurBeispiel = false) {
       console.warn("Katasterdaten nicht verfügbar:", fehler);
     }
     // Wohnen (Zensus 2022: Miete, Leerstand, Wohnfläche, Eigentum, Baujahr): Import oder eingebautes Beispiel
-    try { daten.zensus = await zensuszellen(bbox); } catch (fehler) { console.warn("Zensusdaten nicht verfügbar:", fehler); }
+    meldung("Lade Zensus-Daten (Mieten, Baualter …) von destatis …");
+    try { daten.zensus = await zensuszellen(bbox, nurBeispiel); } catch (fehler) { console.warn("Zensusdaten nicht verfügbar:", fehler); }
     // Infrastruktur (Haltestellen, Spielplätze, Läden …): eigene OSM-Abfrage, im Beispiel eingebaut
     try { daten.infra = await ladeInfrastruktur(bbox, nurBeispiel, meldung); } catch (fehler) { console.warn("Infrastruktur nicht verfügbar:", fehler); }
     meldung("Berechne Kennzahlen …");
     const kennzahlen = berechneKennzahlen(daten, bbox);
     // Für den Flurstücks-Steckbrief merken
-    analyseErgebnis = { daten, lod2: lod2 || [], lod2Daten, bbox };
+    analyseErgebnis = { daten, lod2: lod2 || [], lod2Daten, bbox, kennzahlen, quelleText };
     const lgln = ((lod2 && lod2.length) || daten.strassenAmtlich
       ? " · Gebäude 3D und Straßenflächen: LGLN Niedersachsen (CC BY 4.0), teils über topoexport.com, nicht vermessungsgenau" : "")
       + (daten.kataster ? ` · ${daten.kataster.quelle}` : "")
-      + (daten.zensus ? " · Wohnen (Miete, Leerstand, Wohnfläche, Eigentum, Baujahr): Zensus 2022, Statistische Ämter des Bundes und der Länder (dl-de/by-2-0)" : "");
+      + (daten.zensus ? " · Wohnen (Miete, Leerstand, Wohnfläche, Eigentum, Baujahr): Zensus 2022, Statistische Ämter des Bundes und der Länder (dl-de/by-2-0)"
+        + (Object.values(daten.zensus.quellen).includes("destatis") ? ", teils live über destatis „Mietvergleich“" : "") : "");
 
     // 3. Anzeigen: zuerst den Schwarzplan
     // (Kennzahlen und 3D zuerst: Sie hängen nicht davon ab, dass die Planansicht fertig geladen ist.)

@@ -282,6 +282,14 @@ html, body {
 /* Reiter „Wohnen“: Umschalter zwischen den Zensus-Merkmalen */
 .zensus-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 10px; max-width: 300px; }
 .zensus-knoepfe .btn:disabled { opacity: 0.35; cursor: default; }
+.zensus-knoepfe .btn.ist-aktiv { background: var(--ink); color: #fff; border-color: var(--ink); }
+.mietrechner { border: 1px solid var(--line, #ddd); padding: 8px 10px; margin: 0 0 10px; display: grid; gap: 3px; max-width: 280px; }
+.mietrechner-titel { margin: 0 0 2px; font-weight: 600; }
+.mietrechner label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.mietrechner input[type="radio"] { accent-color: var(--accent); margin: 0; }
+.mietrechner-flaeche input { width: 64px; font: inherit; padding: 2px 4px; border: 1px solid var(--ink); }
+.mietrechner-ergebnis { margin: 4px 0 0; }
+.mietrechner-ergebnis strong { color: var(--accent); }
 /* Reiter „Schnitt“: Plan oben, Schnittzeichnung unten */
 .view.mit-schnitt #plan { bottom: 48%; }
 .view.mit-schnitt .plan-legende { max-height: calc(52% - 32px); }

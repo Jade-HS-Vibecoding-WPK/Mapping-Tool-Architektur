@@ -133,8 +133,17 @@ function zeigeSteckbrief(f) {
 function wohnenZeilen(p) {
   const zeilen = [];
   for (const [m, d] of Object.entries(ZENSUS_MERKMALE)) {
-    if (m === "baujahr" || p[m] == null) continue;
+    if (m === "baujahr" || m === "vergleich" || p[m] == null) continue;
     zeilen.push(zeile(d.name, zensusWert(m, p[m]), p[`${m}Unsicher`] ? "unsicherer Wert (wenige Wohnungen)" : ""));
+  }
+  // Vergleichsmieten und Mietrechner
+  const vergleich = Object.entries(VERGLEICH_FELDER).filter(([f]) => p[f] != null);
+  if (vergleich.length) {
+    zeilen.push(zeile("Miete vergleichbarer Wohnungen", "", vergleich.map(([f, v]) => `${v.text}: ${fmt(p[f], 2)} €/m²`).join(" · ")));
+    const wahl = p[vergleichFeld()];
+    zeilen.push(zeile(`Kaltmiete ${fmt(mietrechner.flaeche)} m², ${mietrechner.neu ? "ab" : "vor"} 1991`,
+      wahl != null ? `ca. ${fmt(kaltmiete(wahl))} €` : "–",
+      wahl != null ? `${fmt(wahl, 2)} €/m² × ${fmt(mietrechner.flaeche)} m² (einstellbar im Reiter „Wohnen“)` : "zu wenige vergleichbare Wohnungen in dieser Zelle"));
   }
   if (p.baujahr != null) {
     const liste = BAUJAHR_EPOCHEN.map(([name], i) => [name, p.baujahrEpochen[i]]).filter(([, a]) => a).map(([name, a]) => `${name}: ${a}`).join(", ");

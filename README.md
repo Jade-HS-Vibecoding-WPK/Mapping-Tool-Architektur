@@ -22,7 +22,8 @@ Diagramme und Export folgen.
 3D-Gebäudemodell LoD2, Lizenz CC BY 4.0. Gelände DGM1, Flurstücke und tatsächliche Nutzung (ALKIS):
 LGLN, CC BY 4.0 bzw. Geobasis NRW (dl-de/zero-2-0). Bodenrichtwerte: Gutachterausschüsse für
 Grundstückswerte Niedersachsen, BORIS-NI (dl-de/by-2-0). Wohnen (Nettokaltmiete, Leerstand, Wohnfläche,
-Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zensus 2022, 100-m-Gitter (dl-de/by-2-0).
+Eigentümerquote, Baujahr): Statistische Ämter des Bundes und der Länder, Zensus 2022, 100-m-Gitter (dl-de/by-2-0),
+teils abgerufen über die destatis-Seite „Mietvergleich“ (Miete nach Baualter und Wohnungsgröße).
 Bibliotheken: MapLibre GL JS, Turf, osmtogeojson, proj4, three.js, JSZip, geotiff.js.
 Piktogramme im Reiter „Infrastruktur“: Maki von Mapbox (https://github.com/mapbox/maki), Lizenz CC0.
 

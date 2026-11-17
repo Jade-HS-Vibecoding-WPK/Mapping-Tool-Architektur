@@ -92,10 +92,35 @@ for pfad in glob.glob(os.path.join(sys.argv[1], "*.zip")):
         werte = [c[2] for c in zellen if merkmal != "baujahr"]
         print(f"{merkmal}: {len(zellen)} Zellen", f"({min(werte)}–{max(werte)})" if werte else "")
 
+# Miete vergleichbarer Wohnungen (nach Baualter und Größe) aus den Kacheln der destatis-Seite „Mietvergleich“
+# (gleiche Kacheln wie ladeDestatis() in zensus.js). Zellen: linke untere Ecke → +50 m = Zellmitte.
+import urllib.request
+KACHEL_URL = "https://service.destatis.de/DE/konferenzen/NIAM2026/tiled_data_Gebalter_Wohngr65qm_Miete_zusatz_js/"
+UX, UY, KACHEL = 4031700, 2691200, 12500
+VERGLEICH = ["alt_1990_und_frueher__klein_65qm_und_weniger", "alt_1990_und_frueher__gross_ueber_65qm",
+             "jung_nach_1990__klein_65qm_und_weniger", "jung_nach_1990__gross_ueber_65qm"]
+vergleich = []
+for xt in range(int((x0 - UX) // KACHEL), int((x1 - UX) // KACHEL) + 1):
+    for yt in range(int((y0 - UY) // KACHEL), int((y1 - UY) // KACHEL) + 1):
+        text = urllib.request.urlopen(f"{KACHEL_URL}{xt}/{yt}.js", timeout=30).read().decode("utf-8")
+        zeilen = text.strip().split("\n")
+        kopf = zeilen[0].split(",")
+        for zeile in zeilen[1:]:
+            d = dict(zip(kopf, zeile.split(",")))
+            x = UX + (xt * 125 + int(d["x"])) * 100 + 50
+            y = UY + (yt * 125 + int(d["y"])) * 100 + 50
+            werte = [float(d[k]) if d[k] else None for k in VERGLEICH]
+            if x0 <= x <= x1 and y0 <= y <= y1 and any(w is not None for w in werte):
+                # [Mitte Ost, Mitte Nord, vor 1991 bis 65 m², vor 1991 über 65 m², ab 1991 bis 65 m², ab 1991 über 65 m²]
+                vergleich.append([x, y, *werte])
+ergebnis["vergleich"] = vergleich
+print("vergleich:", len(vergleich), "Zellen")
+
 with open(sys.argv[2], "w", encoding="utf-8", newline="\n") as f:
     f.write("/* Eingebaute Beispieldaten: Zensus 2022 (Stichtag 15.05.2022), 100-m-Gitterzellen, Oldenburg Innenstadt.\n"
             " * Merkmale: Nettokaltmiete (€/m²), Leerstandsquote (%), Fläche je Wohnung und je Bewohner (m²),\n"
-            " * Eigentümerquote (%), Gebäude nach Baujahrzehnt. Koordinaten = Zellmitte in EPSG:3035.\n"
+            " * Eigentümerquote (%), Gebäude nach Baujahrzehnt, Miete vergleichbarer Wohnungen nach Baualter und Größe\n"
+            " * (destatis „Mietvergleich“). Koordinaten = Zellmitte in EPSG:3035.\n"
             " * Quelle: Statistische Ämter des Bundes und der Länder, Zensus 2022 (dl-de/by-2-0).\n"
             " * Erzeugt mit werkzeuge/zensus_beispiel.py. Wird von zensus.js geladen.\n */\n"
             "window.BEISPIEL_ZENSUS = ")

@@ -734,6 +734,20 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   - Höhenskala (m ü. NHN), First und Traufe der geschnittenen Gebäude, Maßstabsleiste, A/A′, Mini-Lageplan mit
     Schnittlinie, Blickpfeilen und Blickbereich.
   - Oldenburg: 818-m-Schnitt in ca. 80 ms. Auf schmalen Bildschirmen verdeckt die Legende den Plan (einklappen).
+- [x] **Mieten von destatis „Mietvergleich“** (17.11.2026): Die Seite
+  https://service.destatis.de/DE/konferenzen/NIAM2026/mietvergleich.html nutzt Zensus-2022-Kacheln (gridviz,
+  100-m-Zellen, 125 × 125 je Kachel, EPSG:3035, CORS offen): `…/tiled_data_Gebalter_Wohngr65qm_Miete_zusatz_js/<xt>/<yt>.js`
+  (CSV; Zellkoordinate = linke untere Ecke, +50 m = Zellmitte). Inhalt: Nettokaltmiete nach Baualter (vor 1991 / ab 1991)
+  × Größe (bis / über 65 m²), Gebäude nach Baujahr (8 Klassen), Fläche je Wohnung, Eigentümerquote (leer = 0 %).
+  - `zensus.js` lädt die Kacheln beim Analysieren live (Oldenburg 1 Kachel, ca. 0,3 s). Reihenfolge je Merkmal:
+    ZIP-Import → destatis live → Beispiel. Im Beispiel-Modus nur eingebaute Daten (`werkzeuge/zensus_beispiel.py`
+    holt die Vergleichsmieten mit). Fällt die Konferenzseite weg, gelten Import bzw. Beispiel.
+  - Baualter jetzt in 6 Epochen, die zu beiden Tabellen passen: vor 1919, 1919–1948, 1949–1978, 1979–1990,
+    1991–2010, ab 2011 (Grenzen je nach Quelle ±1 Jahr).
+  - Reiter „Wohnen“: Knopf „Miete vergleichbar“ mit **Mietrechner** (Baualter, m²) → Karte der passenden Miete
+    (gemeinsame Farbstufen über alle vier Varianten), mittlere Kaltmiete im Gebiet. Kennzahlen: vier Vergleichsmieten
+    und Beispielwohnung; Steckbrief: Vergleichsmieten der Zelle und Kaltmiete der eingestellten Wohnung.
+  - Oldenburg: vor 1991 bis 65 m² 8,83 €/m², über 65 m² 7,55; ab 1991 bis 65 m² 9,46, über 65 m² 8,46.
 - [ ] **Nächster Schritt:** Diagramme und PNG-Export (Schritt 7) oder Import Teil 2: allgemeine DXF
   (Layer von Hand zuordnen), DWG-Hinweis/Umwandlung, RAR. Idee: topoexport-Bäume (mit Kronengröße) statt
   OSM-Bäume für Grün, Kronenüberdeckung und 3D.

@@ -362,12 +362,13 @@ function baumSvg(b, X, Y, k, f) {
 function zeichneSchnittLage() {
   const ziel = document.getElementById("schnitt-lage");
   const c = schnittDaten();
-  if (!ziel || !c || !schnitt.a) { if (ziel) ziel.innerHTML = ""; return; }
+  // (auf schmalen Bildschirmen ist der Lageplan ausgeblendet: Breite 0)
+  if (!ziel || !c || !schnitt.a || ziel.clientWidth < 40) { if (ziel) ziel.innerHTML = ""; return; }
   const [w, s, o, n] = analyseErgebnis.bbox;
   const ecken = [[w, s], [o, s], [o, n], [w, n]].map(([lon, lat]) => gradZuUtm(lon, lat));
   const eMin = Math.min(...ecken.map((p) => p[0])), eMax = Math.max(...ecken.map((p) => p[0]));
   const nMin = Math.min(...ecken.map((p) => p[1])), nMax = Math.max(...ecken.map((p) => p[1]));
-  const B = ziel.clientWidth - 8 || 180;
+  const B = ziel.clientWidth - 8;
   const m = B / Math.max(eMax - eMin, nMax - nMin);
   const Hh = (nMax - nMin) * m;
   const px = ([E, N]) => `${((E - eMin) * m).toFixed(1)},${((nMax - N) * m).toFixed(1)}`;

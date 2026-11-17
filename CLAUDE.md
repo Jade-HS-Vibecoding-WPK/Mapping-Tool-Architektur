@@ -32,7 +32,9 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   beim Analysieren, nur Niedersachsen. Keine Lagebezeichnungen/Adressen übernehmen.
   `zensus.js`: Zensus-2022-Karten im 100-m-Gitter (EPSG:3035) für den Reiter „Wohnen“: Miete, Leerstand,
   Fläche je Wohnung/Bewohner, Eigentümerquote, Baujahr. Beispiel eingebaut, sonst Zensus-ZIPs importieren.
-  „–“ in Zensus-Tabellen = genau null.
+  „–“ in Zensus-Tabellen = genau null. Vergleichsmieten (Baualter × Größe), Baujahr, Fläche je Wohnung und
+  Eigentümerquote kommen beim Analysieren live aus den Kacheln der destatis-Seite „Mietvergleich“ (NIAM2026,
+  siehe PLAN.md 8); Mietrechner im Reiter „Wohnen“.
   `infrastruktur.js`: Reiter „Infrastruktur“ (OSM-Orte in 6 Ebenen, Piktogramme aus `piktogramme.js` = Maki CC0,
   Einzugsradien). Overpass-Abfrage auch in `werkzeuge/infra_beispiel.py` (beide gleich halten). Keine Namen bei Arztpraxen.
   `schnitt.js`: Reiter „Schnitt“ (Linie ziehen, Blickrichtung, Tiefe → SVG-Schnitt mit Ansicht aus LoD2, DGM, OSM-Bäumen;

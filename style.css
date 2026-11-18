@@ -20,8 +20,8 @@
   --fill-hover: rgba(120, 120, 128, 0.2);
   --fill-strong: rgba(120, 120, 128, 0.32);
   --seg: #ffffff;                       /* gewählter Teil eines Umschalters */
-  --accent: #0071e3;                    /* die eine Akzentfarbe (Blau) */
-  --accent-tint: rgba(0, 113, 227, 0.12);
+  --accent: #F2541B;                    /* die eine Akzentfarbe: Signalrot-Orange aus dem Logo */
+  --accent-tint: rgba(242, 84, 27, 0.12);
   --danger: #d70015;                    /* Fehler, Warnung */
   --ok: #248a3d;
   --switch-on: #34c759;
@@ -62,8 +62,8 @@
     --fill-hover: rgba(120, 120, 128, 0.36);
     --fill-strong: rgba(120, 120, 128, 0.5);
     --seg: #636366;
-    --accent: #0a84ff;
-    --accent-tint: rgba(10, 132, 255, 0.2);
+    --accent: #FF6A33;
+    --accent-tint: rgba(255, 106, 51, 0.2);
     --danger: #ff453a;
     --ok: #30d158;
     --switch-on: #30d158;
@@ -729,6 +729,44 @@ li.sonne-skala-zahlen { display: flex; justify-content: space-between; list-styl
 .import-liste { list-style: none; margin: 6px 0 0; padding: 0; font-size: 13px; }
 .import-liste li { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 3px 0; }
 .import-weg { font: inherit; background: none; border: 0; cursor: pointer; font-size: 16px; color: var(--ink-soft); }
+
+/* ---------- Reiter "Sammel-Export" ---------- */
+.sm-inhalt { padding: 24px 32px 56px; max-width: 1280px; }
+.sm-inhalt > h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.02em; }
+.sm-raster { display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr); gap: 16px; align-items: start; margin-top: 14px; }
+.sm-links, .sm-rechts { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.sm-karte { background: var(--paper); border-radius: var(--r-l); box-shadow: var(--shadow-s); padding: 16px; }
+.sm-karte h4 { margin: 0 0 10px; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.sm-knoepfe { display: flex; gap: 8px; margin: 0 0 8px; flex-wrap: wrap; }
+.sm-liste { display: flex; flex-direction: column; }
+.sm-zeile { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line-soft); cursor: pointer; }
+.sm-zeile:first-child { border-top: 0; }
+.sm-name { flex: none; min-width: 124px; font-weight: 500; }
+.sm-format .sm-name { min-width: 130px; }
+.sm-status { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-soft); }
+.sm-status small { color: var(--ink-soft); }
+.sm-ok { color: var(--ok); font-weight: 600; }
+.sm-nein { color: var(--ink-soft); }
+.sm-zeile:has(input:disabled) { cursor: default; }
+.sm-zeile:has(input:disabled) .sm-name { color: var(--ink-soft); }
+.sm-oeffnen { font: inherit; font-size: 11px; font-weight: 500; padding: 1px 9px; margin-left: 4px; border: 0; border-radius: 999px; background: var(--accent-tint); color: var(--accent); cursor: pointer; transition: transform 0.12s var(--ease); }
+.sm-oeffnen:active { transform: scale(0.95); }
+.sm-ref { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-size: 12px; color: var(--ink-soft); }
+.sm-karte .ex-vorschau { max-height: 62vh; }
+.sm-karte .ex-form-feld { margin-bottom: 8px; }
+.sm-karte.ex-form label { margin-bottom: 0; }
+.sm-fortschritt { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.sm-fortschritt li { display: grid; grid-template-columns: 14px minmax(0, 150px) minmax(0, 1fr); gap: 10px; align-items: center; color: var(--ink-soft); }
+.sm-punkt { width: 10px; height: 10px; border-radius: 50%; background: var(--fill-strong); }
+.sm-fortschritt .sm-laeuft { color: var(--ink); }
+.sm-fortschritt .sm-laeuft .sm-punkt { background: var(--accent); animation: sm-puls 1s ease-in-out infinite; }
+.sm-fortschritt .sm-fertig .sm-punkt { background: var(--switch-on); }
+.sm-fortschritt .sm-fehler { color: var(--danger); }
+.sm-fortschritt .sm-fehler .sm-punkt { background: var(--danger); }
+.sm-fort-text { font-size: 12px; }
+@keyframes sm-puls { 50% { opacity: 0.35; } }
+#sm-los { margin-top: 6px; width: 100%; }
+@media (max-width: 1000px) { .sm-raster { grid-template-columns: 1fr; } .sm-inhalt { padding: 16px 14px 48px; } }
 
 /* ---------- Anpassung an Einstellungen des Geräts ---------- */
 /* Weniger Bewegung: nur kurzes Überblenden, keine Schiebe- und Skalierbewegungen */

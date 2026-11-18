@@ -125,7 +125,8 @@
         <button class="tab tab-trenner" data-view="wirtschaft" role="tab">Wirtschaftlichkeit</button>
         <button class="tab" data-view="schnitt" role="tab">Schnitt &amp; Ansicht</button>
         <button class="tab tab-trenner" data-view="3d" role="tab">3D-Modell</button>
-        <button class="tab" data-view="kennzahlen" role="tab">Kennzahlen</button>
+        <button class="tab tab-trenner" data-view="kennzahlen" role="tab">Kennzahlen</button>
+        <button class="tab" data-view="sammel" role="tab">Sammel-Export</button>
       </nav>
 
       <div class="views">
@@ -287,6 +288,11 @@
           <div class="d3-info" id="d3-info"></div>
         </section>
         <!-- Kennzahlen: wird von app.js (Abschnitt 8) befüllt -->
+        <!-- Letzter Reiter: mehrere Pläne und Formate auf einmal als ZIP-Datei (siehe sammelexport.js) -->
+        <section class="view kz sm" data-view="sammel">
+          <div class="sm-inhalt" id="sm-inhalt"></div>
+        </section>
+
         <section class="view kz" data-view="kennzahlen">
           <div class="kz-inhalt" id="kz-inhalt"></div>
         </section>
@@ -321,7 +327,7 @@
         <label>Kurs / Dozent <input type="text" id="ex-kurs" placeholder="Kurs, Dozent*in"></label>
         <label>Datum <input type="text" id="ex-datum"></label>
         <label class="ex-check ex-nurblatt"><input type="checkbox" id="ex-legende" checked> Legende im Plankopf</label>
-        <label class="ex-nurblatt">PNG-Auflösung <select id="ex-dpi"><option value="150">150 dpi</option><option value="300" selected>300 dpi</option></select></label>
+        <label class="ex-nurblatt">PNG-Auflösung <select id="ex-dpi"><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi (sehr scharf, große Datei)</option></select></label>
         <p class="ex-klein-text">Name und Kurs bleiben nur in deinem Browser gespeichert.</p>
       </div>
       <div class="ex-rechts">
@@ -355,6 +361,8 @@
   <script src="https://cdn.jsdelivr.net/npm/geotiff@2.1.3/dist-browser/geotiff.js"></script>
   <!-- PDF-Erzeugung für den Export -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <!-- Packt die Dateien des Sammel-Exports zu einer ZIP-Datei -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <script src="app.js"></script>
   <script src="ladeleiste.js"></script>
   <script src="gelaende.js"></script>
@@ -370,6 +378,7 @@
   <script src="import.js"></script>
   <script src="projekt.js"></script>
   <script src="export.js"></script>
+  <script src="sammelexport.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
 </body>

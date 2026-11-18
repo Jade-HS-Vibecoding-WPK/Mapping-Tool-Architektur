@@ -594,8 +594,14 @@ function expZeichne(b, opt, szene, lay) {
   const k = 1000 / opt.massstab;                     // Millimeter je Meter in der Natur
   const sf = lay.sf, { w, h, rand, feld } = lay;
   // Ist das Gebiet größer als das Planfeld, zeigt das Blatt nur einen Ausschnitt. Mit dem Versatz (-100 bis 100 %) verschiebt man ihn bis an den Rand des Gebiets.
-  const mx = (szene.xmin + szene.xmax) / 2 + ((opt.versatzX || 0) / 100) * (lay.ueberB / 2) / k;
-  const my = (szene.ymin + szene.ymax) / 2 - ((opt.versatzY || 0) / 100) * (lay.ueberH / 2) / k;
+  // Versatz in Prozent (Export-Fenster) oder in Metern (Sammel-Export: derselbe Ausschnitt auf allen Blättern, höchstens bis zum Rand des Gebiets)
+  let mx = (szene.xmin + szene.xmax) / 2 + ((opt.versatzX || 0) / 100) * (lay.ueberB / 2) / k;
+  let my = (szene.ymin + szene.ymax) / 2 - ((opt.versatzY || 0) / 100) * (lay.ueberH / 2) / k;
+  if (opt.versatzMeter) {
+    const maxE = lay.ueberB > 0 ? lay.ueberB / 2 / k : 0, maxN = lay.ueberH > 0 ? lay.ueberH / 2 / k : 0;
+    mx = (szene.xmin + szene.xmax) / 2 + Math.max(-maxE, Math.min(maxE, opt.versatzMeter[0]));
+    my = (szene.ymin + szene.ymax) / 2 + Math.max(-maxN, Math.min(maxN, opt.versatzMeter[1]));
+  }
   const cx = feld.x + feld.w / 2, cy = feld.y + feld.h / 2;
   const tr = ([E, N]) => [cx + (E - mx) * k, cy - (N - my) * k];
   const dunkel = "#111111";
@@ -702,6 +708,7 @@ function expZeichne(b, opt, szene, lay) {
     const lw = 28 * sf, lh = lw * EXP_LOGO.verhaeltnis;
     b.bild(b.art === "png" ? EXP_LOGO.bild : EXP_LOGO.url, kx + kb - 3 * sf - lw, z2 + (lay.unten - lh) / 2, lw, lh);
   }
+  return { tr };
 }
 
 // ---------- 6. DXF ----------
@@ -813,18 +820,21 @@ function expAktualisiere() {
 function expVerzoegert() { clearTimeout(exZeitgeber); exZeitgeber = setTimeout(expAktualisiere, 150); }
 
 // Kleinster runder Maßstab-Nenner, bei dem das ganze Gebiet auf das Blatt passt (Ausrichtung automatisch oder wie gewählt)
-function expPassendWaehlen() {
-  const opt = expEinstellungen();
-  const breiteM = exSzene.xmax - exSzene.xmin, hoeheM = exSzene.ymax - exSzene.ymin;
-  const lay0 = expLayout({ ...opt, massstab: 5000, richtung: opt.richtung }, exSzene);
+function expPassenderNenner(opt, szene) {
+  const breiteM = szene.xmax - szene.xmin, hoeheM = szene.ymax - szene.ymin;
   let besterNenner = Infinity;
   for (const quer of opt.richtung === "auto" ? [true, false] : [opt.richtung === "quer"]) {
-    const l = expLayout({ ...opt, massstab: 5000, richtung: quer ? "quer" : "hoch" }, exSzene);
+    const l = expLayout({ ...opt, massstab: 5000, richtung: quer ? "quer" : "hoch" }, szene);
     const nenner = Math.max((breiteM * 1000) / (l.feld.w - 4), (hoeheM * 1000) / (l.feld.h - 4));
     besterNenner = Math.min(besterNenner, nenner);
   }
   const schritt = besterNenner < 1000 ? 50 : besterNenner < 5000 ? 100 : 500;
-  exEl.massstab.value = String(Math.max(10, Math.ceil(besterNenner / schritt) * schritt));
+  return Math.max(10, Math.ceil(besterNenner / schritt) * schritt);
+}
+
+function expPassendWaehlen() {
+  const opt = expEinstellungen();
+  exEl.massstab.value = String(expPassenderNenner(opt, exSzene));
   exEl.vx.value = "0"; exEl.vy.value = "0";
   expAktualisiere();
   return true;
@@ -1090,53 +1100,61 @@ function expOeffne() {
   }, 30);
 }
 
+// Erzeugt eine Datei und gibt { blob, name, hinweis } zurück. Wird vom Export-Fenster und vom Sammel-Export benutzt.
+async function expErzeuge(ziel, ansicht, szene, opt, lay) {
+  const art = EXP_PLAENE[ansicht].art;
+  const name = (ende, zusatz = "") => `SiteKick-${EXP_PLAENE[ansicht].datei}${art === "bild3d" || art === "text" ? "" : "-1zu" + opt.massstab}${zusatz}.${ende}`;
+  const ohneMassstab = (n) => n.replace(/-1zu\d+/, "");
+  if (ziel === "svg") {
+    const b = expSvg(lay.w, lay.h); expZeichne(b, opt, szene, lay);
+    return { blob: new Blob([b.ergebnis(false)], { type: "image/svg+xml" }), name: name("svg") };
+  }
+  if (ziel === "pdf") {
+    if (!window.jspdf) throw new Error("PDF-Bibliothek nicht geladen (Internetverbindung?)");
+    const b = expPdf(lay.w, lay.h); expZeichne(b, opt, szene, lay);
+    return { blob: b.ergebnis(), name: name("pdf") };
+  }
+  if (ziel === "png") {
+    let dpi = opt.dpi;
+    const pixel = (lay.w / 25.4) * dpi * (lay.h / 25.4) * dpi;
+    let hinweis = "";
+    if (pixel > 120e6) { dpi = Math.floor(dpi * Math.sqrt(120e6 / pixel)); hinweis = ` (Auflösung auf ${dpi} dpi verringert, das Blatt ist sehr groß)`; }
+    const b = expLeinwand(lay.w, lay.h, dpi); expZeichne(b, opt, szene, lay);
+    const blob = await new Promise((r) => b.leinwand.toBlob(r, "image/png"));
+    b.leinwand.width = 1; b.leinwand.height = 1;                       // Speicher der großen Leinwand freigeben
+    return { blob, name: name("png"), hinweis: `PNG mit ${dpi} dpi${hinweis}` };
+  }
+  if (ziel === "dxf-allplan" || ziel === "dxf-archicad") {
+    return { blob: new Blob([expDxf(szene, opt, ziel === "dxf-archicad" ? "archicad" : "allplan")], { type: "application/dxf" }), name: name("dxf", ziel === "dxf-archicad" ? "-ArchiCAD" : "-Allplan") };
+  }
+  if (ziel === "dxf3d-allplan" || ziel === "dxf3d-archicad") {
+    return { blob: new Blob([expDxf3d(opt, ziel === "dxf3d-archicad" ? "archicad" : "allplan")], { type: "application/dxf" }), name: name("dxf", ziel === "dxf3d-archicad" ? "-ArchiCAD" : "-Allplan") };
+  }
+  if (ziel === "dxf-schnitt") return { blob: new Blob([baueDxf(schnittDaten)], { type: "application/dxf" }), name: ohneMassstab(name("dxf", "-CAD")) };
+  if (ziel === "geojson") {
+    const fc = { type: "FeatureCollection", name: `SiteKick ${EXP_PLAENE[ansicht].name}`, quellen: expQuellen(), features: szene.geo };
+    return { blob: new Blob([JSON.stringify(fc)], { type: "application/geo+json" }), name: ohneMassstab(name("geojson")) };
+  }
+  if (ziel === "csv") return { blob: new Blob([expCsvTabelle(ansicht)], { type: "text/csv;charset=utf-8" }), name: ohneMassstab(name("csv")) };
+  if (ziel === "kz-pdf") {
+    if (!window.jspdf) throw new Error("PDF-Bibliothek nicht geladen (Internetverbindung?)");
+    return { blob: expKennzahlenPdf(opt), name: name("pdf") };
+  }
+  if (ziel === "kz-csv") return { blob: new Blob([expKennzahlenCsv()], { type: "text/csv;charset=utf-8" }), name: name("csv") };
+  throw new Error("Unbekanntes Format: " + ziel);
+}
+
 async function expSpeichern(ziel) {
   if (!exSzene) return;
   const opt = expEinstellungen();
-  const lay = exSzene.lay;
-  const ansicht = exSzene.ansicht;
   expSpeichereEinstellungen();
   exEl.status.textContent = "Wird erstellt …";
   await expLogoBereit;
   await new Promise((r) => setTimeout(r, 30));
   try {
-    const name = (ende, zusatz = "") => `SiteKick-${EXP_PLAENE[ansicht].datei}${EXP_PLAENE[ansicht].art === "bild3d" || EXP_PLAENE[ansicht].art === "text" ? "" : "-1zu" + opt.massstab}${zusatz}.${ende}`;
-    if (ziel === "svg") {
-      const b = expSvg(lay.w, lay.h); expZeichne(b, opt, exSzene, lay);
-      expHerunterladen(new Blob([b.ergebnis(false)], { type: "image/svg+xml" }), name("svg"));
-    } else if (ziel === "pdf") {
-      if (!window.jspdf) throw new Error("PDF-Bibliothek nicht geladen (Internetverbindung?)");
-      const b = expPdf(lay.w, lay.h); expZeichne(b, opt, exSzene, lay);
-      expHerunterladen(b.ergebnis(), name("pdf"));
-    } else if (ziel === "png") {
-      let dpi = opt.dpi;
-      const pixel = (lay.w / 25.4) * dpi * (lay.h / 25.4) * dpi;
-      let hinweis = "";
-      if (pixel > 120e6) { dpi = Math.floor(dpi * Math.sqrt(120e6 / pixel)); hinweis = ` (Auflösung auf ${dpi} dpi verringert, das Blatt ist sehr groß)`; }
-      const b = expLeinwand(lay.w, lay.h, dpi); expZeichne(b, opt, exSzene, lay);
-      expHerunterladen(await new Promise((r) => b.leinwand.toBlob(r, "image/png")), name("png"));
-      exEl.status.textContent = `PNG mit ${dpi} dpi gespeichert${hinweis}.`;
-      return;
-    } else if (ziel === "dxf-allplan" || ziel === "dxf-archicad") {
-      const inhalt = expDxf(exSzene, opt, ziel === "dxf-archicad" ? "archicad" : "allplan");
-      expHerunterladen(new Blob([inhalt], { type: "application/dxf" }), name("dxf", ziel === "dxf-archicad" ? "-ArchiCAD" : "-Allplan"));
-    } else if (ziel === "dxf3d-allplan" || ziel === "dxf3d-archicad") {
-      const inhalt = expDxf3d(opt, ziel === "dxf3d-archicad" ? "archicad" : "allplan");
-      expHerunterladen(new Blob([inhalt], { type: "application/dxf" }), name("dxf", ziel === "dxf3d-archicad" ? "-3D-ArchiCAD" : "-3D-Allplan"));
-    } else if (ziel === "dxf-schnitt") {
-      expHerunterladen(new Blob([baueDxf(schnittDaten)], { type: "application/dxf" }), name("dxf", "-CAD").replace(/-1zu\d+/, ""));
-    } else if (ziel === "geojson") {
-      const fc = { type: "FeatureCollection", name: `SiteKick ${EXP_PLAENE[ansicht].name}`, quellen: expQuellen(), features: exSzene.geo };
-      expHerunterladen(new Blob([JSON.stringify(fc)], { type: "application/geo+json" }), name("geojson").replace(/-1zu\d+/, ""));
-    } else if (ziel === "csv") {
-      expHerunterladen(new Blob([expCsvTabelle(ansicht)], { type: "text/csv;charset=utf-8" }), name("csv").replace(/-1zu\d+/, ""));
-    } else if (ziel === "kz-pdf") {
-      if (!window.jspdf) throw new Error("PDF-Bibliothek nicht geladen (Internetverbindung?)");
-      expHerunterladen(expKennzahlenPdf(opt), name("pdf"));
-    } else if (ziel === "kz-csv") {
-      expHerunterladen(new Blob([expKennzahlenCsv()], { type: "text/csv;charset=utf-8" }), name("csv"));
-    }
-    exEl.status.textContent = "Gespeichert.";
+    const d = await expErzeuge(ziel, exSzene.ansicht, exSzene, opt, exSzene.lay);
+    expHerunterladen(d.blob, d.name);
+    exEl.status.textContent = d.hinweis ? `${d.hinweis} gespeichert.` : "Gespeichert.";
   } catch (fehler) {
     console.error(fehler);
     exEl.status.textContent = "Speichern nicht möglich: " + fehler.message;
@@ -1146,6 +1164,7 @@ async function expSpeichern(ziel) {
 // Knopf in der Seitenleiste: in den Reitern mit Export einschaltbar, sonst ausgegraut mit Erklärung
 function aktualisiereExport() {
   const hinweis = { set textContent(v) { exEl.knopf.title = v; } };   // der Hinweis steht als Tooltip am Knopf
+  exEl.knopf.hidden = aktuelleAnsicht === "sammel";   // im Sammel-Export gibt es den eigenen Knopf
   const hatExport = !!EXP_PLAENE[aktuelleAnsicht];
   const bereit = hatExport && (datenVorhanden || (aktuelleAnsicht === "luftbild" && !!gebiet)) && (aktuelleAnsicht !== "sonne" || !!sonneLetztesBild) && (aktuelleAnsicht !== "kennzahlen" || !!kennzahlenLetzte)
     && (aktuelleAnsicht !== "schnitt" || !!schnittDaten) && (aktuelleAnsicht !== "3d" || !!(d3 && d3.gruppe));

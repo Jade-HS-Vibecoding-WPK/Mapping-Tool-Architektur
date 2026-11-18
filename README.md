@@ -5,12 +5,14 @@
   </picture>
 </p>
 
-# SiteKick – Mapping-Tool für Architektur
+# SiteKick – Standort & 3D für CAD
+
+*Mapping-Tool für Architektur: Gebiet wählen, Pläne und Zahlen bekommen, für CAD exportieren.*
 
 Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
 **Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonnen- und Schattenstudie, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
-Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt. Alle Pläne lassen sich **maßstäblich mit Plankopf als PDF, PNG, SVG und
-als DXF für Allplan 2024 und ArchiCAD 29** exportieren.
+Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt. Alle Pläne lassen sich **maßstäblich mit Plankopf als PDF (Vektor), PNG, SVG und
+als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele auf einmal als ZIP-Datei** (Reiter „Sammel-Export“).
 
 **SiteKick** (früher Arbeitstitel „Ortsanalyse“) ist als Studienprojekt für Architekturstudierende entstanden. Die Daten kommen automatisch aus offenen Quellen
 (OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start, oder man nutzt die Live-Demo.
@@ -41,13 +43,14 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren.
 1. [Auf einen Blick](#auf-einen-blick)
 2. [Schnellstart](#schnellstart)
 3. [Die Reiter im Einzelnen](#die-reiter-im-einzelnen)
-4. [Export](#export)
+4. [Export und Sammel-Export](#export)
 5. [Datei-Import und Projekt merken](#datei-import-und-projekt-merken)
-6. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
-7. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
-8. [Technik und Aufbau](#technik-und-aufbau)
-9. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
-10. [Offen](#offen)
+6. [Oberfläche und Logo](#oberfläche-und-logo)
+7. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
+8. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
+9. [Technik und Aufbau](#technik-und-aufbau)
+10. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
+11. [Offen](#offen)
 
 ---
 
@@ -60,8 +63,9 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren.
 | Grundstück und Markt | **Flurstücke**, **Mietpreise**, **Wirtschaftlichkeit** | Bodenrichtwert, GRZ/GFZ, Miete, Ertragswert und Neubau-Potenzial je Flurstück, jede Zahl mit Quelle |
 | Darstellung | **Schnitt & Ansicht**, **3D-Modell** | Schnitt und Straßenansicht entlang einer gezogenen Linie (mehrere Linien); 3D mit Dachformen, Gelände und Schatten |
 | Zahlen | **Kennzahlen** | GRZ/GFZ brutto und netto, Dichte, Grün, Verkehr und mehr |
+| Ausgabe | **Sammel-Export** | viele Pläne in vielen Formaten mit gemeinsamem Ausschnitt als eine ZIP-Datei |
 
-**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML) und automatisches Merken des letzten Stands im Browser.
+**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML), automatisches Merken des letzten Stands im Browser, Hell- und Dunkelmodus und eine Installation als App auf dem Handy.
 
 ---
 
@@ -95,15 +99,9 @@ python server.py 8765
    Der Ladestand zeigt, welche Quelle gerade geholt wird.
 3. **Reiter durchklicken:** Alle Ansichten benutzen dieselben Daten.
 4. **Einstellen:** zum Beispiel Datum und Uhrzeit der Sonne, Einfärbung der Flurstücke, Orte der Umgebung, eine Schnittlinie.
-5. **Exportieren:** Unten rechts auf „Exportieren …“ klicken, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern (siehe [Export](#export)).
+5. **Exportieren:** Entweder unten rechts auf „Exportieren …“ klicken (ein Plan, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern) oder im letzten Reiter **„Sammel-Export“** viele Pläne auf einmal als ZIP laden (siehe [Export](#export)).
 
 Die Dachformen (LoD2), das Gelände, Luftbilder, Flurstücke und Bodenrichtwerte gibt es nur in Niedersachsen. Außerhalb arbeitet das Tool mit OpenStreetMap-Daten.
-
-**Gestaltung der Oberfläche:** Die Bedienung ist an den Apple-Stil angelehnt: runde Ecken, Systemschrift, milchig-durchsichtige Fenster über der Karte,
-Ein-Aus-Schalter, weiche Bewegungen und eine einzige Akzentfarbe (Blau). Der Dunkelmodus schaltet sich nach der Systemeinstellung ein; bei „weniger Bewegung“,
-„weniger Transparenz“ und „mehr Kontrast“ im Betriebssystem passt sich das Tool an. Alle Farben stehen gesammelt am Anfang von `style.css`.
-
-![Reiter Schnitt & Ansicht mit Linie auf der Karte und Schnitt als Blatt von unten](docs/bilder/oberflaeche-schnitt.jpg)
 
 ---
 
@@ -209,7 +207,7 @@ Grünanteil, Kronenüberdeckung u. a. Mit Hinweisen zur Genauigkeit, Knopf „Ke
 
 ## Export
 
-Unten rechts im Tool steht in jedem Reiter der Knopf **„Exportieren …“**. In Karte ist er ausgegraut, in allen anderen Reitern gilt er für die gerade offene Ansicht.
+Unten rechts im Tool steht in jedem Reiter mit Export der Knopf **„Exportieren …“**. In „Karte“ ist er ausgegraut, in allen anderen Reitern gilt er für die gerade offene Ansicht. Im Reiter „Sammel-Export“ gibt es dafür den eigenen Knopf (siehe unten).
 Es öffnet sich ein Fenster mit **Vorschau**:
 
 ![Export-Fenster mit Vorschau, Blatt, Maßstab und Plankopf](docs/bilder/export-fenster.jpg)
@@ -223,13 +221,31 @@ Es öffnet sich ein Fenster mit **Vorschau**:
 
 | Reiter | Formate |
 |---|---|
-| Schwarzplan, Straßennetz, Grün & Wasser, Lageplan, Umgebung | PDF (Vektor), PNG (150/300 dpi), SVG (Vektor), **DXF für Allplan 2024 und ArchiCAD 29**, GeoJSON (Umgebung auch CSV-Liste der Orte) |
+| Schwarzplan, Straßennetz, Grün & Wasser, Lageplan, Umgebung | PDF (Vektor), PNG (150, 300 oder 600 dpi, aus den Vektoren gerechnet), SVG (Vektor), **DXF für Allplan 2024 und ArchiCAD 29**, GeoJSON (Umgebung auch CSV-Liste der Orte) |
 | Sonne & Schatten | PDF, PNG, SVG, DXF (nur der Lageplan; die Schatten sind ein Pixelbild und stehen nur in PDF, PNG und SVG) |
 | Flurstücke, Mietpreise, Wirtschaftlichkeit | PDF, PNG, SVG, DXF Allplan/ArchiCAD, GeoJSON, CSV (Tabelle für Excel); die Einfärbung entspricht der gewählten Karte |
 | Luftbild | PDF, PNG, SVG: Foto (25 cm je Pixel) mit den angehakten Linien. Kein DXF, ein Foto hat keine CAD-Linien |
 | Schnitt & Ansicht | PDF, PNG, SVG mit Plankopf im gewählten Maßstab (Beschriftung passt sich an), DXF mit X = Abstand entlang der Linie und Y = Höhe über NHN |
 | 3D-Modell | PDF, PNG, SVG (Bild mit Plankopf, ohne Maßstab); **3D-DXF für Allplan und ArchiCAD** mit LoD2-Wänden und -Dächern als 3D-Flächen und dem Gelände als 5-m-Netz (Höhen über NHN) |
 | Kennzahlen | PDF (A4-Seiten) und CSV |
+
+**Vektor oder Pixel:** PDF und SVG enthalten Linien, Flächen und Schrift als **Vektoren** (beliebig vergrößerbar). Ein PNG besteht technisch immer aus Pixeln, wird hier aber aus den Vektoren
+in 150, 300 oder 600 dpi gerechnet und bleibt dadurch scharf. Nur was von Natur aus ein Pixelbild ist, bleibt eines: das Luftbild, das Sonnen-Raster, die 3D-Ansicht und die Schnittzeichnung im PDF
+(als SVG und DXF ist der Schnitt Vektor).
+
+### Sammel-Export (letzter Reiter)
+
+Der Reiter **„Sammel-Export“** (ganz rechts) lädt **mehrere Pläne in mehreren Formaten auf einmal** als **eine ZIP-Datei** herunter. Der Export-Knopf in den einzelnen Reitern bleibt unverändert.
+
+![Sammel-Export: Pläne und Formate wählen, gemeinsamer Ausschnitt, Download als ZIP](docs/bilder/sammel-export.jpg)
+![Sammel-Export: Formate, Blatt und Beschriftung, Herunterladen mit Fortschritt](docs/bilder/sammel-export-download.jpg)
+
+1. **Was:** Pläne und Daten ankreuzen (Schwarzplan bis Kennzahlen). Was noch nicht bereit ist, steht ausgegraut mit Grund und einem Knopf „Öffnen“ (Sonne & Schatten, Schnitt und 3D-Modell rechnen erst, wenn man den Reiter einmal geöffnet hat).
+2. **Formate:** PDF, SVG, PNG, DXF für Allplan, DXF für ArchiCAD, GeoJSON, CSV. Jeder Plan liefert die Formate, die für ihn möglich sind (das Luftbild zum Beispiel kein DXF). Eine Zeile unter der Liste warnt, wenn ein Format für die gewählten Pläne nichts liefert.
+3. **Blatt und Beschriftung:** Blattgröße, Ausrichtung, Maßstab, Projektname, Verfasser, Kurs, Datum, Legende und PNG-Auflösung (150, 300 oder 600 dpi) gelten für alle Pläne. Schnitt und 3D-Modell passen sich selbst ans Blatt an.
+4. **Ausschnitt:** In der Vorschau (zum Beispiel Lageplan) zieht man den Plan mit der Maus. **Derselbe Ausschnitt gilt für alle gewählten Pläne**, damit man vorher sieht, was man bekommt.
+5. **Herunterladen:** Der Fortschritt steht je Plan. In der ZIP liegt ein Ordner je Plan (zum Beispiel `Lageplan/SiteKick-Lageplan-1zu2000.pdf`), dazu die Datei `Hinweise-und-Quellen.txt` mit Einstellungen, Quellen und Lizenzhinweisen.
+   Zum Beispiel ergaben alle 13 Einträge in allen 7 Formaten im Testgebiet 80 Dateien (48,9 MB bei 150 dpi).
 
 **Beispiele für exportierte Blätter** (PNG, A3):
 
@@ -261,6 +277,21 @@ Der Maßstab stimmt auf dem Papier nur, wenn beim Drucken „tatsächliche Grö�
 **Projekt merken:** Das Tool merkt sich automatisch den letzten Stand **in diesem Browser**: Gebiet, offenen Reiter, Sonnen-Einstellungen, Einfärbungen, Luftbild-Einstellungen,
 Gehzeit-Kreise, Schnittlinien, LoD2 an/aus. Beim nächsten Öffnen erscheint links der Kasten **„Wiederherstellen“**; die Geodaten werden dabei neu geladen.
 Die Orte der Umgebung, die Werte der Wirtschaftlichkeit und die Export-Angaben merken sich ihre Reiter selbst. Das Merken gilt nur für diesen Rechner und diesen Browser.
+
+---
+
+## Oberfläche und Logo
+
+**Gestaltung:** Die Bedienung ist an den Apple-Stil angelehnt: runde Ecken, Systemschrift, milchig-durchsichtige Fenster über der Karte, Ein-Aus-Schalter, Umschalter als Segmente,
+weiche Bewegungen und **eine** Akzentfarbe, das Signalrot-Orange `#F2541B` aus dem Logo (im Dunkelmodus `#FF6A33`). Knöpfe reagieren schon beim Drücken.
+Der **Dunkelmodus** schaltet sich nach der Systemeinstellung ein; bei „weniger Bewegung“, „weniger Transparenz“ und „mehr Kontrast“ im Betriebssystem passt sich das Tool an.
+**Karte, Pläne, Zeichenblätter und Exporte bleiben immer hell und schwarz-weiß**, damit sie sich drucken lassen. Alle Farben stehen gesammelt am Anfang von `style.css`.
+
+![Reiter Schnitt & Ansicht mit Linie auf der Karte und Schnitt als Blatt von unten](docs/bilder/oberflaeche-schnitt.jpg)
+
+**Logo:** Das Logo-Paket „Seite an Seite“ liegt im Ordner `logo/` (Regeln in `logo/LIESMICH.txt`: Schutzraum, Mindestgröße 120 px, nicht verzerren oder umfärben).
+Es steht in der Seitenleiste (Farbversion im Hellmodus, Negativ im Dunkelmodus), als Browser- und Handy-Symbol, in der Vorschau beim Teilen eines Links, im Plankopf aller
+exportierten Blätter (schwarze Version rechts unten), im Kennzahlen-PDF, im 3D-Bild und oben in dieser README. Über `manifest.webmanifest` lässt sich die Seite auf dem Handy als App installieren.
 
 ---
 
@@ -303,10 +334,11 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 - **Mieten** sind Bestandsmieten 2022 im 100-m-Raster, keine aktuellen Angebotsmieten. Je Flurstück sind sie eine Schätzung aus dem Raster.
 - **Wirtschaftlichkeit:** Überschlag ohne Gutachterqualität. Baukosten nach Normalherstellungskosten liegen oft unter den Marktpreisen. Ein Bebauungsplan fehlt.
 - **Fremdserver:** Fällt einer der Datendienste aus (z. B. ein Overpass-Server), erscheint eine Meldung im Ladestand; das Tool probiert mehrere Overpass-Server nacheinander.
-- **Export:** Das DXF kennt keine Füllungen und keine Pixelbilder (Schatten, Luftbild). Die 3D-DXF ist groß (etwa 16 MB für 62 ha). Sehr große Blätter (A0 als PNG) werden automatisch in der Auflösung verringert.
-  Das Luftbild lädt das Tool beim Export neu vom Dienst des LGLN, dazu braucht es Internet.
+- **Export:** Das DXF kennt keine Füllungen und keine Pixelbilder (Schatten, Luftbild). Die 3D-DXF ist groß (etwa 16 MB für 62 ha). Ein PNG besteht immer aus Pixeln; sehr große Blätter (ab etwa 120 Megapixel, zum Beispiel A1 oder A0 mit 600 dpi) werden automatisch in der Auflösung verringert.
+  Pixelbilder bleiben Luftbild, Sonnen-Raster, 3D-Ansicht und die Schnittzeichnung im PDF. Das Luftbild lädt das Tool beim Export neu vom Dienst des LGLN, dazu braucht es Internet.
+- **Sammel-Export:** Viele Pläne in hoher Auflösung brauchen Zeit und Arbeitsspeicher (im Test etwa 7 Sekunden je Plan bei 150 dpi). Der Schnitt wird dafür kurz im Schnitt-Reiter ausgemessen, danach springt die Ansicht zurück.
 - **Import:** DWG und das binäre topoexport-DXF kann der Browser nicht lesen (als Text-DXF speichern). Beim DXF-Import fehlen Blöcke, Texte, Bemaßungen und Schraffuren. Importierte GeoJSON- und DXF-Dateien bleiben nicht über das Neuladen der Seite hinaus erhalten.
-- **Nicht getestet:** Smartphone, andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, CityGML-Import mit einer echten Datei, Text-DXF mit lokalen Koordinaten, sehr große oder dicht bebaute Gebiete.
+- **Nicht getestet:** Smartphone (auch die Installation als App), andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, CityGML-Import mit einer echten Datei, Text-DXF mit lokalen Koordinaten, sehr große oder dicht bebaute Gebiete, Sammel-Export mit 600 dpi auf A1/A0 und das Ziehen des Ausschnitts im Sammel-Reiter mit anderen Eingabegeräten als der Maus.
 
 ---
 
@@ -315,12 +347,12 @@ Ehrlich gesagt, was das Tool **nicht** kann:
 Reine Website aus HTML, CSS und JavaScript, **kein Build-Schritt, kein eigener Server** (`server.py` ist nur ein Hilfsserver für den lokalen Start, der das Zwischenspeichern ausschaltet).
 Bibliotheken kommen per CDN: [MapLibre GL JS](https://maplibre.org/) 4.7.1 (Karte), [Turf.js](https://turfjs.org/) 7.1.0 (Flächen und Längen),
 [osmtogeojson](https://github.com/tyrasd/osmtogeojson) (OSM-Daten umwandeln), [proj4js](http://proj4js.org/) (UTM 32 ↔ Länge/Breite),
-[three.js](https://threejs.org/) 0.147 (3D), [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (PDF-Export) und [geotiff.js](https://geotiffjs.github.io/) (Geländemodell).
+[three.js](https://threejs.org/) 0.147 (3D), [jsPDF](https://github.com/parallax/jsPDF) 2.5.1 (PDF-Export), [JSZip](https://stuk.github.io/jszip/) 3.10.1 (ZIP beim Sammel-Export) und [geotiff.js](https://geotiffjs.github.io/) (Geländemodell).
 Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 
 | Datei | Inhalt |
 |---|---|
-| `index.html`, `style.css` | Oberfläche und Gestaltung (Apple-Stil, Hell und Dunkel, alle Farben als Variablen) |
+| `index.html`, `style.css` | Oberfläche und Gestaltung (Apple-Stil, Hell und Dunkel, alle Farben als Variablen), Logo und Seitenvorschau |
 | `app.js` | Karte, Gebiet zeichnen, Datenabruf (OSM, ALKIS), Pläne, Kennzahlen |
 | `lod2-worker.js` | liest die LoD2-Kacheln im Hintergrund |
 | `gelaende.js` | Geländemodell DGM1 |
@@ -330,14 +362,15 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `schnitt.js` | Schnitt, Straßenansicht, mehrere Linien, DXF des Schnitts |
 | `sonne.js` | Sonnenstand, Schattenplan, Besonnungsdauer |
 | `hoehe.js` | Schwarzplan nach Höhe |
-| `export.js` | Export-Fenster: Blatt, Maßstab, Plankopf, PDF/PNG/SVG/DXF/GeoJSON/CSV |
+| `export.js` | Export-Fenster: Blatt, Maßstab, Plankopf mit Logo, PDF/PNG/SVG/DXF/GeoJSON/CSV (Dateien entstehen in `expErzeuge`) |
+| `sammelexport.js` | Reiter Sammel-Export: viele Pläne und Formate, gemeinsamer Ausschnitt, ZIP (JSZip) |
 | `import.js`, `projekt.js` | Datei-Import, Projekt im Browser merken |
 | `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
 | `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
-| `logo/` | Logo-Paket (SVG, PNG, Icons) mit Regeln in `logo/LIESMICH.txt`; `manifest.webmanifest` macht die Seite auf dem Handy als App installierbar |
+| `logo/`, `manifest.webmanifest` | Logo-Paket (SVG, PNG, Icons) mit Regeln in `logo/LIESMICH.txt`; das Manifest macht die Seite auf dem Handy als App installierbar |
 | `docs/bilder/` | Screenshots für diese README |
 
 ---
@@ -357,9 +390,14 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 
 ## Offen
 
-Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Programmen oder Geräten gehen: die DXF-Dateien in Allplan und ArchiCAD öffnen, der CityGML-Import
-mit einer echten Datei, Smartphone und andere Browser (Firefox, Safari) sowie die Oberfläche im Dunkelmodus in den Reitern 3D-Modell und Mietpreise.
-Zum Abgeben noch auszufüllen: Namen, Kurs, Datum und der KI-Nachweis oben in dieser README.
+Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Programmen oder Geräten gehen:
+
+- die DXF-Dateien in **Allplan 2024 und ArchiCAD 29** öffnen (das machen die Studierenden selbst),
+- der CityGML-Import mit einer echten Datei, Smartphone und andere Browser (Firefox, Safari), die Oberfläche im Dunkelmodus in den Reitern 3D-Modell und Mietpreise,
+- der Sammel-Export mit 600 dpi auf großen Blättern.
+
+Zum Abgeben noch auszufüllen: **Namen, Kurs, Datum und der KI-Nachweis** oben und im Abschnitt „Hinweis zur Nutzung von KI“ in dieser README. Die Screenshots der Oberfläche in dieser README
+zeigen teils noch die frühere Text-Überschrift und das alte Blau; die Pläne und Exportblätter sind aktuell.
 
 ---
 

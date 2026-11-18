@@ -36,6 +36,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   geprüft, in Allplan/ArchiCAD ungetestet (das macht die Nutzerin / der Nutzer).
 - Sonne & Schatten (Reiter „Sonne & Schatten“, `sonne.js`, Schatten auch in `ansicht3d.js`): Höhenraster 2 m aus LoD2-Dächern/OSM-Blöcken, Bäumen (Krone mit Unterkante) und DGM1, Sonnenstand astronomisch
   (NOAA-Formel, Zeit MEZ/MESZ nach EU-Regel), Schattenstrahlen je Zelle; Besonnungsdauer alle 15 Minuten. Mögliche Sonnenscheindauer bei klarem Himmel, kein Normnachweis, Schatten von außerhalb des Rechtecks fehlen.
+- Sammel-Export (letzter Reiter „Sammel-Export“, `sammelexport.js`): mehrere Pläne und Formate mit gemeinsamen Blatt-Einstellungen und gemeinsamem Ausschnitt als ZIP (JSZip per CDN). Dateien entstehen mit `expErzeuge` aus `export.js`, der Export-Knopf pro Reiter bleibt. PDF/SVG sind Vektor, PNG wird aus den Vektoren in 150 bis 600 dpi gerechnet; Pixelbilder bleiben nur Luftbild, Sonnen-Raster, 3D-Ansicht und die Schnittzeichnung im PDF.
 - Zusatzfunktionen: Schwarzplan nach Höhe (`hoehe.js`), Gehzeit-Kreise als Luftlinie 80 m/min (`erreichbar.js`), Projekt automatisch im Browser merken (`projekt.js`), Datei-Import GeoJSON, Text-DXF und CityGML (`import.js`; binäres DXF und DWG nicht lesbar), mehrere Schnittlinien (`schnitt.js`), Denkmal-Gruppe aus OSM `heritage` (`infos.js`).
 - Umgebung (Reiter „Umgebung“, früher „Infos“, intern `infos`, `infos.js`): Orte und Linien aus OpenStreetMap (zweite Overpass-Abfrage nach der Hauptabfrage), Gruppen einzeln schaltbar.
 - LoD2 wird automatisch vom LGLN geladen: Kacheln per STAC-Suche (https://lod.stac.lgln.niedersachsen.de/search),
@@ -80,7 +81,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 
 # Gestaltung
 - Apple-Stil (Skill apple-design): Systemschrift, runde Ecken, milchig-durchsichtige Fenster über der Karte,
-  weiche Bewegungen ohne Überschwingen, sofortige Rückmeldung beim Drücken, eine Akzentfarbe (iOS-Blau).
+  weiche Bewegungen ohne Überschwingen, sofortige Rückmeldung beim Drücken, eine Akzentfarbe (Signalrot-Orange #F2541B aus dem Logo, dunkel #FF6A33).
 - Hell- und Dunkelmodus nach Systemeinstellung. Alle Farben stehen als Variablen oben in style.css.
   Karte, Pläne, Zeichenblätter und Exporte bleiben hell, schwarz-weiß und streng.
 - Logo (Ordner `logo/`): im Hellmodus Farbversion, im Dunkelmodus Negativ, in Plänen und Exporten die schwarze Version. Regeln siehe `logo/LIESMICH.txt` (nicht verzerren, nicht umfärben, Schutzraum einhalten).

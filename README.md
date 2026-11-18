@@ -21,7 +21,7 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 
 *Lageplan des Testgebiets Oldenburg Innenstadt (800 × 778 m), erzeugt mit dem Tool.*
 
-**Live-Demo:** https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/
+**Live-Demo:** https://jade-hs-vibecoding-wpk.github.io/SiteKick/
 
 | Hell | Dunkel |
 |---|---|
@@ -73,7 +73,7 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 
 **Variante A: Live-Demo im Browser (nichts installieren)**
 
-**https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/**
+**https://jade-hs-vibecoding-wpk.github.io/SiteKick/**
 
 Die Seite läuft über GitHub Pages direkt aus diesem Repository, es ist kein eigener Server nötig. Die Datendienste sind bei den ersten Aufrufen manchmal überlastet
 (Overpass meldet gelegentlich Fehler 502); das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB, bei schwacher Leitung das

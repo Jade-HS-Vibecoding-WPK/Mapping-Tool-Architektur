@@ -313,7 +313,7 @@ function wirtLuftbild(p) {
   const pfad = utm.map((poly) => poly.map((ring) => "M" + ring.map(([x, y]) => `${(((x - x0) / seite) * S).toFixed(1)},${(((y0 + seite - y) / seite) * S).toFixed(1)}`).join("L") + "Z").join("")).join("");
   const url = `${DOP_WMS}?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=ni_dop20&STYLES=&CRS=EPSG:25832&BBOX=${[x0, y0, x0 + seite, y0 + seite].map((z) => z.toFixed(2)).join(",")}&WIDTH=${S}&HEIGHT=${S}&FORMAT=image/jpeg`;
   return `<div class="wirt-bild"><img src="${url}" alt="Luftbild des Flurstücks" onerror="this.parentNode.hidden=true">` +
-    `<svg viewBox="0 0 ${S} ${S}" aria-hidden="true"><path d="${pfad}" fill="rgba(242,84,27,0.12)" fill-rule="evenodd" stroke="#F2541B" stroke-width="2.5"/></svg>` +
+    `<svg viewBox="0 0 ${S} ${S}" aria-hidden="true"><path d="${pfad}" fill="rgba(255,0,0,0.12)" fill-rule="evenodd" stroke="#FF0000" stroke-width="2.5"/></svg>` +
     `<span class="wirt-bild-quelle">Luftbild: LGLN (${luftJahr}), CC BY 4.0</span></div>`;
 }
 

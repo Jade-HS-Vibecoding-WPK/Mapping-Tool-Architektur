@@ -65,7 +65,7 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 | Zahlen | **Kennzahlen** | GRZ/GFZ brutto und netto, Dichte, Grün, Verkehr und mehr |
 | Ausgabe | **Sammel-Export** | viele Pläne in vielen Formaten mit gemeinsamem Ausschnitt als eine ZIP-Datei |
 
-**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML), automatisches Merken des letzten Stands im Browser, Hell- und Dunkelmodus und eine Installation als App auf dem Handy.
+**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML), automatisches Merken des letzten Stands im Browser, Hell- und Dunkelmodus (Swiss Style) und eine Installation als App auf dem Handy.
 
 ---
 
@@ -283,19 +283,24 @@ Die Orte der Umgebung, die Werte der Wirtschaftlichkeit und die Export-Angaben m
 
 ## Oberfläche und Logo
 
-**Gestaltung:** Die Bedienung ist an den Apple-Stil angelehnt: runde Ecken, Systemschrift, milchig-durchsichtige Fenster über der Karte, Ein-Aus-Schalter, Umschalter als Segmente,
-weiche Bewegungen und **eine** Akzentfarbe, das Signalrot-Orange `#F2541B` aus dem Logo (im Dunkelmodus `#FF6A33`). Knöpfe reagieren schon beim Drücken.
-Der **Dunkelmodus** schaltet sich nach der Systemeinstellung ein; bei „weniger Bewegung“, „weniger Transparenz“ und „mehr Kontrast“ im Betriebssystem passt sich das Tool an.
-**Karte, Pläne, Zeichenblätter und Exporte bleiben immer hell und schwarz-weiß**, damit sie sich drucken lassen. Alle Farben stehen gesammelt am Anfang von `style.css`.
+**Gestaltung:** Die Oberfläche folgt dem **Swiss Style** (Internationaler Typografischer Stil) in seiner plakativen Form: **riesige, schwarze Überschriften in Versalien**
+(Montserrat Black, eng gesetzt), leichter Fließtext, **rote Beschriftungen in Versalien mit weiter Sperrung**, linksbündig, ein strenges Raster, **Linien statt Schatten und Glas**,
+rechte Winkel ohne Rundungen und viel Weißraum. Schwarz, Weiß und **eine** Signalfarbe, das reine Rot `#FF0000` (im Dunkelmodus `#FF2A2A`), das auch im Logo steckt.
+Knöpfe sind Rahmen und füllen sich beim Überfahren schwarz, beim Drücken orange. Der **Dunkelmodus** schaltet sich nach der Systemeinstellung ein und ist streng umgekehrt: Weiß auf Schwarz.
+Bei „weniger Bewegung“ und „mehr Kontrast“ im Betriebssystem passt sich das Tool an.
+**Karte, Pläne, Zeichenblätter und Exporte bleiben immer hell und schwarz-weiß**, damit sie sich drucken lassen.
+Die Schrift **Montserrat** (SIL Open Font License, Lizenztext in `fonts/OFL.txt`) liegt im Projekt und wird **nicht von Google geladen**. Alle Farben und Maße stehen gesammelt am Anfang von `style.css`.
 
 ![Reiter Schnitt & Ansicht mit Linie auf der Karte und Schnitt als Blatt von unten](docs/bilder/oberflaeche-schnitt.jpg)
 
-**Logo:** Das Logo-Paket „Seite an Seite“ liegt im Ordner `logo/` (Regeln in `logo/LIESMICH.txt`: Schutzraum, Mindestgröße 120 px, nicht verzerren oder umfärben).
+**Logo:** Das Logo-Paket „Seite an Seite“ liegt im Ordner `logo/` (im Projekt von Orange auf das Rot der Oberfläche umgefärbt, Symbole und Favicon eingeschlossen) (Regeln in `logo/LIESMICH.txt`: Schutzraum, Mindestgröße 120 px, nicht verzerren oder umfärben).
 Es steht in der Seitenleiste (Farbversion im Hellmodus, Negativ im Dunkelmodus), als Browser- und Handy-Symbol, in der Vorschau beim Teilen eines Links, im Plankopf aller
 exportierten Blätter (schwarze Version rechts unten), im Kennzahlen-PDF, im 3D-Bild und oben in dieser README. Über `manifest.webmanifest` lässt sich die Seite auf dem Handy als App installieren.
 
 **Hinweis beim Start:** Beim Öffnen der Seite erscheint einmal je Browser-Sitzung ein Fenster mit dem **KI-Disclaimer** (Seite und Tool wurden mit Hilfe von KI gebaut, Ergebnisse sind Überschläge)
 und, aus Spaß, dem Logo der **„Simon Ubben Bau GmbH“** mit „Powered by“. Darunter steht ausdrücklich, dass das **keine echte Firma** ist, sondern ein Scherz der Projektgruppe (`hinweis.js`, Bild in `logo/spass/`).
+
+![Startfenster mit KI-Disclaimer und Spaß-Logo der fiktiven Simon Ubben Bau GmbH](docs/bilder/start-fenster.jpg)
 
 ---
 
@@ -313,6 +318,7 @@ sichtbar unten auf der Karte und in den Exporten.**
 | Gelände (DGM1, 1-m-Raster) | LGLN, STAC-Dienst | © GeoBasis-DE/LGLN, „Daten geändert“ (CC BY 4.0) |
 | Luftbilder (DOP20) | LGLN, WMS `dop_wms` | CC BY 4.0 |
 | Mieten, Wohnungsgröße, Baujahr (100-m-Raster) | Zensus 2022, © Statistische Ämter des Bundes und der Länder | dl-de/by-2-0, „Daten geändert“; abgefragt über eine offene Kopie (Esri-Dienst `Zensus2022_grid_final`) |
+| Schrift Montserrat | © The Montserrat Project Authors, selbst gehostet (`fonts/`) | SIL Open Font License 1.1 |
 | Rechenwerte der Wirtschaftlichkeit | siehe Reiter, je Feld mit Quelle | u. a. Gutachterausschüsse Niedersachsen, ImmoWertV, BewG, Mietspiegel Oldenburg 2025, Destatis |
 
 Die Hintergrundkarte kommt von den OSM-Kartenservern. Für ein Studienprojekt ist das in Ordnung; bei vielen Nutzer\*innen müsste man einen anderen Kartendienst nehmen.
@@ -356,7 +362,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 
 | Datei | Inhalt |
 |---|---|
-| `index.html`, `style.css` | Oberfläche und Gestaltung (Apple-Stil, Hell und Dunkel, alle Farben als Variablen), Logo und Seitenvorschau |
+| `index.html`, `style.css` | Oberfläche und Gestaltung (Swiss Style, Hell und Dunkel, alle Farben und Maße als Variablen), Logo und Seitenvorschau |
 | `app.js` | Karte, Gebiet zeichnen, Datenabruf (OSM, ALKIS), Pläne, Kennzahlen |
 | `lod2-worker.js` | liest die LoD2-Kacheln im Hintergrund |
 | `gelaende.js` | Geländemodell DGM1 |
@@ -375,6 +381,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
+| `fonts/` | Schrift Montserrat (Latein-Teil, variabel 300 bis 900) und ihre Lizenz `OFL.txt` |
 | `logo/`, `manifest.webmanifest` | Logo-Paket (SVG, PNG, Icons) mit Regeln in `logo/LIESMICH.txt`; das Manifest macht die Seite auf dem Handy als App installierbar |
 | `docs/bilder/` | Screenshots für diese README |
 

@@ -19,7 +19,7 @@ VERSIONEN
 
 FARBEN
   Tinte    #0E1B2A   Schriftzug „Site“, Würfel
-  Signal   #F2541B   „Kick“, Pin   (auf dunklem Grund: #FF6A33)
+  Signal   #FF0000   „Kick“, Pin   (auf dunklem Grund: #FF2A2A)   – im Projekt von Orange #F2541B auf reines Rot umgestellt
   Stahl    #B8C4CF   Würfel-Deckfläche
   Schiefer #3B5168   Würfel-Seite
 

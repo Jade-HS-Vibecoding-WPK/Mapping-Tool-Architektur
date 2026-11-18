@@ -72,9 +72,9 @@ map.on("load", () => {
   legePlanEbenenAn();
   map.addSource("gebiet", { type: "geojson", data: leer });
   map.addLayer({ id: "gebiet-flaeche", type: "fill", source: "gebiet",
-    paint: { "fill-color": "#F2541B", "fill-opacity": 0.08 } });
+    paint: { "fill-color": "#FF0000", "fill-opacity": 0.08 } });
   map.addLayer({ id: "gebiet-rand", type: "line", source: "gebiet",
-    paint: { "line-color": "#F2541B", "line-width": 2, "line-dasharray": [3, 2] } });
+    paint: { "line-color": "#FF0000", "line-width": 2, "line-dasharray": [3, 2] } });
   legeWirtEbenenAn();       // Reiter Wirtschaftlichkeit (wirtschaft.js)
   legeSchnittEbenenAn();    // Reiter Schnitt (schnitt.js): die gezogene Linie
   legeLuftbildEbenenAn();   // Reiter Luftbild (luftbild.js), liegt unter dem Rechteck
@@ -411,10 +411,10 @@ const FARBE = {
     brw: ["#f7f0df", "#e6b56a", "#a8431f"],
     grz: ["#eef3f6", "#8fb3c9", "#2f5d7e"],
     gfz: ["#f1eef6", "#b8a3d0", "#5c3f87"],
-    keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#F2541B"
+    keine: "#e6e4df", gebaeude: "#4a4741", linie: "#4a4741", auswahl: "#FF0000"
   },
   // Mietpreise (Zensus-Raster): Farblauf hell, mittel, dunkel
-  miet: { rampe: ["#cfeadb", "#73bda1", "#1b6a58"], keine: "#e6e4df", auswahl: "#F2541B", linie: "#5f8a7d" },
+  miet: { rampe: ["#cfeadb", "#73bda1", "#1b6a58"], keine: "#e6e4df", auswahl: "#FF0000", linie: "#5f8a7d" },
   // 3D-Modell
   d3: { hintergrund: "#f4f6f8", boden: "#f0eee8", wand: "#f2efe9", dach: "#8a8887", ersatzWand: "#cfdcea", ersatzDach: "#9db3cb", stamm: "#6b5a46" }
 };
@@ -663,7 +663,7 @@ function wendeAnsichtAn() {
 
   // Rechteck: auf der Karte rot gestrichelt, im Plan als feiner schwarzer Rahmen
   map.setPaintProperty("gebiet-flaeche", "fill-opacity", imPlan ? 0 : (einstellung.rahmenFuellung ?? 0.08));
-  map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#F2541B");
+  map.setPaintProperty("gebiet-rand", "line-color", imPlan ? "#111111" : "#FF0000");
   map.setPaintProperty("gebiet-rand", "line-width", imPlan ? 1 : 2);
   map.setPaintProperty("gebiet-rand", "line-dasharray", imPlan ? [1, 0] : [3, 2]);
 

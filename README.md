@@ -31,9 +31,9 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 
 | | |
 |---|---|
-| **Projekt von** | _[Namen der Gruppe eintragen]_ |
-| **Kurs / Dozent\*in** | _[Kurs und Dozent\*in eintragen]_ |
-| **Stand** | _[Datum der Abgabe eintragen]_ |
+| **Projekt von** | Jorit Simon und Alexander Ubben |
+| **Dozent\*innen** | Gregor Grunwald und Radostina Radulova-Stahmer |
+| **Stand** | 18.11.2026 |
 | **Lizenz** | MIT License (siehe [`LICENSE`](LICENSE)) |
 
 ---
@@ -378,10 +378,17 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 ## Hinweis zur Nutzung von KI
 
 Dieses Projekt wurde **mit Unterstützung von KI** entwickelt. Der Programmcode wurde mit dem Coding-Agenten **Claude Code** (Anthropic) geschrieben,
-im Dialog mit den Studierenden: Die Studierenden haben Idee, Funktionsumfang, Gestaltung und Prüfung der Ergebnisse verantwortet, der Agent hat auf Anfrage
-den Code erzeugt und getestet. Die Arbeitsregeln für den Agenten stehen in [`CLAUDE.md`](CLAUDE.md), der Verlauf in [`PLAN.md`](PLAN.md).
+im Dialog mit den Studierenden. Die Arbeitsregeln für den Agenten stehen in [`CLAUDE.md`](CLAUDE.md), der Verlauf in [`PLAN.md`](PLAN.md).
 
-_[Hier die Angaben ergänzen, die die Hochschule für den Nachweis der KI-Nutzung verlangt, z. B. Version/Modell, Zeitraum, Anteil, Prüfung der Ergebnisse.]_
+| | |
+|---|---|
+| **Werkzeug** | Claude Code von Anthropic in der Claude-Desktop-App, mit Claude-Modellen von Anthropic (zuletzt Claude Sonnet 5.5) |
+| **Zeitraum** | 16. bis 18.11.2026 (siehe Commit-Verlauf im Repository) |
+| **Von den Studierenden** | Idee und Ziel, Auswahl und Reihenfolge der Funktionen, Gestaltungsentscheidungen (Stil, Farben, Logo), Fragen und Rückmeldungen im Dialog, Tests im Browser, Prüfung der Ergebnisse, Veröffentlichung auf GitHub |
+| **Von der KI** | Programmcode (HTML, CSS, JavaScript), Texte in README, `PLAN.md` und `CLAUDE.md`, automatische Testläufe, Screenshots und Exportbeispiele |
+| **Prüfung** | Rechenwerte mit Quelle belegt und nachgerechnet, DXF-Dateien mit der Bibliothek ezdxf geprüft, Ergebnisse an den Daten von Oldenburg Innenstadt im Browser getestet. Nicht geprüft: DXF in Allplan und ArchiCAD, Smartphone, andere Browser |
+
+Der Code ist von der KI geschrieben; Verantwortung für Inhalt und Ergebnisse tragen die Studierenden.
 
 Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen wurden von Hand nachgerechnet. Trotzdem gilt: **Alle Ergebnisse sind
 Überschläge und müssen vor jeder Verwendung selbst geprüft werden.**
@@ -396,8 +403,7 @@ Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Prog
 - der CityGML-Import mit einer echten Datei, Smartphone und andere Browser (Firefox, Safari), die Oberfläche im Dunkelmodus in den Reitern 3D-Modell und Mietpreise,
 - der Sammel-Export mit 600 dpi auf großen Blättern.
 
-Zum Abgeben noch auszufüllen: **Namen, Kurs, Datum und der KI-Nachweis** oben und im Abschnitt „Hinweis zur Nutzung von KI“ in dieser README. Die Screenshots der Oberfläche in dieser README
-zeigen teils noch die frühere Text-Überschrift und das alte Blau; die Pläne und Exportblätter sind aktuell.
+Alle Screenshots und Exportblätter in dieser README zeigen den Stand vom 18.11.2026 (Testgebiet Oldenburg Innenstadt, Hell- und Dunkelmodus).
 
 ---
 

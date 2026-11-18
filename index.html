@@ -6,6 +6,18 @@
   <title>SiteKick</title>
   <meta name="description" content="Städtebauliche Ortsanalyse: Schwarzplan, Straßennetz, Grün, Lageplan und 3D-Modell für ein frei gewähltes Gebiet.">
 
+  <!-- Logo und Symbole (siehe logo/LIESMICH.txt) -->
+  <link rel="icon" href="logo/icons/favicon.ico" sizes="any">
+  <link rel="icon" href="logo/icons/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="logo/icons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0E1B2A">
+  <!-- Vorschau, wenn der Link geteilt wird -->
+  <meta property="og:title" content="SiteKick – Standort &amp; 3D für CAD">
+  <meta property="og:description" content="Gebiet auf der Karte wählen und automatisch Schwarzplan, Lageplan, Sonne &amp; Schatten, 3D-Modell, Schnitt und Kennzahlen bekommen. Export als PDF und DXF für Allplan und ArchiCAD.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://jade-hs-vibecoding-wpk.github.io/Mapping-Tool-Architektur/logo/png/sitekick-logo-gestapelt-farbe.png">
+
   <!-- Karten-Bibliothek (MapLibre) und Rechen-Bibliothek (Turf) aus dem Internet laden -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -23,7 +35,13 @@
     <!-- ===== Seitenleiste links: Arbeitsschritte ===== -->
     <aside class="sidebar">
       <header class="brand">
-        <h1>SiteKick</h1>
+        <h1 class="brand-logo">
+          <!-- Logo: helle Version im Hellmodus, Negativ-Version im Dunkelmodus -->
+          <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="logo/svg/sitekick-logo-horizontal-negativ.svg">
+            <img src="logo/svg/sitekick-logo-horizontal-farbe.svg" alt="SiteKick" width="854" height="167">
+          </picture>
+        </h1>
         <p class="subtitle">Städtebauliche Strukturen eines Untersuchungsgebiets erfassen, auswerten und darstellen</p>
       </header>
 

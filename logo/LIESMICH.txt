@@ -1,0 +1,39 @@
+SiteKick – Logo-Paket (Variante B „Seite an Seite“)
+====================================================
+
+ORDNER
+  svg/    Vektordateien (Schrift in Pfade umgewandelt, keine Schrift nötig)
+  png/    2000 px breit, transparenter Hintergrund
+  icons/  App-Icons und Favicons
+
+VERSIONEN
+  logo-horizontal   Standard-Logo (Bildmarke + Schriftzug)
+  logo-gestapelt    Bildmarke über dem Schriftzug, für schmale/quadratische Flächen
+  logo-claim        Horizontal mit Claim „Immer an deiner Seite · Standort & 3D für CAD“
+  bildmarke         Nur das Zeichen (3D-Block + Pin)
+
+  -farbe     auf hellen Hintergründen
+  -negativ   auf dunklen Hintergründen (z. B. #0E1B2A)
+  -schwarz   einfarbig, z. B. Stempel, Fax, Gravur
+  -weiss     einfarbig auf Fotos oder farbigen Flächen
+
+FARBEN
+  Tinte    #0E1B2A   Schriftzug „Site“, Würfel
+  Signal   #F2541B   „Kick“, Pin   (auf dunklem Grund: #FF6A33)
+  Stahl    #B8C4CF   Würfel-Deckfläche
+  Schiefer #3B5168   Würfel-Seite
+
+SCHRIFTEN
+  Schriftzug: Instrument Sans Bold (SIL Open Font License)
+  Claim:      IBM Plex Mono Regular (SIL Open Font License)
+
+NUTZUNG
+  - Schutzraum: rundum mindestens die Höhe des Pins frei lassen.
+  - Mindestgröße: horizontales Logo 120 px / 30 mm breit.
+    Darunter die Bildmarke oder das Favicon verwenden.
+  - Logo nicht verzerren, drehen, umfärben oder mit Effekten versehen.
+
+WEB-EINBINDUNG
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">

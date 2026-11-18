@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="logo/svg/sitekick-logo-horizontal-negativ.svg">
+    <img src="logo/svg/sitekick-logo-horizontal-farbe.svg" alt="SiteKick" width="440">
+  </picture>
+</p>
+
 # SiteKick – Mapping-Tool für Architektur
 
 Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
@@ -330,6 +337,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
+| `logo/` | Logo-Paket (SVG, PNG, Icons) mit Regeln in `logo/LIESMICH.txt`; `manifest.webmanifest` macht die Seite auf dem Handy als App installierbar |
 | `docs/bilder/` | Screenshots für diese README |
 
 ---

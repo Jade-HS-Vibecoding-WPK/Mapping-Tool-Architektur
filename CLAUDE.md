@@ -83,5 +83,6 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
   weiche Bewegungen ohne Überschwingen, sofortige Rückmeldung beim Drücken, eine Akzentfarbe (iOS-Blau).
 - Hell- und Dunkelmodus nach Systemeinstellung. Alle Farben stehen als Variablen oben in style.css.
   Karte, Pläne, Zeichenblätter und Exporte bleiben hell, schwarz-weiß und streng.
+- Logo (Ordner `logo/`): im Hellmodus Farbversion, im Dunkelmodus Negativ, in Plänen und Exporten die schwarze Version. Regeln siehe `logo/LIESMICH.txt` (nicht verzerren, nicht umfärben, Schutzraum einhalten).
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

@@ -517,6 +517,20 @@ function expLegende(ansicht) {
   return L;
 }
 
+// ---------- Logo im Plankopf (schwarze Version, passt zu den strengen Plänen) ----------
+// Wird einmal beim Start geladen. Klappt das nicht (z. B. beim Öffnen der Datei ohne Server), fehlt nur das Logo im Plankopf.
+const EXP_LOGO = { url: null, bild: null, verhaeltnis: 392 / 2000 };
+const expLogoBereit = (async () => {
+  try {
+    const blob = await (await fetch("logo/png/sitekick-logo-horizontal-schwarz.png")).blob();
+    const url = await new Promise((fertig, fehler) => { const f = new FileReader(); f.onload = () => fertig(f.result); f.onerror = fehler; f.readAsDataURL(blob); });
+    const bild = new Image();
+    bild.src = url;
+    await bild.decode();
+    EXP_LOGO.url = url; EXP_LOGO.bild = bild;
+  } catch (_) { /* nicht schlimm */ }
+})();
+
 // ---------- 5. Blatt: Aufteilung, Plankopf, Zeichnen ----------
 function expEinstellungen() {
   return {
@@ -545,7 +559,7 @@ function expLayout(opt, szene) {
     const spalten = Math.max(1, Math.floor(legBreite / (58 * sf)));
     const legZeilen = Math.ceil(legende.length / spalten) + (legende.some((e) => e.art === "verlauf") ? 1 : 0);
     const mitte = Math.max(legZeilen * 5.2 * sf + 8 * sf, 28 * sf);
-    const quellen = expUmbruch(expQuellen(), 6 * sf, false, innenB - 6 * sf);
+    const quellen = expUmbruch(expQuellen(), 6 * sf, false, innenB - 6 * sf - 34 * sf);   // rechts unten bleibt Platz für das Logo
     const unten = quellen.length * 2.6 * sf + 4 * sf;
     const kopfH = zeile1 + mitte + unten;
     const feld = { x: rand, y: rand, w: innenB, h: h - 2 * rand - kopfH };
@@ -683,6 +697,11 @@ function expZeichne(b, opt, szene, lay) {
   }
   // Unten: Quellen
   lay.quellen.forEach((zeile, i) => b.text(zeile, kx + 3 * sf, z2 + 4 * sf + i * 2.6 * sf, { pt: 6 * sf, farbe: "#333" }));
+  // Logo rechts unten im Plankopf
+  if (EXP_LOGO.url) {
+    const lw = 28 * sf, lh = lw * EXP_LOGO.verhaeltnis;
+    b.bild(b.art === "png" ? EXP_LOGO.bild : EXP_LOGO.url, kx + kb - 3 * sf - lw, z2 + (lay.unten - lh) / 2, lw, lh);
+  }
 }
 
 // ---------- 6. DXF ----------
@@ -983,6 +1002,7 @@ function expKennzahlenPdf(opt) {
     doc.setFont("helvetica", fett ? "bold" : "normal"); doc.setFontSize(pt); doc.setTextColor(...expFarbe(farbe || "#000"));
     for (const z of doc.splitTextToSize(text, 170 - einzug)) { if (y > 277) seite(); doc.text(z, 20 + einzug, y); y += abstand; }
   };
+  if (EXP_LOGO.url) doc.addImage(EXP_LOGO.url, "PNG", 150, 10, 40, 40 * EXP_LOGO.verhaeltnis);   // Logo oben rechts auf der ersten Seite
   zeile(`Kennzahlen – ${opt.titel || "SiteKick"}`, 16, true, "#000", 0, 8);
   zeile(`${opt.untertitel}   ·   Stand ${opt.datum}${opt.verfasser ? "   ·   " + opt.verfasser : ""}${opt.kurs ? "   ·   " + opt.kurs : ""}`, 8.5, false, "#444", 0, 7);
   let letzter = null;
@@ -1077,6 +1097,7 @@ async function expSpeichern(ziel) {
   const ansicht = exSzene.ansicht;
   expSpeichereEinstellungen();
   exEl.status.textContent = "Wird erstellt …";
+  await expLogoBereit;
   await new Promise((r) => setTimeout(r, 30));
   try {
     const name = (ende, zusatz = "") => `SiteKick-${EXP_PLAENE[ansicht].datei}${EXP_PLAENE[ansicht].art === "bild3d" || EXP_PLAENE[ansicht].art === "text" ? "" : "-1zu" + opt.massstab}${zusatz}.${ende}`;

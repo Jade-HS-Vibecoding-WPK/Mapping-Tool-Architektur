@@ -594,7 +594,10 @@ function d3SpeichereBild() {
   ctx.font = `${Math.round(leiste * 0.46)}px sans-serif`;
   ctx.textBaseline = "middle";
   const sonnenText = d3.sonneAn ? ` · Sonnenstand ${sonneZustand.datum.split("-").reverse().join(".")} ${uhrzeit(sonneZustand.minuten)}` : "";
-  ctx.fillText(d3.quellenText + sonnenText, 10, quelle.height + leiste / 2, bild.width - 20);   // Quellenangabe ist Pflicht (Lizenzen)
+  // Logo rechts in der Leiste (schwarze Version aus export.js), davor bleibt Platz für die Quellenangabe
+  const logoB = typeof EXP_LOGO !== "undefined" && EXP_LOGO.bild ? leiste * 0.72 / EXP_LOGO.verhaeltnis : 0;
+  if (logoB) ctx.drawImage(EXP_LOGO.bild, bild.width - 10 - logoB, quelle.height + leiste * 0.14, logoB, logoB * EXP_LOGO.verhaeltnis);
+  ctx.fillText(d3.quellenText + sonnenText, 10, quelle.height + leiste / 2, bild.width - 30 - logoB);   // Quellenangabe ist Pflicht (Lizenzen)
   bild.toBlob((blob) => {
     const verweis = document.createElement("a");
     verweis.href = URL.createObjectURL(blob);

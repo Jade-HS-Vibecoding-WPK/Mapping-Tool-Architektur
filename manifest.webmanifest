@@ -1,0 +1,16 @@
+{
+  "name": "SiteKick",
+  "short_name": "SiteKick",
+  "description": "Gebiet wählen, Pläne, Sonne und Schatten, 3D-Modell und Kennzahlen erzeugen und für CAD exportieren.",
+  "lang": "de",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0E1B2A",
+  "icons": [
+    { "src": "logo/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "logo/icons/app-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "logo/icons/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

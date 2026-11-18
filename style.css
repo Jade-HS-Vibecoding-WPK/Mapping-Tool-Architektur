@@ -136,6 +136,8 @@ html, body {
   font-weight: 700;
   letter-spacing: -0.03em;        /* große Schrift: enger */
 }
+.brand-logo { line-height: 0; }
+.brand-logo img { display: block; width: 190px; max-width: 100%; height: auto; }   /* Schutzraum: das Logo steht frei, nicht verzerren */
 .brand .subtitle {
   margin: 8px 0 0;
   font-size: 13px;

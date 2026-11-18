@@ -83,7 +83,7 @@
           <h3 class="lade-titel">Ladestand: was gerade geholt wird</h3>
           <ul class="lade-liste" id="lade-liste"></ul>
         </div>
-        <button class="btn btn-ghost btn-block" disabled>Beispiel Oldenburg laden <small>(folgt)</small></button>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-beispiel" title="Setzt das Testgebiet Oldenburg Innenstadt (800 × 777 m) und startet die Analyse">Beispiel Oldenburg laden <small>(Innenstadt, 62 ha)</small></button>
       </section>
 
       <!-- Hauptbutton -->
@@ -354,6 +354,24 @@
     </div>
   </dialog>
 
+  <!-- Hinweis beim Laden der Seite: KI-Disclaimer und Spaß-Logo (siehe hinweis.js). Erscheint einmal je Browser-Sitzung. -->
+  <dialog class="hinweis-dialog" id="hinweis-dialog" aria-labelledby="hinweis-titel">
+    <picture class="hinweis-logo">
+      <source media="(prefers-color-scheme: dark)" srcset="logo/svg/sitekick-logo-horizontal-negativ.svg">
+      <img src="logo/svg/sitekick-logo-horizontal-farbe.svg" alt="SiteKick" width="854" height="167">
+    </picture>
+    <h2 id="hinweis-titel">Kurz vorab</h2>
+    <p><strong>Diese Seite und das Tool wurden mit Hilfe von KI gebaut</strong> (Claude Code von Anthropic), im Dialog mit den Studierenden.</p>
+    <p class="hinweis-klein">Die Ergebnisse sind Überschläge für Entwurf und Lehre: nicht vermessungsgenau und kein Gutachten. Bitte vor jeder Verwendung selbst prüfen.</p>
+    <div class="hinweis-spass">
+      <p class="hinweis-powered">Powered by:</p>
+      <img class="hinweis-spass-logo" src="logo/spass/simon-ubben-bau-gmbh.jpg" alt="Logo der fiktiven Simon Ubben Bau GmbH: Haus-Zeichen, Schriftzug und der Spruch „wir machen das.“" width="1224" height="646">
+      <p class="hinweis-winzig">Spaß: Die „Simon Ubben Bau GmbH“ ist <strong>keine echte Firma</strong>, sondern ein Scherz der Projektgruppe. Ähnlichkeiten mit echten Unternehmen wären Zufall.</p>
+    </div>
+    <button type="button" class="btn btn-primary" id="hinweis-ok" autofocus>Verstanden, los geht’s</button>
+  </dialog>
+
+
   <!-- 3D: three.js (ältere Version ohne Modul-Technik) und Maussteuerung zum Drehen -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
@@ -381,5 +399,6 @@
   <script src="sammelexport.js"></script>
   <script src="ansicht3d.js"></script>
   <script src="legende.js"></script>
+  <script src="hinweis.js"></script>
 </body>
 </html>

@@ -90,3 +90,24 @@ projektEl.laden.addEventListener("click", projektWiederherstellen);
 projektEl.vergessen.addEventListener("click", () => { try { localStorage.removeItem(PROJEKT_KEY); } catch (_) { /* nicht schlimm */ } projektMerkAnzeigen(); });
 setInterval(() => { projektSpeichern(); if (!gebiet) projektMerkAnzeigen(); }, 3000);
 projektMerkAnzeigen();
+
+// ---------- Beispiel Oldenburg ----------
+// Setzt das Testgebiet (Oldenburg Innenstadt, 800 x 777 m, 62 ha) und startet die Analyse. Die Daten kommen live aus dem Netz wie bei jedem anderen Gebiet.
+const BEISPIEL_BBOX = [8.209006, 53.136506, 8.220994, 53.143494];   // West, Süd, Ost, Nord (Länge/Breite)
+const btnBeispiel = document.getElementById("btn-beispiel");
+
+function beispielLaden() {
+  if (!kartenBereit) { alert("Die Karte ist noch nicht fertig geladen. Bitte einen Moment warten und noch einmal klicken."); return; }
+  if (gebiet && datenVorhanden && !confirm("Das aktuelle Gebiet wird durch das Beispiel Oldenburg ersetzt. Fortfahren?")) return;
+  const [west, sued, ost, nord] = BEISPIEL_BBOX;
+  gebiet = rechteck({ lng: west, lat: sued }, { lng: ost, lat: nord });
+  verwerfeDaten();
+  zeigeRechteck(gebiet);
+  aktualisiereAngaben(gebiet);
+  map.fitBounds(turf.bbox(gebiet), { padding: 60, duration: 600 });
+  chkLod2.checked = true;
+  projektEl.feld.hidden = true;
+  zeigeAnsicht("lageplan");
+  btnAnalyse.click();                                   // Daten laden, danach füllen sich alle Reiter von selbst
+}
+if (btnBeispiel) btnBeispiel.addEventListener("click", beispielLaden);

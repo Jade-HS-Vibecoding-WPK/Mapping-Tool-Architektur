@@ -768,12 +768,37 @@ li.sonne-skala-zahlen { display: flex; justify-content: space-between; list-styl
 #sm-los { margin-top: 6px; width: 100%; }
 @media (max-width: 1000px) { .sm-raster { grid-template-columns: 1fr; } .sm-inhalt { padding: 16px 14px 48px; } }
 
+/* ---------- Hinweis beim Laden: KI-Disclaimer und Spaß-Logo ---------- */
+.hinweis-dialog { border: 0; border-radius: 24px; padding: 28px 32px 26px; width: min(520px, 92vw); max-height: 92vh; overflow-y: auto; background: var(--glass-solid); color: var(--ink); box-shadow: var(--shadow-l);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur); text-align: center;
+  opacity: 0; transform: translateY(16px) scale(0.97);
+  transition: opacity 0.3s var(--ease), transform 0.45s var(--ease), overlay 0.3s allow-discrete, display 0.3s allow-discrete; }
+.hinweis-dialog[open] { opacity: 1; transform: none; }
+@starting-style { .hinweis-dialog[open] { opacity: 0; transform: translateY(16px) scale(0.97); } }
+.hinweis-dialog::backdrop { background: rgba(0, 0, 0, 0); -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); transition: background 0.3s ease, backdrop-filter 0.3s ease, overlay 0.3s allow-discrete, display 0.3s allow-discrete; }
+.hinweis-dialog[open]::backdrop { background: rgba(0, 0, 0, 0.4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+@starting-style { .hinweis-dialog[open]::backdrop { background: rgba(0, 0, 0, 0); backdrop-filter: blur(0); } }
+.hinweis-logo { display: block; line-height: 0; margin: 0 0 14px; }
+.hinweis-logo img { width: 170px; max-width: 70%; height: auto; }
+.hinweis-dialog h2 { margin: 0 0 10px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+.hinweis-dialog p { margin: 0 0 10px; font-size: 14px; line-height: 1.5; }
+.hinweis-klein { font-size: 13px !important; color: var(--ink-soft); }
+.hinweis-spass { margin: 16px 0 20px; padding: 14px 16px 12px; border-radius: var(--r-m); background: #fff; box-shadow: inset 0 0 0 1px var(--line-soft); }   /* Logo ist schwarz auf weiß: weiße Fläche dahinter */
+.hinweis-powered { margin: 0 0 4px !important; font-size: 11px !important; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.hinweis-spass-logo { display: block; width: 320px; max-width: 100%; height: 100px; object-fit: cover; object-position: 50% 51%; margin: 0 auto 6px; }   /* Weißraum des Bildes oben und unten abschneiden */
+.hinweis-winzig { margin: 0 !important; font-size: 11px !important; line-height: 1.45 !important; color: var(--ink-soft); }
+.hinweis-dialog .btn-primary { width: 100%; }
+@media (prefers-color-scheme: dark) {
+  .hinweis-spass { background: var(--fill); box-shadow: none; }
+  .hinweis-spass-logo { filter: invert(1); mix-blend-mode: screen; }   /* weiß auf schwarz: Schwarz verschwindet */
+}
+
 /* ---------- Anpassung an Einstellungen des Geräts ---------- */
 /* Weniger Bewegung: nur kurzes Überblenden, keine Schiebe- und Skalierbewegungen */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
   .btn:active, .tab:active, .flst-modus button:active, .schnitt-umschalter button:active, .sonne-umschalter button:active { transform: none; }
-  .export-dialog { transform: none; transition: opacity 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete; }
+  .export-dialog, .hinweis-dialog { transform: none; transition: opacity 0.2s ease, overlay 0.2s allow-discrete, display 0.2s allow-discrete; }
   .kreis.dreht { animation-duration: 1.2s !important; animation-iteration-count: infinite !important; }
   .lade-streifen.unbestimmt > div { animation-duration: 1.6s !important; animation-iteration-count: infinite !important; }
 }

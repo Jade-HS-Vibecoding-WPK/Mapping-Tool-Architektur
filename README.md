@@ -95,6 +95,7 @@ python server.py 8765
 **Benutzung in fünf Schritten**
 
 1. **Gebiet wählen:** „Rechteck zeichnen“ klicken und mit gedrückter Maustaste auf der Karte ein Rechteck aufziehen (höchstens 1 km²).
+   Zum schnellen Ausprobieren gibt es den Knopf **„Beispiel Oldenburg laden“**: Er setzt das Testgebiet Oldenburg Innenstadt (800 × 777 m) und startet die Analyse mit den Live-Daten.
 2. **Analysieren:** Den Knopf „Analysieren“ klicken. Das Tool lädt die Daten (mit den 3D-Dachformen etwa 40 Sekunden, ohne LoD2 deutlich schneller).
    Der Ladestand zeigt, welche Quelle gerade geholt wird.
 3. **Reiter durchklicken:** Alle Ansichten benutzen dieselben Daten.
@@ -293,6 +294,9 @@ Der **Dunkelmodus** schaltet sich nach der Systemeinstellung ein; bei „weniger
 Es steht in der Seitenleiste (Farbversion im Hellmodus, Negativ im Dunkelmodus), als Browser- und Handy-Symbol, in der Vorschau beim Teilen eines Links, im Plankopf aller
 exportierten Blätter (schwarze Version rechts unten), im Kennzahlen-PDF, im 3D-Bild und oben in dieser README. Über `manifest.webmanifest` lässt sich die Seite auf dem Handy als App installieren.
 
+**Hinweis beim Start:** Beim Öffnen der Seite erscheint einmal je Browser-Sitzung ein Fenster mit dem **KI-Disclaimer** (Seite und Tool wurden mit Hilfe von KI gebaut, Ergebnisse sind Überschläge)
+und, aus Spaß, dem Logo der **„Simon Ubben Bau GmbH“** mit „Powered by“. Darunter steht ausdrücklich, dass das **keine echte Firma** ist, sondern ein Scherz der Projektgruppe (`hinweis.js`, Bild in `logo/spass/`).
+
 ---
 
 ## Datenquellen und Lizenzen
@@ -364,9 +368,10 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `hoehe.js` | Schwarzplan nach Höhe |
 | `export.js` | Export-Fenster: Blatt, Maßstab, Plankopf mit Logo, PDF/PNG/SVG/DXF/GeoJSON/CSV (Dateien entstehen in `expErzeuge`) |
 | `sammelexport.js` | Reiter Sammel-Export: viele Pläne und Formate, gemeinsamer Ausschnitt, ZIP (JSZip) |
-| `import.js`, `projekt.js` | Datei-Import, Projekt im Browser merken |
+| `import.js`, `projekt.js` | Datei-Import, Projekt im Browser merken, Knopf „Beispiel Oldenburg laden“ |
 | `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
+| `hinweis.js` | Startfenster mit KI-Disclaimer und Spaß-Logo |
 | `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |

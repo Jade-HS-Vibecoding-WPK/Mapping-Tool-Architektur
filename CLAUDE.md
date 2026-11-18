@@ -77,7 +77,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Kennzahlen GRZ/GFZ des Quartiers immer brutto (Gebiet) UND netto (ohne Straße, Bahn, Grün, Wasser).
 - Nebengebäude/Überdachungen (ALKIS 51009_…) = eigene Kategorie: grau, getrennt gezählt, ausblendbar.
 - Bild-Export maßstäblich (1:1000/2000/5000, A4–A0, 300 dpi).
-- Demo-Daten Oldenburg fest eingebaut (Knopf „Beispiel Oldenburg laden“), mit Quellenangabe.
+- Beispiel Oldenburg (Knopf „Beispiel Oldenburg laden“, `projekt.js`): setzt das Testgebiet Oldenburg Innenstadt (800 × 777 m) und startet „Analysieren“ mit Live-Daten (keine fest eingebauten Daten), Quellenangaben wie sonst.
 
 # Gestaltung
 - Apple-Stil (Skill apple-design): Systemschrift, runde Ecken, milchig-durchsichtige Fenster über der Karte,
@@ -85,5 +85,6 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Hell- und Dunkelmodus nach Systemeinstellung. Alle Farben stehen als Variablen oben in style.css.
   Karte, Pläne, Zeichenblätter und Exporte bleiben hell, schwarz-weiß und streng.
 - Logo (Ordner `logo/`): im Hellmodus Farbversion, im Dunkelmodus Negativ, in Plänen und Exporten die schwarze Version. Regeln siehe `logo/LIESMICH.txt` (nicht verzerren, nicht umfärben, Schutzraum einhalten).
+- Startfenster (`hinweis.js`): KI-Disclaimer und Spaß-Logo „Simon Ubben Bau GmbH“ (fiktive Firma, Hinweis „keine echte Firma“ muss dabeistehen). Das Spaß-Logo kommt nie in Pläne, Exporte oder Doku-Bilder als echtes Firmenlogo.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

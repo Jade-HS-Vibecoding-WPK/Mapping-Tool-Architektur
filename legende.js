@@ -36,7 +36,6 @@ function farbschluessel(ansicht) {
     case "schwarzplan":
       if (schwarzModus === "hoehe") e.push(hoehenLegendeEintraege()); else
       e.push(eintrag(farbfeld(FARBE.gebaeudeSchwarzplan), "Gebäude"));
-      e.push(eintrag(farbfeld(FARBE.nebengebaeude), "Nebengebäude, Überdachung"));
       break;
     case "strassen":
       if (alkisVorhanden) {
@@ -133,7 +132,7 @@ function eckdaten(ansicht) {
   const A = k.flaeche;
   if (ansicht === "schwarzplan" && k.hatOsm) {
     zeilen.push(["Gebäude", zahl(k.anzahlHaupt)], ["Bebaute Fläche", fm2(k.grundflaeche)], ["Bebauungsanteil", prozent(k.grundflaeche / A)]);
-    if (k.anzahlNeben) zeilen.push(["Nebengebäude", zahl(k.anzahlNeben)]);
+    if (k.anzahlNeben) zeilen.push(["Nebengebäude (ebenfalls schwarz)", zahl(k.anzahlNeben)]);
   } else if (ansicht === "strassen") {
     if (k.verkehrFlaeche != null) zeilen.push(["Verkehrsfläche", `${fm2(k.verkehrFlaeche)} · ${prozent(k.verkehrFlaeche / A)}`]);
     if (k.alkisTeile) zeilen.push(["Fahrbahn", fm2(k.alkisTeile.strasse)], ["Wege", fm2(k.alkisTeile.weg)], ["Plätze", fm2(k.alkisTeile.platz)]);

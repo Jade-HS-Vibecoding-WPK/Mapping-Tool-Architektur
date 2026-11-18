@@ -216,9 +216,6 @@ function zeigeAnsicht(ziel) {
     zeichenmodus(false);
   }
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("is-active", t.dataset.view === ziel));
-  // Reiterleiste scrollt so, dass der gewählte Reiter sichtbar bleibt (nur seitlich, die Seite springt nicht)
-  const aktiverReiter = document.querySelector(".tab.is-active");
-  if (aktiverReiter) aktiverReiter.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" });
   document.querySelectorAll(".view").forEach((v) =>
     v.classList.toggle("is-active", v.dataset.view === (istKarte ? "karte" : ziel)));
   if (istKarte) {
@@ -449,8 +446,8 @@ const EBENEN = {
 // Was zeigt welcher Reiter?
 const ANSICHTEN = {
   karte:       { basiskarte: true,  ebenen: [] },
-  schwarzplan: { basiskarte: false, ebenen: ["gebaeude"], gebaeude: FARBE.gebaeudeSchwarzplan,
-                 text: "Schwarzplan: Gebäude schwarz, Nebengebäude grau." },
+  schwarzplan: { basiskarte: false, ebenen: ["gebaeude"], gebaeude: FARBE.gebaeudeSchwarzplan, neben: FARBE.gebaeudeSchwarzplan,
+                 text: "Schwarzplan: alle Gebäude schwarz." },
   strassen:    { basiskarte: false, ebenen: ["kontext", "strassen", "alkis"], strasse: FARBE.strasseSchwarz,
                  alkis: { strasse: FARBE.netz.fahrbahn, weg: FARBE.netz.weg, platz: FARBE.netz.platz, kante: FARBE.netz.kante },
                  text: "Straßennetz: Linienstärke nach Straßenart." },

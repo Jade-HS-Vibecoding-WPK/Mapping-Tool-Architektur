@@ -364,7 +364,7 @@ function expSzene(ansicht) {
   if (hat("gebaeude")) {
     const nachHoehe = ansicht === "schwarzplan" && schwarzModus === "hoehe";
     flaechen(gebaeudeSatz(), (f) => (f.properties.kat === "nebengebaeude" ? "NEBENGEBAEUDE" : nachHoehe ? "GEBAEUDE_H_" + hoehenKlasse(gebaeudeHoehe(f.properties)).kurz : "GEBAEUDE"),
-      (f) => ({ fill: f.properties.kat === "nebengebaeude" ? (nachHoehe ? "#c9c9c9" : e.neben || FARBE.nebengebaeude) : nachHoehe ? hoehenKlasse(gebaeudeHoehe(f.properties)).farbe : e.gebaeude || FARBE.gebaeudeSchwarzplan, ...(nachHoehe ? { stroke: "#6a6a6a", sw: 0.06 } : {}) }));
+      (f) => ({ fill: f.properties.kat === "nebengebaeude" && ansicht !== "schwarzplan" ? e.neben || FARBE.nebengebaeude : nachHoehe ? hoehenKlasse(gebaeudeHoehe(f.properties)).farbe : e.gebaeude || FARBE.gebaeudeSchwarzplan, ...(nachHoehe ? { stroke: "#6a6a6a", sw: 0.06 } : {}) }));
   }
   if (hat("umriss")) flaechen(gebaeudeSatz(), "GEBAEUDE_UMRISS", { stroke: FARBE.umriss, sw: haarlinie });
   if (hat("dach") && lod2Vorhanden) {
@@ -451,8 +451,8 @@ function expLegende(ansicht) {
   const a = ANSICHTEN[ansicht];
   switch (ansicht) {
     case "schwarzplan":
-      if (schwarzModus === "hoehe") { for (const k of HOEHEN_KLASSEN) fl(k.farbe, "#666", `Gebäude ${k.name}`); fl("#c9c9c9", null, "Nebengebäude"); }
-      else { fl(FARBE.gebaeudeSchwarzplan, null, "Gebäude"); fl(FARBE.nebengebaeude, null, "Nebengebäude, Überdachung"); }
+      if (schwarzModus === "hoehe") { for (const k of HOEHEN_KLASSEN) fl(k.farbe, "#666", `Gebäude ${k.name}`); }
+      else { fl(FARBE.gebaeudeSchwarzplan, null, "Gebäude"); }
       break;
     case "strassen":
       if (alkisVorhanden) { fl(FARBE.netz.fahrbahn, null, "Straßenraum (Fahrbahn)"); fl(FARBE.netz.weg, FARBE.netz.kante, "Wege und Gehwege"); fl(FARBE.netz.platz, FARBE.netz.kante, "Plätze, Fußgängerzonen"); }

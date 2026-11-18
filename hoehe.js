@@ -47,8 +47,8 @@ function aktualisiereHoehe() {
   if (schwarzModus !== "hoehe") return;
   setzeHoehenEigenschaft();
   const stufen = HOEHEN_KLASSEN.slice(1).flatMap((k, i) => [HOEHEN_KLASSEN[i].bis, k.farbe]);
-  map.setPaintProperty("gebaeude-flaeche", "fill-color", ["case", ["==", ["get", "kat"], "nebengebaeude"], "#c9c9c9",
-    ["step", ["coalesce", ["get", "hh"], 0], HOEHEN_KLASSEN[0].farbe, ...stufen]]);
+  map.setPaintProperty("gebaeude-flaeche", "fill-color",
+    ["step", ["coalesce", ["get", "hh"], 0], HOEHEN_KLASSEN[0].farbe, ...stufen]);   // alle Gebäude nach Höhe, Nebengebäude nicht gesondert grau
   map.setPaintProperty("gebaeude-flaeche", "fill-outline-color", "#6a6a6a");
 }
 

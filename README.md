@@ -108,7 +108,7 @@ Die Dachformen (LoD2), das Gelände, Luftbilder, Flurstücke und Bodenrichtwerte
 
 ## Die Reiter im Einzelnen
 
-Die Reiter sind nach Arbeitsablauf geordnet: **Orientierung → Pläne und Sonne → Grundstück und Markt → Darstellung → Zahlen.**
+Die Reiter sind nach Arbeitsablauf geordnet: **Orientierung → Pläne und Sonne → Grundstück und Markt → Darstellung → Zahlen.** Die Reiterleiste **passt sich der Fensterbreite an**: reicht eine Zeile nicht, umbrechen die Reiter in weitere Zeilen, damit auf jedem Bildschirm alle erreichbar sind.
 
 ### 1. Orientierung
 
@@ -127,7 +127,7 @@ Gesundheit, Essen/Kultur/Freizeit, Öffentliche Einrichtungen. Ein Klick auf ein
 
 ### 2. Pläne und Sonne
 
-**Schwarzplan** – Gebäude schwarz auf weiß (Figur-Grund), Nebengebäude getrennt in Grau. Der Schalter **„Nach Höhe“** färbt die Gebäude in fünf Grautönen nach Höhe
+**Schwarzplan** – alle Gebäude schwarz auf weiß (Figur-Grund), auch Nebengebäude wie Garagen und Schuppen. Der Schalter **„Nach Höhe“** färbt die Gebäude in fünf Grautönen nach Höhe
 (bis 6, 12, 18 und 25 m, darüber). Die Höhe stammt aus LoD2, sonst aus OpenStreetMap (Höhe oder Geschosse mal 3 m), sonst ist sie angenommen.
 
 ![Schwarzplan](docs/bilder/schwarzplan.jpg)

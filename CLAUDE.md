@@ -75,7 +75,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 
 # Fachliche Festlegungen
 - Kennzahlen GRZ/GFZ des Quartiers immer brutto (Gebiet) UND netto (ohne Straße, Bahn, Grün, Wasser).
-- Nebengebäude/Überdachungen (ALKIS 51009_…) = eigene Kategorie: grau, getrennt gezählt, ausblendbar.
+- Nebengebäude/Überdachungen (ALKIS 51009_…) = eigene Kategorie, getrennt gezählt. Im Lageplan grau; im Schwarzplan (auch „Nach Höhe“) wie alle Gebäude, nicht grau (Nutzerwunsch 18.11.2026: die Grau-Abstufung passte meist nicht).
 - Bild-Export maßstäblich (1:1000/2000/5000, A4–A0, 300 dpi).
 - Beispiel Oldenburg (Knopf „Beispiel Oldenburg laden“, `projekt.js`): setzt das Testgebiet Oldenburg Innenstadt (800 × 777 m) und startet „Analysieren“ mit Live-Daten (keine fest eingebauten Daten), Quellenangaben wie sonst.
 

@@ -180,10 +180,10 @@ Standardwerte u. a. aus den Landesgrundstücksmarktdaten Niedersachsen, der Immo
 
 ### 4. Darstellung
 
-**Schnitt & Ansicht** – Linie auf der Karte ziehen, dann entsteht ein **senkrechter Schnitt** durch Gelände (DGM1), Gebäude (LoD2), Straßenflächen,
-Flurstücksgrenzen, Bäume und Wasser, mit Maßketten und Gebäudehöhen. Die **Tiefe** (wie weit man hinter die Linie schaut) ist als Band auf der Karte
+**Schnitt & Ansicht** – Beim Öffnen des Reiters ist das Zeichnen gleich an: **Startpunkt und Endpunkt auf der Karte anklicken** (Ziehen mit gedrückter Maustaste geht auch, Esc bricht ab). Dann entsteht ein **senkrechter Schnitt** durch Gelände (DGM1), Gebäude (LoD2), Straßenflächen,
+Flurstücksgrenzen, Bäume und Wasser, mit Maßketten und Gebäudehöhen. Die **Tiefe** (wie weit man hinter die Linie schaut) lässt sich im Feld „Tiefe“ eingeben oder **an der gestrichelten Kante auf der Karte ziehen** (weißer Griff in der Mitte). Sie ist als Band auf der Karte
 und als Skala in der Zeichnung zu sehen. „Blick nach links/rechts“ wechselt die Seite. Geschnittene Gebäude erscheinen schwarz als Vollkörper (Poché).
-Es lassen sich **mehrere Linien** ziehen und über das Feld „Linie“ wechseln; die anderen Linien stehen grau gestrichelt auf der Karte.
+Die Leiste unter der Karte ist in drei Schritte geordnet (1 Linie, 2 Zeichnung, 3 Zeigen). Mit „Neue Linie“ lassen sich **mehrere Linien** ziehen, über das Feld „Linie“ wechselt man; die anderen Linien stehen grau gestrichelt auf der Karte.
 
 ![Schnitt durch Gelände und Gebäude](docs/bilder/schnitt.jpg)
 
@@ -192,7 +192,7 @@ Mit dem Schalter **Straßenansicht** sieht man stattdessen die Gebäudefassaden 
 ![Straßenansicht](docs/bilder/strassenansicht.jpg)
 
 **3D-Modell** – Gebäude mit echten Dachformen (LoD2), Gelände mit Höhenlinien, Bäume. Drehen mit der Maus, Draufsicht, Überhöhung, Bild speichern.
-Mit dem Haken **„Sonne“** werfen alle Gebäude und Bäume Schatten nach Datum und Uhrzeit (gleiche Einstellung wie im Reiter „Sonne & Schatten“).
+Mit dem Haken **„Schatten“** werfen alle Gebäude und Bäume Schatten nach Datum und Uhrzeit (gleiche Einstellung wie im Reiter „Sonne & Schatten“).
 
 ![3D-Modell](docs/bilder/3d-modell.jpg)
 ![3D-Modell mit Schatten, 21. März, 15 Uhr](docs/bilder/3d-schatten.jpg)

@@ -27,7 +27,7 @@
   <!-- Rechnet zwischen Längen/Breitengrad und den UTM-Koordinaten der amtlichen Daten um -->
   <script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=7315b">
+  <link rel="stylesheet" href="style.css?v=181118d">
 </head>
 <body>
   <div class="app">
@@ -185,28 +185,48 @@
           <!-- Nur im Reiter "Schnitt": Linie ziehen, Zeichnung von Schnitt oder Straßenansicht, DXF-Export (siehe schnitt.js) -->
           <div class="schnitt-panel" id="schnitt-panel" hidden>
             <div class="schnitt-leiste">
-              <button type="button" class="btn schnitt-neu" id="schnitt-linie-neu">Linie ziehen</button>
-              <span class="schnitt-umschalter" id="schnitt-umschalter">
-                <button type="button" data-modus="schnitt" class="is-active">Schnitt</button><button type="button" data-modus="ansicht">Straßenansicht</button>
-              </span>
-              <label id="schnitt-liste-feld" hidden>Linie <select id="schnitt-liste"></select></label>
-              <button type="button" class="btn" id="schnitt-loeschen" hidden>Linie löschen</button>
-              <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
-              <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
-              <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
-              <label><input type="checkbox" id="schnitt-gelaende" checked> Gelände dahinter</label>
-              <label><input type="checkbox" id="schnitt-baeume" checked> Bäume</label>
-              <label><input type="checkbox" id="schnitt-wasser" checked> Wasser</label>
-              <label><input type="checkbox" id="schnitt-strasse" checked> Straßenflächen</label>
-              <label><input type="checkbox" id="schnitt-grenzen" checked> Flurstücksgrenzen</label>
-              <label><input type="checkbox" id="schnitt-mass" checked> Bemaßung</label>
-              <button type="button" class="btn" id="schnitt-fit">Einpassen</button>
-              <button type="button" class="btn" id="schnitt-dxf">DXF speichern</button>
+              <div class="sg">
+                <span class="sg-t">1 · Linie</span>
+                <div class="sg-i">
+                  <button type="button" class="btn schnitt-neu" id="schnitt-linie-neu">Linie ziehen</button>
+                  <label id="schnitt-liste-feld" hidden><select id="schnitt-liste" aria-label="Linie wählen"></select></label>
+                  <button type="button" class="btn" id="schnitt-loeschen" hidden>Löschen</button>
+                </div>
+              </div>
+              <div class="sg">
+                <span class="sg-t">2 · Zeichnung</span>
+                <div class="sg-i">
+                  <span class="schnitt-umschalter" id="schnitt-umschalter">
+                    <button type="button" data-modus="schnitt" class="is-active">Schnitt</button><button type="button" data-modus="ansicht">Straßenansicht</button>
+                  </span>
+                  <label>Blick nach <select id="schnitt-seite"><option value="1">links</option><option value="-1">rechts</option></select></label>
+                  <label>Tiefe <input type="number" id="schnitt-tiefe" value="30" min="5" max="300" step="5"> m</label>
+                </div>
+              </div>
+              <div class="sg sg-breit">
+                <span class="sg-t">3 · Zeigen</span>
+                <div class="sg-i">
+                  <label><input type="checkbox" id="schnitt-dahinter" checked> Ansicht dahinter</label>
+                  <label><input type="checkbox" id="schnitt-gelaende" checked> Gelände</label>
+                  <label><input type="checkbox" id="schnitt-baeume" checked> Bäume</label>
+                  <label><input type="checkbox" id="schnitt-wasser" checked> Wasser</label>
+                  <label><input type="checkbox" id="schnitt-strasse" checked> Straßen</label>
+                  <label><input type="checkbox" id="schnitt-grenzen" checked> Flurstücksgrenzen</label>
+                  <label><input type="checkbox" id="schnitt-mass" checked> Bemaßung</label>
+                </div>
+              </div>
+              <div class="sg sg-rechts">
+                <span class="sg-t">Ausgabe</span>
+                <div class="sg-i">
+                  <button type="button" class="btn" id="schnitt-fit">Einpassen</button>
+                  <button type="button" class="btn" id="schnitt-dxf">DXF speichern</button>
+                </div>
+              </div>
             </div>
             <div class="schnitt-info" id="schnitt-info"></div>
             <div class="schnitt-hinweis" id="schnitt-hinweis"></div>
             <svg id="schnitt-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schnitt oder Straßenansicht"></svg>
-            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume sind aus OpenStreetMap, die Höhe ist meist geschätzt; die Gewässertiefe ist unbekannt. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben.</p>
+            <p class="schnitt-klein">Maße in Metern, 1:1. LoD2 hat keine Innenräume: geschnittene Gebäude sind Vollkörper. Bäume sind aus OpenStreetMap, die Höhe ist meist geschätzt; die Gewässertiefe ist unbekannt. Gelände LGLN DGM1, Gebäude LGLN LoD2 (CC BY 4.0), © OpenStreetMap-Mitwirkende (ODbL). Nicht vermessungsgenau. Mausrad = Zoom, Ziehen = Verschieben. Tiefe: an der gestrichelten Kante auf der Karte ziehen.</p>
           </div>
           <!-- Nur im Reiter "Luftbild": Regler und Überlagerungen (siehe luftbild.js) -->
           <div class="flst-info" id="luft-info" hidden>
@@ -273,7 +293,7 @@
             <button class="btn" id="d3-reset" type="button">Ansicht zurücksetzen</button>
             <button class="btn" id="d3-oben" type="button">Draufsicht</button>
             <label class="d3-check"><input type="checkbox" id="d3-baeume" checked> Bäume</label>
-            <label class="d3-check" title="Schatten nach Datum und Uhrzeit, gleiche Einstellung wie im Reiter Sonne &amp; Schatten"><input type="checkbox" id="d3-sonne"> Sonne</label>
+            <label class="d3-check" title="Schatten nach Datum und Uhrzeit, gleiche Einstellung wie im Reiter Sonne &amp; Schatten"><input type="checkbox" id="d3-sonne"> Schatten</label>
             <span class="d3-check" id="d3-sonne-feld" hidden>
               <input type="date" id="d3-datum" value="2026-06-21" aria-label="Datum">
               <input type="range" id="d3-zeit" min="0" max="1430" step="10" value="780" aria-label="Uhrzeit"> <span id="d3-zeit-wert">13:00</span>
@@ -381,24 +401,24 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <!-- Packt die Dateien des Sammel-Exports zu einer ZIP-Datei -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=7315b"></script>
-  <script src="ladeleiste.js?v=7315b"></script>
-  <script src="gelaende.js?v=7315b"></script>
-  <script src="flurstuecke.js?v=7315b"></script>
-  <script src="mieten.js?v=7315b"></script>
-  <script src="luftbild.js?v=7315b"></script>
-  <script src="infos.js?v=7315b"></script>
-  <script src="wirtschaft.js?v=7315b"></script>
-  <script src="schnitt.js?v=7315b"></script>
-  <script src="sonne.js?v=7315b"></script>
-  <script src="hoehe.js?v=7315b"></script>
-  <script src="erreichbar.js?v=7315b"></script>
-  <script src="import.js?v=7315b"></script>
-  <script src="projekt.js?v=7315b"></script>
-  <script src="export.js?v=7315b"></script>
-  <script src="sammelexport.js?v=7315b"></script>
-  <script src="ansicht3d.js?v=7315b"></script>
-  <script src="legende.js?v=7315b"></script>
-  <script src="hinweis.js?v=7315b"></script>
+  <script src="app.js?v=181118d"></script>
+  <script src="ladeleiste.js?v=181118d"></script>
+  <script src="gelaende.js?v=181118d"></script>
+  <script src="flurstuecke.js?v=181118d"></script>
+  <script src="mieten.js?v=181118d"></script>
+  <script src="luftbild.js?v=181118d"></script>
+  <script src="infos.js?v=181118d"></script>
+  <script src="wirtschaft.js?v=181118d"></script>
+  <script src="schnitt.js?v=181118d"></script>
+  <script src="sonne.js?v=181118d"></script>
+  <script src="hoehe.js?v=181118d"></script>
+  <script src="erreichbar.js?v=181118d"></script>
+  <script src="import.js?v=181118d"></script>
+  <script src="projekt.js?v=181118d"></script>
+  <script src="export.js?v=181118d"></script>
+  <script src="sammelexport.js?v=181118d"></script>
+  <script src="ansicht3d.js?v=181118d"></script>
+  <script src="legende.js?v=181118d"></script>
+  <script src="hinweis.js?v=181118d"></script>
 </body>
 </html>

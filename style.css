@@ -540,12 +540,20 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="date"]:focus, 
 .schnitt-panel { position: absolute; left: 0; right: 0; bottom: 0; height: 52%; min-height: 300px; max-height: 100%; z-index: 4; display: flex; flex-direction: column;
   background: var(--paper); border-top: 2px solid var(--ink); font-size: 12px; overflow: hidden; animation: ein-blenden 0.15s linear; }
 .schnitt-panel[hidden] { display: none; }
-.schnitt-leiste { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 8px 12px; border-bottom: 1px solid var(--line-soft); }
+.schnitt-leiste { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 0; padding: 0; border-bottom: 1px solid var(--line-soft); }
+.schnitt-leiste .sg { display: flex; flex-direction: column; gap: 5px; padding: 8px 16px 8px 12px; border-right: 1px solid var(--line-soft); }
+.schnitt-leiste .sg-breit { flex: 1 1 280px; }
+.schnitt-leiste .sg-rechts { margin-left: auto; border-right: 0; }
+.schnitt-leiste .sg-t { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.schnitt-leiste .sg-i { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .schnitt-leiste label { display: inline-flex; align-items: center; gap: 6px; }
 .schnitt-leiste input[type="number"] { width: 56px; font-family: var(--mono); letter-spacing: 0; padding: 2px 6px; }
 .schnitt-leiste select { padding: 2px 6px; }
 .schnitt-leiste .btn { padding: 4px 12px; font-size: 12px; }
-.schnitt-leiste .btn.is-active { background: var(--accent); color: #fff; border-color: var(--accent); }
+/* Knopf "Linie ziehen / Neue Linie": rot gefüllt, fällt sofort auf; beim Zeichnen schwarz ("Abbrechen") */
+.schnitt-leiste .btn.schnitt-neu { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+.schnitt-leiste .btn.schnitt-neu:hover { background: var(--accent); filter: brightness(0.88); }
+.schnitt-leiste .btn.schnitt-neu.is-active { background: var(--ink); color: var(--paper); border-color: var(--ink); filter: none; }
 .schnitt-info { padding: 3px 12px; font-family: var(--mono); letter-spacing: 0; color: var(--ink-soft); }
 .schnitt-hinweis { padding: 2px 12px; color: var(--accent); }
 .schnitt-hinweis[hidden] { display: none; }

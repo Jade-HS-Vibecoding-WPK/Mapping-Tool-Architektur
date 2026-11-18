@@ -34,12 +34,13 @@ const sEl = {
   dahinter: document.getElementById("schnitt-dahinter"), fit: document.getElementById("schnitt-fit"), dxf: document.getElementById("schnitt-dxf"),
   baeume: document.getElementById("schnitt-baeume"), wasser: document.getElementById("schnitt-wasser"), gelaende: document.getElementById("schnitt-gelaende")
 };
-const SCHNITT_EBENEN = ["schnitt-andere", "schnitt-tiefe", "schnitt-tiefe-rand", "schnitt-rand", "schnitt-linie", "schnitt-punkte"];
+const SCHNITT_EBENEN = ["schnitt-andere", "schnitt-tiefe", "schnitt-tiefe-rand", "schnitt-rand", "schnitt-linie", "schnitt-punkte", "schnitt-griff"];
 let schnittLinie = null;          // { a: [Ost, Nord], b: [Ost, Nord] } in UTM 32
 let schnittListe = [];            // alle gezogenen Linien: { name, a, b, seite, tiefe }
 let schnittAktiv = -1;            // Index der Linie in schnittListe, die gerade gezeichnet wird
 let schnittZeichnen = false;
 let schnittStart = null;
+let schnittKlickModus = false;    // Startpunkt per Klick gesetzt, wartet auf den zweiten Klick
 let schnittModus = "schnitt";     // "schnitt" oder "ansicht"
 let schnittDaten = null;          // Ergebnis der Rechnung (siehe rechneSchnitt)
 let schnittStand = "";
@@ -65,6 +66,9 @@ function legeSchnittEbenenAn() {
     filter: ["in", ["get", "teil"], ["literal", ["linie", "pfeil"]]], paint: { "line-color": FARBE.flst.auswahl, "line-width": 3.5 } }, "gebiet-flaeche");
   map.addLayer({ id: "schnitt-punkte", type: "circle", source: "schnitt", layout: unsichtbar, filter: ["==", ["get", "teil"], "ende"],
     paint: { "circle-radius": 7, "circle-color": ["case", ["==", ["get", "ende"], "a"], "#ffffff", "#111111"], "circle-stroke-color": FARBE.flst.auswahl, "circle-stroke-width": 3 } }, "gebiet-flaeche");
+  // Griff in der Mitte der gestrichelten Kante: daran ziehen = Tiefe ändern
+  map.addLayer({ id: "schnitt-griff", type: "circle", source: "schnitt", layout: unsichtbar, filter: ["==", ["get", "teil"], "griff"],
+    paint: { "circle-radius": 8, "circle-color": "#ffffff", "circle-stroke-color": FARBE.flst.auswahl, "circle-stroke-width": 3 } }, "gebiet-flaeche");
 }
 
 // Koordinaten der Linie: s = Abstand entlang der Linie, d = Abstand quer dazu (positiv in Blickrichtung)
@@ -95,6 +99,7 @@ function setzeSchnittLinieKarte(linie) {
     feat("pfeil", { type: "LineString", coordinates: [ll(mx, my), ll(tx, ty)] }),
     feat("pfeil", { type: "LineString", coordinates: kopf(2.8) }),
     feat("pfeil", { type: "LineString", coordinates: kopf(-2.8) }),
+    feat("griff", { type: "Point", coordinates: bandPunkt([mx, my]) }),
     feat("ende", { type: "Point", coordinates: ll(...linie.a) }, { ende: "a" }),
     feat("ende", { type: "Point", coordinates: ll(...linie.b) }, { ende: "b" }),
     ...schnittListe.filter((l, i) => i !== schnittAktiv).map((l) => feat("andere", { type: "LineString", coordinates: [ll(...l.a), ll(...l.b)] }))
@@ -109,29 +114,40 @@ function schnittKlemmen(lngLat) {
 
 function schnittModusZeichnen(an) {
   schnittZeichnen = an;
-  schnittStart = null;
+  schnittStart = null; schnittKlickModus = false;
   document.body.classList.toggle("is-drawing", an);
   if (an) { map.dragPan.disable(); map.boxZoom.disable(); } else { map.dragPan.enable(); map.boxZoom.enable(); }
   sEl.neu.classList.toggle("is-active", an);
-  sEl.neu.textContent = an ? "Abbrechen (Esc)" : schnittLinie ? "Neue Linie ziehen" : "Linie ziehen";
-  if (an) schnittHinweisSetzen("Drücke auf der Karte die Maustaste, ziehe die Linie und lass los. Sie liegt im gewählten Rechteck.");
+  sEl.neu.textContent = an ? "Abbrechen (Esc)" : schnittLinie ? "Neue Linie" : "Linie ziehen";
+  if (!an && /^(Klicke auf der Karte den|Startpunkt gesetzt)/.test(schnittHinweis.textContent)) schnittHinweisSetzen("");
+  if (an) schnittHinweisSetzen("Klicke auf der Karte den Startpunkt, dann den Endpunkt. Ziehen mit gedrückter Maustaste geht auch. Esc bricht ab.");
 }
 
 function schnittBeginne(e) {
   if (!schnittZeichnen || aktuelleAnsicht !== "schnitt") return;
   e.preventDefault();
+  if (schnittKlickModus && schnittStart) { schnittFertig(utmWandler.forward(schnittKlemmen(e.lngLat))); return; }   // zweiter Klick = Endpunkt
   schnittStart = utmWandler.forward(schnittKlemmen(e.lngLat));
 }
 function schnittZiehe(e) {
   if (!schnittZeichnen || !schnittStart) return;
   setzeSchnittLinieKarte({ a: schnittStart, b: utmWandler.forward(schnittKlemmen(e.lngLat)) });
 }
+// Maustaste loslassen: weit gezogen = fertig, nur geklickt = Startpunkt bleibt, der nächste Klick setzt den Endpunkt
 function schnittBeende(e) {
-  if (!schnittZeichnen || !schnittStart) return;
+  if (!schnittZeichnen || !schnittStart || schnittKlickModus) return;
   const ende = utmWandler.forward(schnittKlemmen(e.lngLat));
+  if (Math.hypot(ende[0] - schnittStart[0], ende[1] - schnittStart[1]) < 5) {
+    schnittKlickModus = true;
+    schnittHinweisSetzen("Startpunkt gesetzt. Klicke jetzt den Endpunkt der Linie. Esc bricht ab.");
+    return;
+  }
+  schnittFertig(ende);
+}
+function schnittFertig(ende) {
   const a = schnittStart;
-  schnittStart = null;
-  if (Math.hypot(ende[0] - a[0], ende[1] - a[1]) < 5) { setzeSchnittLinieKarte(schnittLinie); return; }   // zu kurz: ignorieren
+  schnittStart = null; schnittKlickModus = false;
+  if (!a || Math.hypot(ende[0] - a[0], ende[1] - a[1]) < 5) { setzeSchnittLinieKarte(schnittLinie); return; }   // zu kurz: ignorieren
   schnittLinie = { a, b: ende };
   schnittListe.push({ name: `Linie ${schnittListe.length + 1}`, a, b: ende, seite: Number(sEl.seite.value), tiefe: Number(sEl.tiefe.value) || 30 });
   schnittAktiv = schnittListe.length - 1;
@@ -149,6 +165,55 @@ map.on("touchend", schnittBeende);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && schnittZeichnen) { schnittModusZeichnen(false); setzeSchnittLinieKarte(schnittLinie); }
 });
+
+// Tiefe durch Ziehen an der gestrichelten Kante: Griff oder Kante anfassen, die Kante folgt der Maus
+let schnittTiefeZiehen = false;
+let schnittCursorGesetzt = false;
+function schnittKanteGetroffen(punkt) {   // punkt = Bildschirmpunkt { x, y }
+  if (!schnittLinie || aktuelleAnsicht !== "schnitt" || schnittZeichnen) return false;
+  const K = schnittK(schnittLinie, Number(sEl.seite.value));
+  const tiefe = Math.max(5, Math.min(300, Number(sEl.tiefe.value) || 30));
+  const vx = K.nx * K.seite, vy = K.ny * K.seite;
+  const bs = (pt) => map.project(utmWandler.inverse([pt[0] + vx * tiefe, pt[1] + vy * tiefe]));
+  const p0 = bs(schnittLinie.a), p1 = bs(schnittLinie.b);
+  const dx = p1.x - p0.x, dy = p1.y - p0.y, l2 = dx * dx + dy * dy || 1;
+  const t = Math.max(0, Math.min(1, ((punkt.x - p0.x) * dx + (punkt.y - p0.y) * dy) / l2));
+  return Math.hypot(punkt.x - (p0.x + t * dx), punkt.y - (p0.y + t * dy)) <= 10;
+}
+function schnittTiefeBeginne(e) {
+  if (!schnittKanteGetroffen(e.point)) return;
+  e.preventDefault();
+  schnittTiefeZiehen = true;
+  map.dragPan.disable();
+}
+function schnittTiefeZiehe(e) {
+  if (!schnittTiefeZiehen) {
+    if (aktuelleAnsicht === "schnitt" && e.point) {
+      const treffer = schnittKanteGetroffen(e.point);
+      if (treffer) { map.getCanvas().style.cursor = "ns-resize"; schnittCursorGesetzt = true; }
+      else if (schnittCursorGesetzt) { map.getCanvas().style.cursor = ""; schnittCursorGesetzt = false; }
+    }
+    return;
+  }
+  const K = schnittK(schnittLinie, Number(sEl.seite.value));
+  const m = utmWandler.forward([e.lngLat.lng, e.lngLat.lat]);
+  const d = (m[0] - schnittLinie.a[0]) * K.nx * K.seite + (m[1] - schnittLinie.a[1]) * K.ny * K.seite;   // Abstand quer zur Linie in Blickrichtung
+  const tiefe = Math.max(5, Math.min(300, Math.round(d)));
+  sEl.tiefe.value = String(tiefe);
+  setzeSchnittLinieKarte(schnittLinie);
+}
+function schnittTiefeEnde() {
+  if (!schnittTiefeZiehen) return;
+  schnittTiefeZiehen = false;
+  map.dragPan.enable();
+  sEl.tiefe.dispatchEvent(new Event("change"));   // speichert die Tiefe an der Linie und rechnet neu
+}
+map.on("mousedown", schnittTiefeBeginne);
+map.on("touchstart", (e) => { if (e.points.length === 1) schnittTiefeBeginne(e); });
+map.on("mousemove", schnittTiefeZiehe);
+map.on("touchmove", schnittTiefeZiehe);
+window.addEventListener("mouseup", schnittTiefeEnde);
+window.addEventListener("touchend", schnittTiefeEnde);
 
 // ---------- 2. Gebäude als 3D-Flächen sammeln ----------
 // Jedes Gebäude: { art, boden, flaechen: [Ring ...] (Dächer), waende: [Ring ...] }, Ring = Liste [x, y, z] (UTM, Höhe über NHN), nicht geschlossen
@@ -841,7 +906,7 @@ function schnittNeuRechnen() {
   if (!schnittDaten) {
     schnittSvg.innerHTML = "";
     schnittInfo.textContent = "";
-    schnittHinweisSetzen(datenVorhanden ? "Ziehe eine Linie auf der Karte, dann entsteht hier die Zeichnung." : "Klicke zuerst links auf „Analysieren“, dann kannst du eine Linie ziehen.");
+    schnittHinweisSetzen(datenVorhanden ? "Klicke auf der Karte Start- und Endpunkt, dann entsteht hier die Zeichnung." : "Klicke zuerst links auf „Analysieren“, dann kannst du eine Linie ziehen.");
     return;
   }
   const D = schnittDaten;
@@ -869,7 +934,8 @@ function aktualisiereSchnitt() {
   if (!aktiv) { if (schnittZeichnen) schnittModusZeichnen(false); return; }
   sEl.neu.disabled = !datenVorhanden;
   if (!schnittLinie) {
-    schnittHinweisSetzen(datenVorhanden ? "Klicke auf „Linie ziehen“ und ziehe die Linie über die Karte (z. B. quer durch eine Straße)." : "Klicke zuerst links auf „Analysieren“, dann kannst du eine Linie ziehen.");
+    if (datenVorhanden) { if (!schnittZeichnen) schnittModusZeichnen(true); }   // gleich zeichnen: Start- und Endpunkt anklicken
+    else schnittHinweisSetzen("Klicke zuerst links auf „Analysieren“, dann kannst du eine Linie ziehen.");
     return;
   }
   const stand = [lod2Gebaeude.length, osmFeatures.length, alkisFlaechen.length, flurstuecke.length, gelaende ? gelaende.min : -1].join("|");
@@ -896,7 +962,7 @@ document.getElementById("schnitt-liste").addEventListener("change", (e) => {
 document.getElementById("schnitt-loeschen").addEventListener("click", () => {
   if (schnittAktiv < 0) return;
   schnittListe.splice(schnittAktiv, 1);
-  if (!schnittListe.length) { schnittAktiv = -1; schnittLinie = null; schnittDaten = null; schnittSvg.innerHTML = ""; schnittInfo.textContent = ""; setzeSchnittLinieKarte(null); schnittListeAnzeigen(); sEl.neu.textContent = "Linie ziehen"; schnittHinweisSetzen("Ziehe eine Linie auf der Karte, dann entsteht hier die Zeichnung."); return; }
+  if (!schnittListe.length) { schnittAktiv = -1; schnittLinie = null; schnittDaten = null; schnittSvg.innerHTML = ""; schnittInfo.textContent = ""; setzeSchnittLinieKarte(null); schnittListeAnzeigen(); sEl.neu.textContent = "Linie ziehen"; schnittHinweisSetzen(""); schnittModusZeichnen(true); return; }
   schnittAktiv = Math.min(schnittAktiv, schnittListe.length - 1);
   const l = schnittListe[schnittAktiv];
   schnittLinie = { a: l.a, b: l.b };

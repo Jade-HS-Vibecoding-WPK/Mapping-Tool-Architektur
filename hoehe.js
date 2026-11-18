@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Schwarzplan nach Gebäudehöhe (Schalter im Reiter "Schwarzplan")
+   SiteKick – Schwarzplan nach Gebäudehöhe (Schalter im Reiter "Schwarzplan")
 
    Zwei Darstellungen: "Schwarz" (wie bisher) und "Nach Höhe" (fünf Grautöne von hell = niedrig bis schwarz = hoch).
    Höhe je Gebäude: LoD2 (gemessene Gebäudehöhe), sonst OSM-Höhe, sonst Geschosszahl mal 3 m, sonst eine Annahme.

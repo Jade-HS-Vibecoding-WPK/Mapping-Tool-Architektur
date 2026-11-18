@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Flurstücke, Bodenrichtwerte und Bestandskennzahlen
+   SiteKick – Flurstücke, Bodenrichtwerte und Bestandskennzahlen
 
    Ein Flurstück ist ein Grundstück im Liegenschaftskataster (ALKIS). Der LGLN stellt die Flurstücke
    und die Bodenrichtwerte (BORIS) frei bereit. Ein Bodenrichtwert ist der durchschnittliche Preis je m²

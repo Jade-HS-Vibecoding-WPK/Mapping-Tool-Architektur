@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Mietpreise (Zensus 2022, 100-m-Raster)
+   SiteKick – Mietpreise (Zensus 2022, 100-m-Raster)
 
    Der Zensus 2022 (Volkszählung der Statistischen Ämter) hat für jede Rasterzelle von 100 × 100 m die durchschnittliche
    Nettokaltmiete je m² ermittelt, dazu Einwohner, Wohnungsgröße, Eigentümer- und Leerstandsquote. Die Daten stehen unter

@@ -1,5 +1,5 @@
 /*
-  Ortsanalyse – Gestaltung nach Apple-Art
+  SiteKick – Gestaltung nach Apple-Art
   Grundsätze: sofortige Rückmeldung beim Drücken, weiche Bewegungen ohne Federn-Überschwingen,
   milchig-durchsichtige Leisten und Fenster (Material), runde Ecken, Systemschrift,
   Hell- und Dunkelmodus nach Systemeinstellung. Pläne, Exporte und Karte bleiben hell und streng.
@@ -508,7 +508,7 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="date"]:focus, 
   z-index: 2;
   font-size: 11px;
   color: var(--ink-soft);
-  background: var(--glass);
+  background: var(--glass-solid);   /* deckend, damit der Text auch auf weißen Plänen lesbar bleibt */
   border-radius: var(--r-s);
   padding: 2px 8px;
   pointer-events: none;

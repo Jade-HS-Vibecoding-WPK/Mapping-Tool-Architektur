@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Wirtschaftlichkeit (Reiter "Wirtschaftlichkeit")
+   SiteKick – Wirtschaftlichkeit (Reiter "Wirtschaftlichkeit")
 
    Eine Flurstückskarte, in der man ein Flurstück anklickt und alles Wichtige kompakt sieht (Steckbrief mit Luftbild-Ausschnitt,
    Fläche, Bodenrichtwert, Bestand, Miete) und darunter eine Wirtschaftlichkeitsrechnung bekommt:

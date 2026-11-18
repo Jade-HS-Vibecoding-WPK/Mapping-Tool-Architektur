@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Projekt im Browser merken
+   SiteKick – Projekt im Browser merken
 
    Das Tool merkt sich automatisch den letzten Stand in diesem Browser (localStorage): das gewählte Gebiet, den offenen Reiter und die Einstellungen
    (Sonne, Einfärbungen, Luftbild, Gehzeit-Kreise, Schnittlinien, LoD2 an/aus). Die Geodaten selbst werden NICHT gespeichert, sie werden beim

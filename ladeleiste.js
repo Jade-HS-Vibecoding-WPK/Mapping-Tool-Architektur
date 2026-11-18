@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Ladestand
+   SiteKick – Ladestand
    Beim Klick auf "Analysieren" laden vier Quellen gleichzeitig: OpenStreetMap, LoD2-Gebäude, amtliche Straßenflächen
    und das Gelände. Der Ladestand in der Seitenleiste zeigt für jede Quelle, ob sie wartet, lädt, fertig ist oder
    fehlgeschlagen ist, und darunter, was genau geholt wird: welche LoD2- und Geländekacheln, welche Abfragen, welche Server.

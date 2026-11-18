@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Infos (Reiter "Infos")
+   SiteKick – Infos (Reiter "Infos")
 
    Zeigt Orte und Linien aus OpenStreetMap, die man für eine Ortsanalyse braucht: Kindergärten, Schulen, Spielplätze,
    Läden, Haltestellen, Bahnhöfe, Bahnstrecken, Ärzte, Gastronomie und mehr. Jede Gruppe lässt sich einzeln ein- und

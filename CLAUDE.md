@@ -1,5 +1,5 @@
 # Ziel
-Web-Tool „Ortsanalyse“ für Architekturstudierende: Gebiet auf der Karte wählen und automatisch
+Web-Tool „SiteKick“ für Architekturstudierende: Gebiet auf der Karte wählen und automatisch
 Schwarzplan, Straßennetz, Grün/Vegetation, Lageplan, 3D-Modell, Kennzahlen, Diagramme und Export
 bekommen. Details und aktueller Stand: siehe PLAN.md.
 

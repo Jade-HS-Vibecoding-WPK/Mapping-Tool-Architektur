@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Sonne und Schatten (Reiter "Sonne & Schatten")
+   SiteKick – Sonne und Schatten (Reiter "Sonne & Schatten")
 
    Zwei Darstellungen auf der Karte, dazu Schatten im 3D-Modell (ansicht3d.js, gleiche Einstellung für Datum und Uhrzeit):
 

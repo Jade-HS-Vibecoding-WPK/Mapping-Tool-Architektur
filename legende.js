@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Legende
+   SiteKick – Legende
    In jedem Reiter mit Karte oder 3D gibt es eine Legende, die man ein- und ausblenden kann.
    Sie zeigt den Farbschlüssel der gerade sichtbaren Ebenen und ein paar Eckdaten (aus den Kennzahlen).
    Die Farben kommen aus der zentralen Palette FARBE (app.js), damit Legende und Plan immer zusammenpassen.

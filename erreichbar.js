@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Erreichbarkeit zu Fuß (im Reiter "Umgebung")
+   SiteKick – Erreichbarkeit zu Fuß (im Reiter "Umgebung")
 
    Man wählt einen Mittelpunkt (Klick auf die Karte) und bekommt Kreise für 5, 10 und 15 Minuten Gehzeit.
    Rechnung: Luftlinie, 80 Meter je Minute (4,8 km/h). Das ist eine Annahme und KEIN Wegenetz: Umwege, Gebäude, Bahnlinien und

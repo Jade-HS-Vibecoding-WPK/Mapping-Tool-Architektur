@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Logik
+   SiteKick – Logik
    1. Karte von Oldenburg anzeigen (schwarz-weiß)
    2. Rechteck aufziehen und Größe anzeigen
    3. Reiter (Tabs) für die Ansichten umschalten
@@ -1505,7 +1505,7 @@ function kennzahlenAlsHtml(k, abschnitte) {
 }
 
 function kennzahlenAlsText(k, abschnitte) {
-  const zeilen = ["Ortsanalyse – Kennzahlen", ""];
+  const zeilen = ["SiteKick – Kennzahlen", ""];
   for (const a of abschnitte) {
     zeilen.push(a.titel.toUpperCase());
     (a.zeilen || []).forEach((z) => zeilen.push(`${z[0]}: ${z[1]}`));

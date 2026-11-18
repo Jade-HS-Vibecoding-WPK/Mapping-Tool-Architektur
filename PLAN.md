@@ -1,6 +1,6 @@
 # PLAN.md – Stadtanalyse-Tool
 
-> Arbeitstitel: **„Ortsanalyse“**: ein Web-Tool, das für ein frei gewähltes Gebiet automatisch
+> Arbeitstitel: **„SiteKick“**: ein Web-Tool, das für ein frei gewähltes Gebiet automatisch
 > Schwarzplan, Straßennetz, Grün/Vegetation, Lageplan und 3D-Modell erzeugt, auswertet und
 > kompakt zusammenfasst.
 
@@ -905,6 +905,7 @@ Rhythmus pro Feature: **neue Sitzung → ein Feature bauen → testen und speich
   **Nicht getestet:** CityGML-Import (nur Programmweg, keine Beispieldatei), Text-DXF mit lokalen Koordinaten (Abfrage des Bezugspunkts per Eingabefenster), Import sehr großer Dateien, Projekt-Wiederherstellung mit allen Reitern einzeln.
   **Grenzen:** Kreise sind Luftlinie; Denkmal nur aus OSM; DXF-Import ohne Blöcke, Texte, Schraffuren; GeoJSON/DXF-Import nicht zwischen Sitzungen gemerkt.
 - [x] **Oberfläche im Apple-Stil** (`style.css`, kleine Änderung in `app.js`): runde Ecken, Systemschrift, Karten in der Seitenleiste, milchig-durchsichtige Fenster über der Karte, Ein-Aus-Schalter statt Häkchen, Umschalter als Segmente, weiche Bewegungen (Fenster tauchen auf, Schnitt-Blatt kommt von unten, Export-Fenster blendet ein und aus, Druck-Rückmeldung sofort beim Drücken). Akzentfarbe jetzt iOS-Blau (Karte, Auswahl, Kreise). **Dunkelmodus** automatisch nach Systemeinstellung (nur Bedienflächen; Karte, Pläne, Zeichenblätter und Exporte bleiben hell). Berücksichtigt „weniger Bewegung“, „weniger Transparenz“, „mehr Kontrast“. **Getestet:** Hell und Dunkel, Reiter Karte, Lageplan, Sonne, Schnitt, Kennzahlen, Export-Fenster auf, zu. **Nicht getestet:** Handy, Firefox, Safari, Reiter 3D und Mietpreise in Dunkel.
+- [x] **Umbenannt in „SiteKick“** (früher Arbeitstitel „Ortsanalyse“): Seitentitel, Überschrift, Dateiköpfe, Export-Dateinamen (`SiteKick-…`), README, Startdatei und Server-Meldung. Gespeicherte Daten im Browser (Schlüssel `ortsanalyse-…`) und der Name des GitHub-Repositorys (`Mapping-Tool-Architektur`) bleiben unverändert, damit nichts verloren geht und die Live-Adresse gleich bleibt.
 - [ ] **Noch offen:** Poster, README-Platzhalter ausfüllen, Test der DXF-Dateien in Allplan/ArchiCAD (macht die Nutzerin / der Nutzer), Abstimmung der zwei Versionen (`entwicklung`).
 - [ ] Hinweis: Die Hintergrundkarte kommt von den OSM-Kartenservern (tile.openstreetmap.org). Für ein
   Studienprojekt ist das in Ordnung. Bei vielen Nutzern müsste man einen anderen Kartendienst nehmen.

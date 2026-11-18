@@ -1,4 +1,4 @@
-# Übergabe: Projekt „Ortsanalyse“ (Mapping-Tool-Architektur)
+# Übergabe: Projekt „SiteKick“ (Mapping-Tool-Architektur)
 
 > **An Claude Code in der neuen Sitzung:** Diese Datei fasst die komplette bisherige Sitzung
 > zusammen. Lies sie ganz. Lies danach `CLAUDE.md` (Regeln) und `PLAN.md` (ausführlicher Plan) im

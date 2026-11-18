@@ -1,6 +1,6 @@
 @echo off
 rem ---------------------------------------------------------------
-rem  Ortsanalyse starten (Windows): Doppelklick auf diese Datei.
+rem  SiteKick starten (Windows): Doppelklick auf diese Datei.
 rem  Startet einen kleinen lokalen Webserver und oeffnet das Tool
 rem  im Browser. Zum Beenden dieses Fenster schliessen.
 rem  Voraussetzung: Python ist installiert (python.org).
@@ -19,7 +19,7 @@ if "%PYTHON%"=="" (
   exit /b 1
 )
 
-echo Ortsanalyse laeuft auf http://localhost:8765/index.html
+echo SiteKick laeuft auf http://localhost:8765/index.html
 echo Dieses Fenster offen lassen. Zum Beenden einfach schliessen.
 echo.
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Luftbild (Reiter "Luftbild")
+   SiteKick – Luftbild (Reiter "Luftbild")
 
    Das LGLN (Landesvermessung Niedersachsen) stellt die Digitalen Orthophotos (DOP20) frei bereit: entzerrte Luftbilder
    (Flugzeugaufnahmen, keine Satellitenbilder) mit 20 cm Bodenauflösung, Lizenz CC BY 4.0. Wir binden sie als Kartendienst

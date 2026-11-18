@@ -1,11 +1,11 @@
-# Ortsanalyse – Mapping-Tool für Architektur
+# SiteKick – Mapping-Tool für Architektur
 
 Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
 **Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonnen- und Schattenstudie, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
 Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt. Alle Pläne lassen sich **maßstäblich mit Plankopf als PDF, PNG, SVG und
 als DXF für Allplan 2024 und ArchiCAD 29** exportieren.
 
-Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen automatisch aus offenen Quellen
+**SiteKick** (früher Arbeitstitel „Ortsanalyse“) ist als Studienprojekt für Architekturstudierende entstanden. Die Daten kommen automatisch aus offenen Quellen
 (OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start, oder man nutzt die Live-Demo.
 
 ![Lageplan der Oldenburger Innenstadt, erzeugt mit dem Tool](docs/bilder/lageplan.jpg)
@@ -16,7 +16,7 @@ Entstanden als Studienprojekt für Architekturstudierende. Die Daten kommen auto
 
 | Hell | Dunkel |
 |---|---|
-| ![Oberfläche im Hellmodus, Reiter Sonne & Schatten](docs/bilder/oberflaeche-hell.jpg) | ![Oberfläche im Dunkelmodus, Reiter Kennzahlen](docs/bilder/oberflaeche-dunkel.jpg) |
+| ![Oberfläche im Hellmodus, Reiter Sonne & Schatten](docs/bilder/oberflaeche-hell.jpg) | ![Oberfläche im Dunkelmodus, Reiter Lageplan](docs/bilder/oberflaeche-dunkel.jpg) |
 
 *Die Oberfläche folgt der Einstellung des Geräts (hell oder dunkel). Karte, Pläne und Exporte bleiben immer hell und schwarz-weiß.*
 

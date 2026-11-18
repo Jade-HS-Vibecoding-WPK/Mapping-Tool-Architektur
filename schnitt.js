@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Schnitt und Straßenansicht (Reiter "Schnitt")
+   SiteKick – Schnitt und Straßenansicht (Reiter "Schnitt")
 
    Man zieht eine gerade Linie über die Karte. Daraus entsteht eine Zeichnung entlang dieser Linie (Maße in Metern, 1:1):
 
@@ -1036,7 +1036,7 @@ sEl.dxf.addEventListener("click", () => {
   const blob = new Blob([inhalt], { type: "application/dxf" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `ortsanalyse-${schnittModus === "schnitt" ? "schnitt" : "ansicht"}.dxf`;
+  a.download = `sitekick-${schnittModus === "schnitt" ? "schnitt" : "ansicht"}.dxf`;
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – 3D-Ansicht (three.js)
+   SiteKick – 3D-Ansicht (three.js)
 
    Zeigt das gewählte Gebiet als drehbares 3D-Modell:
    - Gebäude aus den amtlichen LoD2-Daten mit echten Wänden und Dachflächen
@@ -493,7 +493,7 @@ function d3Baue() {
   if (alkisVorhanden) quellen.push(alkisQuelle);
   if (gelaende) quellen.push(gelaendeQuelle);
   d3Info.textContent = teile.join(" · ") + " · " + quellen.join(" · ") + " · nicht vermessungsgenau";
-  d3.quellenText = "Ortsanalyse 3D · " + quellen.join(" · ") + " · nicht vermessungsgenau";
+  d3.quellenText = "SiteKick 3D · " + quellen.join(" · ") + " · nicht vermessungsgenau";
 
   d3SetzeAnsicht("schraeg");
   d3SonneAnwenden();
@@ -598,7 +598,7 @@ function d3SpeichereBild() {
   bild.toBlob((blob) => {
     const verweis = document.createElement("a");
     verweis.href = URL.createObjectURL(blob);
-    verweis.download = "Ortsanalyse-3D.png";
+    verweis.download = "SiteKick-3D.png";
     verweis.click();
     setTimeout(() => URL.revokeObjectURL(verweis.href), 2000);
   });

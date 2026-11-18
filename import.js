@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Datei-Import
+   SiteKick – Datei-Import
 
    Gelesen werden:
      GeoJSON (.geojson, .json): Flächen, Linien, Punkte. Länge/Breite (WGS84) oder UTM 32 (erkennt das Tool an den Zahlen).

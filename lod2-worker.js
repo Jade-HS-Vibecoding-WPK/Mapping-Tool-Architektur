@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Hintergrundprogramm für die LoD2-Dachformen
+   SiteKick – Hintergrundprogramm für die LoD2-Dachformen
 
    Warum ein eigenes Programm? Eine LoD2-Kachel des LGLN ist ca. 57 MB groß (ein Quadratkilometer
    Gebäude als XML-Text). Würde die Seite das selbst einlesen, bliebe sie einige Sekunden "hängen".

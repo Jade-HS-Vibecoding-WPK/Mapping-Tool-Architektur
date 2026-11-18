@@ -1,4 +1,4 @@
-"""Kleiner Webserver für die Ortsanalyse (nur zum Entwickeln und Ausprobieren auf dem eigenen Rechner).
+"""Kleiner Webserver für die SiteKick (nur zum Entwickeln und Ausprobieren auf dem eigenen Rechner).
 
 Aufruf:  python server.py [Port]      (Standard: 8765)
 
@@ -19,7 +19,7 @@ class OhneZwischenspeicher(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     server = ThreadingHTTPServer(("127.0.0.1", port), OhneZwischenspeicher)
-    print(f"Ortsanalyse laeuft auf http://localhost:{port}/index.html  (Beenden mit Strg+C)")
+    print(f"SiteKick laeuft auf http://localhost:{port}/index.html  (Beenden mit Strg+C)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

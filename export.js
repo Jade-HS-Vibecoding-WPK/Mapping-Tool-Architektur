@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Export der Pläne (Reiter Schwarzplan, Straßennetz, Grün & Wasser, Lageplan)
+   SiteKick – Export der Pläne (Reiter Schwarzplan, Straßennetz, Grün & Wasser, Lageplan)
 
    Ein Klick auf „Exportieren …“ öffnet ein Fenster mit Vorschau. Dort wählt man Format (A4 bis A0), Maßstab und Beschriftung des Plankopfs
    und speichert den Plan als PDF (Vektor), PNG (Pixel, 150 oder 300 dpi), SVG (Vektor) oder DXF für CAD (Allplan 2024, ArchiCAD 29).
@@ -736,7 +736,7 @@ function expDxf(szene, opt, voreinstellung) {
   const einfach = (s) => s.replace(/©/g, "(c)").replace(/·/g, "-");
   const breiteZeichen = Math.max(40, Math.floor((szene.xmax - szene.xmin) / (th * 0.62)));   // Zeilenlänge so, dass der Text nicht breiter als der Plan wird
   const zeilen = [
-    ...expUmbruch(`${opt.titel || EXP_PLAENE[szene.ansicht].name} - Ortsanalyse, Stand ${opt.datum}` + (szene.ansicht === "sonne" ? " (Schatten und Besonnung nur in PDF, PNG und SVG)" : ""), 10, false, 1e6),
+    ...expUmbruch(`${opt.titel || EXP_PLAENE[szene.ansicht].name} - SiteKick, Stand ${opt.datum}` + (szene.ansicht === "sonne" ? " (Schatten und Besonnung nur in PDF, PNG und SVG)" : ""), 10, false, 1e6),
     ...expUmbruch(`Einheit Meter, 1 Einheit = 1 m. ETRS89 / UTM 32 (EPSG:25832).` + (archicad ? ` Lokaler Nullpunkt = E ${E0} N ${N0} (Bezugskoordinaten, UTM minus Nullpunkt).` : " Absolute UTM-Koordinaten."), 10, false, 1e6),
     ...expUmbruchZeichen(einfach(`Quellen: ${expQuellen()}`), breiteZeichen)
   ];
@@ -751,7 +751,7 @@ function expDxf(szene, opt, voreinstellung) {
 
 // ---------- 7. Fenster ----------
 function expDateiname(ansicht, opt, ende) {
-  return `Ortsanalyse-${EXP_PLAENE[ansicht].datei}-1zu${opt.massstab}.${ende}`;
+  return `SiteKick-${EXP_PLAENE[ansicht].datei}-1zu${opt.massstab}.${ende}`;
 }
 function expHerunterladen(blob, name) {
   const a = document.createElement("a");
@@ -946,7 +946,7 @@ function expDxf3d(opt, voreinstellung) {
   paar(0, "POLYLINE"); paar(8, "GEBIETSRAHMEN"); paar(66, 1); paar(70, 1);
   for (const p of r.ecken) { paar(0, "VERTEX"); paar(8, "GEBIETSRAHMEN"); paar(10, dxfZ(p[0] - E0)); paar(20, dxfZ(p[1] - N0)); paar(30, "0.0"); }
   paar(0, "SEQEND"); paar(8, "GEBIETSRAHMEN");
-  const zeilen = [`3D-Modell - Ortsanalyse, Stand ${opt.datum}`, `Einheit Meter. ETRS89 / UTM 32 (EPSG:25832), Hoehen ueber NHN.` + (archicad ? ` Lokaler Nullpunkt = E ${E0} N ${N0} (nur Lage, Hoehen unveraendert).` : " Absolute UTM-Koordinaten."),
+  const zeilen = [`3D-Modell - SiteKick, Stand ${opt.datum}`, `Einheit Meter. ETRS89 / UTM 32 (EPSG:25832), Hoehen ueber NHN.` + (archicad ? ` Lokaler Nullpunkt = E ${E0} N ${N0} (nur Lage, Hoehen unveraendert).` : " Absolute UTM-Koordinaten."),
     ...expUmbruchZeichen(`Quellen: ${expQuellen()}`.replace(/©/g, "(c)").replace(/·/g, "-"), 110)];
   zeilen.forEach((s, i) => { paar(0, "TEXT"); paar(8, "BESCHRIFTUNG"); paar(10, dxfZ(r.xmin - E0)); paar(20, dxfZ(r.ymin - N0 - 12 - i * 5)); paar(30, "0.0"); paar(40, "3.0"); paar(1, dxfTxt(s)); });
   const kopf = ["0\nSECTION\n2\nHEADER\n9\n$ACADVER\n1\nAC1009\n0\nENDSEC",
@@ -983,7 +983,7 @@ function expKennzahlenPdf(opt) {
     doc.setFont("helvetica", fett ? "bold" : "normal"); doc.setFontSize(pt); doc.setTextColor(...expFarbe(farbe || "#000"));
     for (const z of doc.splitTextToSize(text, 170 - einzug)) { if (y > 277) seite(); doc.text(z, 20 + einzug, y); y += abstand; }
   };
-  zeile(`Kennzahlen – ${opt.titel || "Ortsanalyse"}`, 16, true, "#000", 0, 8);
+  zeile(`Kennzahlen – ${opt.titel || "SiteKick"}`, 16, true, "#000", 0, 8);
   zeile(`${opt.untertitel}   ·   Stand ${opt.datum}${opt.verfasser ? "   ·   " + opt.verfasser : ""}${opt.kurs ? "   ·   " + opt.kurs : ""}`, 8.5, false, "#444", 0, 7);
   let letzter = null;
   for (const r of reihen) {
@@ -1079,7 +1079,7 @@ async function expSpeichern(ziel) {
   exEl.status.textContent = "Wird erstellt …";
   await new Promise((r) => setTimeout(r, 30));
   try {
-    const name = (ende, zusatz = "") => `Ortsanalyse-${EXP_PLAENE[ansicht].datei}${EXP_PLAENE[ansicht].art === "bild3d" || EXP_PLAENE[ansicht].art === "text" ? "" : "-1zu" + opt.massstab}${zusatz}.${ende}`;
+    const name = (ende, zusatz = "") => `SiteKick-${EXP_PLAENE[ansicht].datei}${EXP_PLAENE[ansicht].art === "bild3d" || EXP_PLAENE[ansicht].art === "text" ? "" : "-1zu" + opt.massstab}${zusatz}.${ende}`;
     if (ziel === "svg") {
       const b = expSvg(lay.w, lay.h); expZeichne(b, opt, exSzene, lay);
       expHerunterladen(new Blob([b.ergebnis(false)], { type: "image/svg+xml" }), name("svg"));
@@ -1105,7 +1105,7 @@ async function expSpeichern(ziel) {
     } else if (ziel === "dxf-schnitt") {
       expHerunterladen(new Blob([baueDxf(schnittDaten)], { type: "application/dxf" }), name("dxf", "-CAD").replace(/-1zu\d+/, ""));
     } else if (ziel === "geojson") {
-      const fc = { type: "FeatureCollection", name: `Ortsanalyse ${EXP_PLAENE[ansicht].name}`, quellen: expQuellen(), features: exSzene.geo };
+      const fc = { type: "FeatureCollection", name: `SiteKick ${EXP_PLAENE[ansicht].name}`, quellen: expQuellen(), features: exSzene.geo };
       expHerunterladen(new Blob([JSON.stringify(fc)], { type: "application/geo+json" }), name("geojson").replace(/-1zu\d+/, ""));
     } else if (ziel === "csv") {
       expHerunterladen(new Blob([expCsvTabelle(ansicht)], { type: "text/csv;charset=utf-8" }), name("csv").replace(/-1zu\d+/, ""));

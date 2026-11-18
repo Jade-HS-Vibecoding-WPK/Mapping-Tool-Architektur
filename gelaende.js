@@ -1,5 +1,5 @@
 /* ============================================================
-   Ortsanalyse – Gelände (Höhenmodell DGM1 des LGLN)
+   SiteKick – Gelände (Höhenmodell DGM1 des LGLN)
 
    Das Digitale Geländemodell des LGLN gibt die Höhe des Erdbodens in einem 1-m-Raster an (ohne Gebäude und Bäume).
    Es liegt als "Cloud Optimized GeoTIFF" auf einem offenen Server. Mit Teil-Anfragen laden wir nur das Stück,

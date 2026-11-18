@@ -166,8 +166,17 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && schnittZeichnen) { schnittModusZeichnen(false); setzeSchnittLinieKarte(schnittLinie); }
 });
 
-// Tiefe durch Ziehen an der gestrichelten Kante: Griff oder Kante anfassen, die Kante folgt der Maus
+// Länge durch Ziehen an den Endpunkten, Tiefe durch Ziehen an der gestrichelten Kante (Griff oder Kante anfassen, sie folgt der Maus)
 let schnittTiefeZiehen = false;
+let schnittEndeZiehen = null;     // "a" oder "b": Endpunkt, der gerade gezogen wird
+function schnittEndeGetroffen(punkt) {   // liefert "a", "b" oder null
+  if (!schnittLinie || aktuelleAnsicht !== "schnitt" || schnittZeichnen) return null;
+  for (const k of ["b", "a"]) {
+    const p = map.project(utmWandler.inverse(schnittLinie[k]));
+    if (Math.hypot(punkt.x - p.x, punkt.y - p.y) <= 13) return k;
+  }
+  return null;
+}
 let schnittCursorGesetzt = false;
 function schnittKanteGetroffen(punkt) {   // punkt = Bildschirmpunkt { x, y }
   if (!schnittLinie || aktuelleAnsicht !== "schnitt" || schnittZeichnen) return false;
@@ -181,16 +190,28 @@ function schnittKanteGetroffen(punkt) {   // punkt = Bildschirmpunkt { x, y }
   return Math.hypot(punkt.x - (p0.x + t * dx), punkt.y - (p0.y + t * dy)) <= 10;
 }
 function schnittTiefeBeginne(e) {
+  const ende = schnittEndeGetroffen(e.point);
+  if (ende) { e.preventDefault(); schnittEndeZiehen = ende; map.dragPan.disable(); return; }
   if (!schnittKanteGetroffen(e.point)) return;
   e.preventDefault();
   schnittTiefeZiehen = true;
   map.dragPan.disable();
 }
 function schnittTiefeZiehe(e) {
+  if (schnittEndeZiehen) {
+    const neu = utmWandler.forward(schnittKlemmen(e.lngLat));
+    const fest = schnittLinie[schnittEndeZiehen === "a" ? "b" : "a"];
+    if (Math.hypot(neu[0] - fest[0], neu[1] - fest[1]) < 5) return;   // zu kurz: ignorieren
+    schnittLinie = { ...schnittLinie, [schnittEndeZiehen]: neu };
+    const eintrag = schnittListe[schnittAktiv];
+    if (eintrag) eintrag[schnittEndeZiehen] = neu;
+    setzeSchnittLinieKarte(schnittLinie);
+    return;
+  }
   if (!schnittTiefeZiehen) {
     if (aktuelleAnsicht === "schnitt" && e.point) {
-      const treffer = schnittKanteGetroffen(e.point);
-      if (treffer) { map.getCanvas().style.cursor = "ns-resize"; schnittCursorGesetzt = true; }
+      const cursor = schnittEndeGetroffen(e.point) ? "move" : schnittKanteGetroffen(e.point) ? "ns-resize" : "";
+      if (cursor) { map.getCanvas().style.cursor = cursor; schnittCursorGesetzt = true; }
       else if (schnittCursorGesetzt) { map.getCanvas().style.cursor = ""; schnittCursorGesetzt = false; }
     }
     return;
@@ -203,6 +224,13 @@ function schnittTiefeZiehe(e) {
   setzeSchnittLinieKarte(schnittLinie);
 }
 function schnittTiefeEnde() {
+  if (schnittEndeZiehen) {
+    schnittEndeZiehen = null;
+    map.dragPan.enable();
+    schnittListeAnzeigen();   // neue Länge im Auswahlfeld
+    schnittNeuRechnen();
+    return;
+  }
   if (!schnittTiefeZiehen) return;
   schnittTiefeZiehen = false;
   map.dragPan.enable();

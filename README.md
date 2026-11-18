@@ -180,7 +180,7 @@ Standardwerte u. a. aus den Landesgrundstücksmarktdaten Niedersachsen, der Immo
 
 ### 4. Darstellung
 
-**Schnitt & Ansicht** – Beim Öffnen des Reiters ist das Zeichnen gleich an: **Startpunkt und Endpunkt auf der Karte anklicken** (Ziehen mit gedrückter Maustaste geht auch, Esc bricht ab). Dann entsteht ein **senkrechter Schnitt** durch Gelände (DGM1), Gebäude (LoD2), Straßenflächen,
+**Schnitt & Ansicht** – Beim Öffnen des Reiters ist das Zeichnen gleich an: **Startpunkt und Endpunkt auf der Karte anklicken** (Ziehen mit gedrückter Maustaste geht auch, Esc bricht ab). Danach lässt sich die Linie **an den beiden Endpunkten ziehen** (Länge und Richtung ändern). Dann entsteht ein **senkrechter Schnitt** durch Gelände (DGM1), Gebäude (LoD2), Straßenflächen,
 Flurstücksgrenzen, Bäume und Wasser, mit Maßketten und Gebäudehöhen. Die **Tiefe** (wie weit man hinter die Linie schaut) lässt sich im Feld „Tiefe“ eingeben oder **an der gestrichelten Kante auf der Karte ziehen** (weißer Griff in der Mitte). Sie ist als Band auf der Karte
 und als Skala in der Zeichnung zu sehen. „Blick nach links/rechts“ wechselt die Seite. Geschnittene Gebäude erscheinen schwarz als Vollkörper (Poché).
 Die Leiste unter der Karte ist in drei Schritte geordnet (1 Linie, 2 Zeichnung, 3 Zeigen). Mit „Neue Linie“ lassen sich **mehrere Linien** ziehen, über das Feld „Linie“ wechselt man; die anderen Linien stehen grau gestrichelt auf der Karte.

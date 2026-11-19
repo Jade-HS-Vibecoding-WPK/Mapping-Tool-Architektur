@@ -92,6 +92,13 @@ Ohne Windows reicht im Ordner dieser Befehl, danach `http://localhost:8765/index
 python server.py 8765
 ```
 
+**Variante C: als Windows-Programm (SiteKick-Setup.exe)**
+
+Ein Installer legt SiteKick wie jede andere App an (Fenster, Symbol auf dem Desktop und im Startmenü). Gebaut wird er im Ordner `desktop/`
+(Electron, [Anleitung](desktop/LIESMICH.txt)): `cd desktop`, `npm install`, `npm run bauen`; fertig ist `desktop/dist/SiteKick-Setup-1.0.0.exe` (ca. 80 MB).
+Das Programm zeigt dieselbe Website, braucht aber ebenso Internet für Karten und amtliche Daten. Windows meldet beim ersten Start „Unbekannter Herausgeber“
+(nicht signiert): „Weitere Informationen“, dann „Trotzdem ausführen“. Der fertige Installer liegt zum Herunterladen im Repository: [`desktop/installer/SiteKick-Setup-1.0.0.exe`](desktop/installer/SiteKick-Setup-1.0.0.exe) (79 MB, Windows 64 Bit).
+
 **Benutzung in fünf Schritten**
 
 1. **Gebiet wählen:** „Rechteck zeichnen“ klicken und mit gedrückter Maustaste auf der Karte ein Rechteck aufziehen (höchstens 1 km²).

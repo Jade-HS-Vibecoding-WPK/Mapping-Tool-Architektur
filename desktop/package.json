@@ -1,0 +1,59 @@
+{
+  "name": "sitekick-desktop",
+  "productName": "SiteKick",
+  "version": "1.0.0",
+  "description": "SiteKick als Windows-Programm (Electron-Hülle um die Website)",
+  "main": "main.js",
+  "author": "Jorit Simon, Alexander Ubben",
+  "license": "MIT",
+  "scripts": {
+    "kopieren": "node kopieren.js",
+    "start": "node kopieren.js && electron .",
+    "bauen": "node kopieren.js && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "png-to-ico": "^3.0.2",
+    "rcedit": "^5.0.2"
+  },
+  "build": {
+    "appId": "de.jade-hs.sitekick",
+    "productName": "SiteKick",
+    "copyright": "SiteKick, Jade Hochschule",
+    "files": [
+      "main.js",
+      "app-site/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SiteKick",
+      "artifactName": "SiteKick-Setup-${version}.${ext}",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "afterPack": "afterPack.js"
+  }
+}

@@ -1,0 +1,31 @@
+SiteKick als Windows-Programm (Ordner desktop)
+==============================================
+
+Was ist das?
+Ein Programmfenster (Electron), das die SiteKick-Website zeigt. Die Website selbst (Ordner darüber) bleibt unverändert.
+Das Programm startet einen kleinen Server nur auf diesem Rechner (127.0.0.1, Port 47831) und zeigt die Seite darin.
+Karten, Höhen- und Gebäudedaten kommen weiter aus dem Internet (OpenStreetMap, LGLN): ohne Internet geht es nicht.
+
+Programm bauen (einmalig, braucht Node.js):
+  cd desktop
+  npm install
+  npm run bauen
+Danach liegt der Installer in  desktop\dist\SiteKick-Setup-1.0.0.exe  (ca. 80 MB).
+Zum Ausprobieren ohne Installer:  npm start
+
+Nach jeder Änderung an der Website: noch einmal  npm run bauen  (kopiert die aktuellen Dateien in das Programm).
+
+Bekannte Stolpersteine
+- Windows meldet beim Installieren „Unbekannter Herausgeber“ / SmartScreen: Die Datei ist nicht signiert (ein Zertifikat kostet Geld).
+  „Weitere Informationen“ → „Trotzdem ausführen“.
+- Mit sehr neuem Node (Version 26) bricht das Entpacken von Electron bei „npm install“ still ab. Dann Electron von Hand entpacken:
+  Zip aus %LOCALAPPDATA%\electron\Cache nach node_modules\electron\dist entpacken und die Datei node_modules\electron\path.txt
+  mit dem Inhalt  electron.exe  anlegen. (Mit Node 20 oder 22 geht es ohne diesen Schritt.)
+- Der fertige Installer liegt im Repository in  desktop\installer\SiteKick-Setup-1.0.0.exe  (79 MB). Nach einem neuen Bau die Datei aus dist dorthin kopieren;
+  jede neue Version vergrößert das Repository um rund 80 MB dauerhaft, besser dann als Release auf GitHub hochladen.
+
+Dateien
+  main.js        Fenster, lokaler Server, Downloads, Menü
+  kopieren.js    kopiert die Website nach app-site (wird mit eingebaut)
+  afterPack.js   setzt Symbol und Programmangaben in die SiteKick.exe
+  build/icon.png Symbol (aus logo/icons/app-icon-512.png)

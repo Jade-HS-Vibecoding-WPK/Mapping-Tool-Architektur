@@ -10,7 +10,7 @@ Programm bauen (einmalig, braucht Node.js):
   cd desktop
   npm install
   npm run bauen
-Danach liegt der Installer in  desktop\dist\SiteKick-Setup-1.0.0.exe  (ca. 80 MB).
+Danach liegt der Installer in  desktop\dist\SiteKick-Setup-1.1.0.exe  (ca. 82 MB).
 Zum Ausprobieren ohne Installer:  npm start
 
 Nach jeder Änderung an der Website: noch einmal  npm run bauen  (kopiert die aktuellen Dateien in das Programm).

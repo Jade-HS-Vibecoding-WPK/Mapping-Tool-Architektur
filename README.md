@@ -46,8 +46,8 @@ Die Datendienste sind bei den ersten Aufrufen manchmal überlastet (Fehler 502);
 Das Programm zeigt genau dieselbe Seite wie der Browser, aber in einem eigenen Fenster. Es läuft nur unter **Windows 10 oder 11 (64 Bit)**.
 Es braucht weiter **Internet**, weil Karten und amtliche Daten live geholt werden.
 
-1. **Installer herunterladen:** [SiteKick-Setup-1.0.0.exe](https://github.com/Jade-HS-Vibecoding-WPK/SiteKick/releases/download/v1.0.0/SiteKick-Setup-1.0.0.exe) anklicken (79 MB, der Download startet von selbst).
-2. **Datei starten:** In den Downloads auf `SiteKick-Setup-1.0.0.exe` doppelklicken.
+1. **Installer herunterladen:** [SiteKick-Setup-1.1.0.exe](https://github.com/Jade-HS-Vibecoding-WPK/SiteKick/releases/download/v1.1.0/SiteKick-Setup-1.1.0.exe) anklicken (82 MB, der Download startet von selbst).
+2. **Datei starten:** In den Downloads auf `SiteKick-Setup-1.1.0.exe` doppelklicken.
 3. **Windows-Warnung wegbestätigen:** Es erscheint „Der Computer wurde durch Windows geschützt“ (blau). Das ist normal, weil die Datei nicht mit einem bezahlten Zertifikat
    unterschrieben ist. Auf **„Weitere Informationen“** klicken, dann auf **„Trotzdem ausführen“**.
 4. **Installieren:** Im Installer „Weiter“, bei Bedarf den Ordner ändern, dann „Installieren“. Dauert etwa eine halbe Minute. Danach „Fertig stellen“.

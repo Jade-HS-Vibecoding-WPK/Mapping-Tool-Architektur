@@ -131,7 +131,7 @@ Ein eigenes Gebiet: **„Rechteck zeichnen“**, mit gedrückter Maustaste aufzi
 | Zahlen | **Kennzahlen** | GRZ/GFZ brutto und netto, Dichte, Grün, Verkehr und mehr |
 | Ausgabe | **Sammel-Export** | viele Pläne in vielen Formaten mit gemeinsamem Ausschnitt als eine ZIP-Datei |
 
-**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML), automatisches Merken des letzten Stands im Browser, Hell- und Dunkelmodus (Swiss Style) und eine Installation als App auf dem Handy.
+**Dazu:** Export aus jedem Reiter (PDF, PNG, SVG, DXF, GeoJSON, CSV), Datei-Import (GeoJSON, Text-DXF, CityGML), **einklappbare linke Spalte** (Griff am Rand, mehr Platz für Karte und 3D; das Logo wandert dann klein in die Reiterleiste), automatisches Merken des letzten Stands im Browser, Hell- und Dunkelmodus (Swiss Style) und eine Installation als App auf dem Handy.
 
 ---
 
@@ -306,7 +306,7 @@ Der Reiter **„Sammel-Export“** (ganz rechts) lädt **mehrere Pläne in mehre
 
 **DXF-Dateien:** Version R12 (AC1009), Einheit Meter, ein Layer je Kategorie (ohne Umlaute und Leerzeichen), Flächen als geschlossene Linien **ohne Füllung**, Quellenangabe als Text im Layer `BESCHRIFTUNG`.
 Allplan bekommt absolute UTM-32-Koordinaten, ArchiCAD einen lokalen Nullpunkt (UTM minus Bezugspunkt, die Bezugskoordinaten stehen als Text in der Datei).
-Alle DXF-Dateien wurden mit der Python-Bibliothek ezdxf auf Gültigkeit geprüft. **In Allplan und ArchiCAD sind sie noch nicht getestet.**
+Alle DXF-Dateien wurden mit der Python-Bibliothek ezdxf auf Gültigkeit geprüft und von den Studierenden in **Allplan 2024 und ArchiCAD 29** getestet.
 
 Der Maßstab stimmt auf dem Papier nur, wenn beim Drucken „tatsächliche Größe“ (100 %) gewählt wird.
 
@@ -396,7 +396,7 @@ Ehrlich gesagt, was das Tool **nicht** kann:
   Pixelbilder bleiben Luftbild, Sonnen-Raster, 3D-Ansicht und die Schnittzeichnung im PDF. Das Luftbild lädt das Tool beim Export neu vom Dienst des LGLN, dazu braucht es Internet.
 - **Sammel-Export:** Viele Pläne in hoher Auflösung brauchen Zeit und Arbeitsspeicher (im Test etwa 7 Sekunden je Plan bei 150 dpi). Der Schnitt wird dafür kurz im Schnitt-Reiter ausgemessen, danach springt die Ansicht zurück.
 - **Import:** DWG und das binäre topoexport-DXF kann der Browser nicht lesen (als Text-DXF speichern). Beim DXF-Import fehlen Blöcke, Texte, Bemaßungen und Schraffuren. Importierte GeoJSON- und DXF-Dateien bleiben nicht über das Neuladen der Seite hinaus erhalten.
-- **Nicht getestet:** Smartphone (auch die Installation als App), andere Browser als Chrome/Edge, DXF in Allplan und ArchiCAD, CityGML-Import mit einer echten Datei, Text-DXF mit lokalen Koordinaten, sehr große oder dicht bebaute Gebiete, Sammel-Export mit 600 dpi auf A1/A0 und das Ziehen des Ausschnitts im Sammel-Reiter mit anderen Eingabegeräten als der Maus.
+- **Nicht getestet:** Smartphone (auch die Installation als App), andere Browser als Chrome/Edge, CityGML-Import mit einer echten Datei, Text-DXF mit lokalen Koordinaten, sehr große oder dicht bebaute Gebiete, Sammel-Export mit 600 dpi auf A1/A0 und das Ziehen des Ausschnitts im Sammel-Reiter mit anderen Eingabegeräten als der Maus.
 
 ---
 
@@ -426,6 +426,7 @@ Koordinaten amtlicher Daten: ETRS89 / UTM 32 (EPSG:25832).
 | `ansicht3d.js` | 3D-Modell (auch mit Schatten) |
 | `ladeleiste.js`, `legende.js` | Ladestand und Legenden |
 | `hinweis.js` | Startfenster mit KI-Disclaimer und Spaß-Logo |
+| `seitenleiste.js` | Griff zum Ein- und Ausklappen der linken Spalte (Zustand wird im Browser gemerkt) |
 | `Start.bat`, `server.py` | lokaler Start unter Windows |
 | `PLAN.md` | Planung, Entscheidungen und ausführlicher Arbeitsstand |
 | `CLAUDE.md` | Regeln und technische Festlegungen für die Arbeit mit dem Coding-Agenten |
@@ -446,7 +447,7 @@ im Dialog mit den Studierenden. Die Arbeitsregeln für den Agenten stehen in [`C
 | **Zeitraum** | 16. bis 18.11.2026 (siehe Commit-Verlauf im Repository) |
 | **Von den Studierenden** | Idee und Ziel, Auswahl und Reihenfolge der Funktionen, Gestaltungsentscheidungen (Stil, Farben, Logo), Fragen und Rückmeldungen im Dialog, Tests im Browser, Prüfung der Ergebnisse, Veröffentlichung auf GitHub |
 | **Von der KI** | Programmcode (HTML, CSS, JavaScript), Texte in README, `PLAN.md` und `CLAUDE.md`, automatische Testläufe, Screenshots und Exportbeispiele |
-| **Prüfung** | Rechenwerte mit Quelle belegt und nachgerechnet, DXF-Dateien mit der Bibliothek ezdxf geprüft, Ergebnisse an den Daten von Oldenburg Innenstadt im Browser getestet. Nicht geprüft: DXF in Allplan und ArchiCAD, Smartphone, andere Browser |
+| **Prüfung** | Rechenwerte mit Quelle belegt und nachgerechnet, DXF-Dateien mit der Bibliothek ezdxf geprüft und in Allplan und ArchiCAD getestet, Ergebnisse an den Daten von Oldenburg Innenstadt im Browser getestet. Nicht geprüft: Smartphone, andere Browser |
 
 Der Code ist von der KI geschrieben; Verantwortung für Inhalt und Ergebnisse tragen die Studierenden.
 
@@ -459,7 +460,6 @@ Die Rechenwerte der Wirtschaftlichkeit sind mit Quellen belegt, die Rechnungen w
 
 Alle geplanten Funktionen sind umgesetzt. Offen sind Tests, die nur mit den Programmen oder Geräten gehen:
 
-- die DXF-Dateien in **Allplan 2024 und ArchiCAD 29** öffnen (das machen die Studierenden selbst),
 - der CityGML-Import mit einer echten Datei, Smartphone und andere Browser (Firefox, Safari), die Oberfläche im Dunkelmodus in den Reitern 3D-Modell und Mietpreise,
 - der Sammel-Export mit 600 dpi auf großen Blättern.
 

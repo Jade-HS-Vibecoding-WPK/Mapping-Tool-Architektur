@@ -368,7 +368,7 @@ function smHinweise(opt, dateien, probleme) {
     "Hinweise:",
     "  - PDF und SVG enthalten Linien und Flächen als Vektoren. Luftbild, Sonnen-Raster, 3D-Ansicht und die Schnittzeichnung im PDF sind Pixelbilder (der Schnitt als SVG und DXF ist Vektor).",
     "  - Der Maßstab stimmt nur, wenn beim Drucken „tatsächliche Größe“ (100 %) gewählt wird.",
-    "  - DXF: Version R12, Einheit Meter, Flächen ohne Füllung. Mit ezdxf geprüft, in Allplan und ArchiCAD ungetestet.",
+    "  - DXF: Version R12, Einheit Meter, Flächen ohne Füllung. Mit ezdxf geprüft, in Allplan und ArchiCAD getestet.",
     "  - Daten nicht vermessungsgenau. Ergebnisse der Wirtschaftlichkeit sind Überschläge und kein Gutachten.");
   return z.join("\r\n");
 }

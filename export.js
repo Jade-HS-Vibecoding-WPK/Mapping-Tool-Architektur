@@ -13,7 +13,7 @@
 
    Wichtig und ehrlich:
      - DXF: Version R12 (AC1009), Einheit Meter, Flächen als geschlossene Polylinien ohne Füllung (Füllungen kennt dieses DXF-Format nicht).
-       Mit dem Prüfprogramm ezdxf auf Gültigkeit getestet, in Allplan und ArchiCAD ungetestet.
+       Mit dem Prüfprogramm ezdxf auf Gültigkeit getestet, von den Studierenden in Allplan und ArchiCAD getestet.
      - Der Nordpfeil zeigt zum Gitternorden von UTM 32 (bei Oldenburg etwa 0,6 Grad neben dem geografischen Norden).
      - Der Maßstab stimmt auf dem Papier nur, wenn beim Drucken „tatsächliche Größe“ (100 %) gewählt wird.
    ============================================================ */

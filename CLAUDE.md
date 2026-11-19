@@ -33,7 +33,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Schnitt (Reiter „Schnitt & Ansicht“, intern `schnitt`, `schnitt.js`): gezogene Linie, senkrechter Schnitt durch Gelände (DGM1), LoD2-Gebäude (Ebene mit jeder Dach- und Wandfläche geschnitten, Poché als Vollkörper),
   amtliche Straßenflächen, Flurstücksgrenzen, Bäume (OSM, Höhe meist geschätzt), Wasser (OSM, Gewässertiefe unbekannt) und Gelände dahinter; die Tiefe der Ansicht ist als Band auf der Karte
   sichtbar. Straßenansicht aus den LoD2-Flächen. Export nur DXF (R12, Meter, X = Abstand entlang der Linie, Y = Höhe über NHN, keine Füllungen). DXF mit ezdxf
-  geprüft, in Allplan/ArchiCAD ungetestet (das macht die Nutzerin / der Nutzer).
+  geprüft, von der Nutzerin / vom Nutzer in Allplan und ArchiCAD getestet.
 - Sonne & Schatten (Reiter „Sonne & Schatten“, `sonne.js`, Schatten auch in `ansicht3d.js`): Höhenraster 2 m aus LoD2-Dächern/OSM-Blöcken, Bäumen (Krone mit Unterkante) und DGM1, Sonnenstand astronomisch
   (NOAA-Formel, Zeit MEZ/MESZ nach EU-Regel), Schattenstrahlen je Zelle; Besonnungsdauer alle 15 Minuten. Mögliche Sonnenscheindauer bei klarem Himmel, kein Normnachweis, Schatten von außerhalb des Rechtecks fehlen.
 - Sammel-Export (letzter Reiter „Sammel-Export“, `sammelexport.js`): mehrere Pläne und Formate mit gemeinsamen Blatt-Einstellungen und gemeinsamem Ausschnitt als ZIP (JSZip per CDN). Dateien entstehen mit `expErzeuge` aus `export.js`, der Export-Knopf pro Reiter bleibt. PDF/SVG sind Vektor, PNG wird aus den Vektoren in 150 bis 600 dpi gerechnet; Pixelbilder bleiben nur Luftbild, Sonnen-Raster, 3D-Ansicht und die Schnittzeichnung im PDF.
@@ -87,6 +87,7 @@ bekommen. Details und aktueller Stand: siehe PLAN.md.
 - Hell- und Dunkelmodus nach Systemeinstellung (Dunkel = Weiß auf Schwarz). Alle Farben und Maße stehen als Variablen oben in style.css.
   Karte, Pläne, Zeichenblätter und Exporte bleiben hell, schwarz-weiß und streng.
 - Logo (Ordner `logo/`): im Hellmodus Farbversion, im Dunkelmodus Negativ, in Plänen und Exporten die schwarze Version. Regeln siehe `logo/LIESMICH.txt` (nicht verzerren, nicht umfärben, Schutzraum einhalten).
+- Linke Spalte einklappbar (`seitenleiste.js`): Griff am Spaltenrand, Zustand in localStorage `sitekick-seitenleiste-zu`, auf dem Handy (stapelnde Ansicht) ohne Wirkung. Eingeklappt steht das Logo klein oben links in der Reiterleiste (`.tabs-logo`). Nach dem Umschalten Karte `map.resize()` und Fenster-Größenereignis.
 - Startfenster (`hinweis.js`): KI-Disclaimer und Spaß-Logo „Simon Ubben Bau GmbH“ (fiktive Firma, Hinweis „keine echte Firma“ muss dabeistehen). Das Spaß-Logo kommt nie in Pläne, Exporte oder Doku-Bilder als echtes Firmenlogo.
 - Pläne immer mit Nordpfeil und Maßstabsleiste.
 - Ein Hauptbutton pro Ansicht („Analysieren“).

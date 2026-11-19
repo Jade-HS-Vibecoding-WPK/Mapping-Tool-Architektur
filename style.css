@@ -111,10 +111,24 @@ html, body {
 
 /* ---------- Grundaufteilung: Seitenleiste + Hauptbereich ---------- */
 .app {
+  position: relative;
   display: grid;
   grid-template-columns: var(--sidebar-width) 1fr;
   height: 100vh;
+  transition: grid-template-columns 0.2s ease;
 }
+/* Seitenleiste eingeklappt: Spalte schrumpft auf 0, die Karte nimmt die ganze Breite */
+.app.sidebar-zu { grid-template-columns: 0 1fr; }
+.app.sidebar-zu .sidebar { visibility: hidden; padding-left: 0; padding-right: 0; border-right: 0; overflow: hidden; }
+.sidebar { min-width: 0; }
+.sidebar-toggle {
+  position: absolute; z-index: 30; top: 72%; left: var(--sidebar-width); width: 26px; height: 64px; padding: 0;
+  display: flex; align-items: center; justify-content: center; font: 700 22px/1 var(--font); cursor: pointer;
+  background: var(--ink); color: var(--paper); border: 0; transition: left 0.2s ease, background 0.15s linear;
+}
+.sidebar-toggle:hover, .sidebar-toggle:focus-visible { background: var(--accent); color: #fff; outline: none; }
+.app.sidebar-zu .sidebar-toggle { left: 0; }
+@media (max-width: 760px) { .sidebar-toggle { display: none; } }
 
 .sidebar {
   background: var(--bg);
@@ -305,6 +319,10 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="date"]:focus, 
   position: relative;
   transition: color var(--t-fast) linear;
 }
+/* Logo in der Reiterleiste: nur bei eingeklappter Seitenleiste, oben links in der ersten Zeile */
+.tabs-logo { display: none; align-self: flex-start; align-items: center; min-height: 38px; margin: 0 14px 0 2px; }
+.tabs-logo img { display: block; height: 22px; width: auto; }
+.app.sidebar-zu .tabs-logo { display: flex; }
 .tab-trenner { margin-right: 10px; }       /* Ende einer Gruppe von Reitern */
 .tab-trenner::after { content: ""; position: absolute; right: -6px; top: 30%; bottom: 30%; width: 1px; background: var(--ink-soft); opacity: 0.5; }
 @media (max-width: 1500px) { .tab { padding: 12px 7px 10px; } }
@@ -430,8 +448,8 @@ input[type="number"]:focus, input[type="text"]:focus, input[type="date"]:focus, 
 
 /* ---------- Schmale Bildschirme (Handy) ---------- */
 @media (max-width: 760px) {
-  .app { grid-template-columns: 1fr; grid-template-rows: auto 70vh; height: auto; }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--line); padding: 20px 16px; }
+  .app, .app.sidebar-zu { grid-template-columns: 1fr; grid-template-rows: auto 70vh; height: auto; }
+  .sidebar, .app.sidebar-zu .sidebar { visibility: visible; border-right: none; border-bottom: 1px solid var(--line); padding: 20px 16px; }
   .step-main { margin-top: 0; }
   .main { height: 70vh; }
   .map-mode { white-space: normal; width: calc(100% - 32px); text-align: left; }

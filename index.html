@@ -27,13 +27,13 @@
   <!-- Rechnet zwischen Längen/Breitengrad und den UTM-Koordinaten der amtlichen Daten um -->
   <script src="https://cdn.jsdelivr.net/npm/proj4@2.12.1/dist/proj4.js"></script>
 
-  <link rel="stylesheet" href="style.css?v=181118e">
+  <link rel="stylesheet" href="style.css?v=191119b">
 </head>
 <body>
   <div class="app">
 
     <!-- ===== Seitenleiste links: Arbeitsschritte ===== -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <header class="brand">
         <h1 class="brand-logo">
           <!-- Logo: helle Version im Hellmodus, Negativ-Version im Dunkelmodus -->
@@ -105,12 +105,17 @@
       </footer>
     </aside>
 
+    <!-- Griff am Rand der Seitenleiste: klappt sie ein und aus (siehe seitenleiste.js) -->
+    <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="Seitenleiste einklappen" title="Seitenleiste ein- oder ausklappen"><span aria-hidden="true">‹</span></button>
+
     <!-- ===== Hauptbereich rechts: Ansichten ===== -->
     <main class="main">
       <div class="lade-streifen" id="lade-streifen" role="progressbar" aria-label="Daten werden geladen" aria-valuemin="0" aria-valuemax="100" hidden>
         <div id="lade-streifen-balken"></div>
       </div>
       <nav class="tabs" role="tablist" aria-label="Ansichten">
+        <!-- Kleines Logo, nur sichtbar wenn die Seitenleiste eingeklappt ist (siehe style.css, .tabs-logo) -->
+        <span class="tabs-logo" role="presentation" aria-hidden="true"><picture><source media="(prefers-color-scheme: dark)" srcset="logo/svg/sitekick-logo-horizontal-negativ.svg"><img src="logo/svg/sitekick-logo-horizontal-farbe.svg" alt="" width="854" height="167"></picture></span>
         <button class="tab is-active" data-view="karte" role="tab">Karte</button>
         <!-- Reihenfolge nach Arbeitsablauf: 1 Orientierung, 2 Pläne, 3 Grundstück und Markt, 4 Darstellung, 5 Zahlen. Trennstrich = Gruppenende. -->
         <button class="tab" data-view="luftbild" role="tab">Luftbild</button>
@@ -369,7 +374,7 @@
         </div>
         <p class="ex-klein-text ex-warnung" id="ex-dxf-hinweis" hidden>Im DXF steht nur der Lageplan. Die Schatten oder die Besonnungsdauer sind Pixelbilder und kommen nur in PDF, PNG und SVG.</p>
         <p class="ex-status" id="ex-status" role="status"></p>
-        <p class="ex-klein-text">Für maßstäbliches Drucken „tatsächliche Größe“ (100 %) wählen. DXF: Meter, Layer je Kategorie, Flächen als geschlossene Linien ohne Füllung; in Allplan und ArchiCAD noch nicht getestet.</p>
+        <p class="ex-klein-text">Für maßstäbliches Drucken „tatsächliche Größe“ (100 %) wählen. DXF: Meter, Layer je Kategorie, Flächen als geschlossene Linien ohne Füllung; in Allplan und ArchiCAD getestet.</p>
       </div>
     </div>
   </dialog>
@@ -401,24 +406,25 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <!-- Packt die Dateien des Sammel-Exports zu einer ZIP-Datei -->
   <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
-  <script src="app.js?v=181118e"></script>
-  <script src="ladeleiste.js?v=181118e"></script>
-  <script src="gelaende.js?v=181118e"></script>
-  <script src="flurstuecke.js?v=181118e"></script>
-  <script src="mieten.js?v=181118e"></script>
-  <script src="luftbild.js?v=181118e"></script>
-  <script src="infos.js?v=181118e"></script>
-  <script src="wirtschaft.js?v=181118e"></script>
-  <script src="schnitt.js?v=181118e"></script>
-  <script src="sonne.js?v=181118e"></script>
-  <script src="hoehe.js?v=181118e"></script>
-  <script src="erreichbar.js?v=181118e"></script>
-  <script src="import.js?v=181118e"></script>
-  <script src="projekt.js?v=181118e"></script>
-  <script src="export.js?v=181118e"></script>
-  <script src="sammelexport.js?v=181118e"></script>
-  <script src="ansicht3d.js?v=181118e"></script>
-  <script src="legende.js?v=181118e"></script>
-  <script src="hinweis.js?v=181118e"></script>
+  <script src="app.js?v=191119b"></script>
+  <script src="ladeleiste.js?v=191119b"></script>
+  <script src="gelaende.js?v=191119b"></script>
+  <script src="flurstuecke.js?v=191119b"></script>
+  <script src="mieten.js?v=191119b"></script>
+  <script src="luftbild.js?v=191119b"></script>
+  <script src="infos.js?v=191119b"></script>
+  <script src="wirtschaft.js?v=191119b"></script>
+  <script src="schnitt.js?v=191119b"></script>
+  <script src="sonne.js?v=191119b"></script>
+  <script src="hoehe.js?v=191119b"></script>
+  <script src="erreichbar.js?v=191119b"></script>
+  <script src="import.js?v=191119b"></script>
+  <script src="projekt.js?v=191119b"></script>
+  <script src="export.js?v=191119b"></script>
+  <script src="sammelexport.js?v=191119b"></script>
+  <script src="ansicht3d.js?v=191119b"></script>
+  <script src="legende.js?v=191119b"></script>
+  <script src="hinweis.js?v=191119b"></script>
+  <script src="seitenleiste.js?v=191119b"></script>
 </body>
 </html>

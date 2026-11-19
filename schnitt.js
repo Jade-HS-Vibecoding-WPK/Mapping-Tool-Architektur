@@ -18,7 +18,7 @@
        Gelände dahinter: Höhenprofile des Höhenmodells in sechs Abständen hinter der Linie.
      - Fenster, Türen, Vordächer und Möblierung fehlen. Die Zeichnung ist nicht vermessungsgenau.
      - Die Straßenansicht sortiert die Flächen nach Entfernung (Maleralgorithmus); bei sehr verschachtelten Dächern kann die Überdeckung abweichen.
-     - Die DXF-Datei ist nicht in Allplan oder ArchiCAD getestet.
+     - Die DXF-Datei ist in Allplan und ArchiCAD getestet (von den Studierenden).
    ============================================================ */
 
 "use strict";

@@ -9,13 +9,78 @@
 
 *Mapping-Tool für Architektur: Gebiet wählen, Pläne und Zahlen bekommen, für CAD exportieren.*
 
-Eine Website, mit der man auf einer Karte ein Gebiet von bis zu 1 km² aufzieht und daraus automatisch
-**Schwarzplan, Straßennetz, Grünplan, Lageplan, Sonnen- und Schattenstudie, 3D-Modell, Schnitt und Ansicht, Flurstücke mit Bodenrichtwerten,
-Mietpreise, eine Überschlagsrechnung zur Wirtschaftlichkeit und Kennzahlen** bekommt. Alle Pläne lassen sich **maßstäblich mit Plankopf als PDF (Vektor), PNG, SVG und
-als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele auf einmal als ZIP-Datei** (Reiter „Sammel-Export“).
+**SiteKick hilft beim Entwerfen: Gebiet auf der Karte wählen, fertige Pläne und Zahlen bekommen.**
 
-**SiteKick** (früher Arbeitstitel „Ortsanalyse“) ist als Studienprojekt für Architekturstudierende entstanden. Die Daten kommen automatisch aus offenen Quellen
-(OpenStreetMap und dem Landesamt für Geoinformation Niedersachsen, LGLN). Es gibt nichts zu installieren außer Python zum lokalen Start, oder man nutzt die Live-Demo.
+Man zieht auf einer Karte ein Rechteck auf (bis zu 1 km², also etwa 1 000 × 1 000 m). SiteKick holt dazu automatisch Daten aus offenen Quellen
+(OpenStreetMap und das Landesamt für Geoinformation Niedersachsen, LGLN) und zeichnet daraus:
+
+- **Pläne:** Schwarzplan, Straßennetz, Grünplan, Lageplan, Schnitt und Ansicht
+- **Sonne und Schatten:** Schattenplan und Besonnungsdauer für jedes Datum, dazu ein 3D-Modell mit Schatten
+- **Grundstück und Markt:** Flurstücke mit Bodenrichtwerten, Mietpreise, Überschlagsrechnung zur Wirtschaftlichkeit
+- **Zahlen:** Kennzahlen wie GRZ und GFZ
+
+Alle Pläne lassen sich **maßstäblich mit Plankopf** als PDF, PNG, SVG und als **DXF für Allplan 2024 und ArchiCAD 29** speichern, einzeln oder
+**viele auf einmal als ZIP-Datei** (Reiter „Sammel-Export“). SiteKick (früher Arbeitstitel „Ortsanalyse“) ist als Studienprojekt für Architekturstudierende entstanden.
+
+---
+
+## Installieren und starten
+
+Es gibt drei Wege. **Am einfachsten ist der erste: nichts installieren, nur die Webseite öffnen.**
+
+| Weg | Wofür | Aufwand |
+|---|---|---|
+| **1. Im Browser** (Live-Demo) | schnell ausprobieren, auf jedem Gerät | nur Link öffnen |
+| **2. Als Windows-Programm** | wie jede andere App auf dem PC, mit Symbol auf dem Desktop | Installer herunterladen und starten |
+| **3. Lokal mit Python** | zum Weiterentwickeln | Python installieren |
+
+### Weg 1: Im Browser (nichts installieren)
+
+Diesen Link öffnen: **https://jade-hs-vibecoding-wpk.github.io/SiteKick/**
+
+Am besten mit Chrome, Edge oder Firefox am Rechner. Beim ersten Mal erscheint ein Fenster mit einem Hinweis, dass SiteKick mit Hilfe von KI gebaut wurde: mit „Verstanden, los geht’s“ schließen.
+Die Datendienste sind bei den ersten Aufrufen manchmal überlastet (Fehler 502); das Tool probiert dann andere Server und nach einer Minute geht es meist.
+
+### Weg 2: Als Windows-Programm installieren
+
+Das Programm zeigt genau dieselbe Seite wie der Browser, aber in einem eigenen Fenster. Es läuft nur unter **Windows 10 oder 11 (64 Bit)**.
+Es braucht weiter **Internet**, weil Karten und amtliche Daten live geholt werden.
+
+1. **Installer herunterladen:** [SiteKick-Setup-1.0.0.exe](https://github.com/Jade-HS-Vibecoding-WPK/SiteKick/raw/main/desktop/installer/SiteKick-Setup-1.0.0.exe) anklicken (79 MB, der Download startet von selbst).
+2. **Datei starten:** In den Downloads auf `SiteKick-Setup-1.0.0.exe` doppelklicken.
+3. **Windows-Warnung wegbestätigen:** Es erscheint „Der Computer wurde durch Windows geschützt“ (blau). Das ist normal, weil die Datei nicht mit einem bezahlten Zertifikat
+   unterschrieben ist. Auf **„Weitere Informationen“** klicken, dann auf **„Trotzdem ausführen“**.
+4. **Installieren:** Im Installer „Weiter“, bei Bedarf den Ordner ändern, dann „Installieren“. Dauert etwa eine halbe Minute. Danach „Fertig stellen“.
+5. **Starten:** Auf das **SiteKick-Symbol auf dem Desktop** doppelklicken (oder im Startmenü „SiteKick“ suchen).
+
+**Wieder löschen:** Windows-Einstellungen → Apps → Installierte Apps → SiteKick → Deinstallieren.
+
+Für Mac oder Linux gibt es das Programm nicht; dort Weg 1 nehmen.
+
+### Weg 3: Lokal mit Python (zum Weiterentwickeln)
+
+1. [Python](https://www.python.org/downloads/) installieren (einmalig). Beim Installieren „Add python.exe to PATH“ anhaken.
+2. Dieses Repository herunterladen (grüner Knopf „Code“ → „Download ZIP“) und entpacken.
+3. Im Ordner auf **`Start.bat`** doppelklicken. Es öffnet sich der Browser mit dem Tool
+   (Adresse: `http://localhost:8765/index.html`). Das schwarze Fenster offen lassen, zum Beenden schließen.
+
+Ohne Windows reicht im Ordner dieser Befehl, danach `http://localhost:8765/index.html` im Browser öffnen:
+
+```bash
+python server.py 8765
+```
+
+Das Windows-Programm selbst neu bauen (für Entwickler): siehe [`desktop/LIESMICH.txt`](desktop/LIESMICH.txt).
+
+### Und dann? Die ersten Minuten
+
+1. Auf **„Beispiel Oldenburg laden“** klicken. SiteKick setzt ein Testgebiet in der Oldenburger Innenstadt und lädt die Daten (etwa 40 Sekunden).
+2. Oben die **Reiter durchklicken**: Lageplan, Schwarzplan, 3D-Modell und so weiter. Alle benutzen dieselben Daten.
+3. Unten rechts auf **„Exportieren …“** klicken, einen Maßstab wählen und als PDF speichern.
+
+Ein eigenes Gebiet: **„Rechteck zeichnen“**, mit gedrückter Maustaste aufziehen, dann **„Analysieren“** (genauer unter [Schnellstart](#schnellstart)).
+
+---
 
 ![Lageplan der Oldenburger Innenstadt, erzeugt mit dem Tool](docs/bilder/lageplan.jpg)
 
@@ -33,24 +98,25 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 |---|---|
 | **Projekt von** | Jorit Simon und Alexander Ubben |
 | **Dozent\*innen** | Gregor Grunwald und Radostina Radulova-Stahmer |
-| **Stand** | 18.11.2026 |
+| **Stand** | 19.11.2026 |
 | **Lizenz** | MIT License (siehe [`LICENSE`](LICENSE)) |
 
 ---
 
 ## Inhalt
 
-1. [Auf einen Blick](#auf-einen-blick)
-2. [Schnellstart](#schnellstart)
-3. [Die Reiter im Einzelnen](#die-reiter-im-einzelnen)
-4. [Export und Sammel-Export](#export)
-5. [Datei-Import und Projekt merken](#datei-import-und-projekt-merken)
-6. [Oberfläche und Logo](#oberfläche-und-logo)
-7. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
-8. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
-9. [Technik und Aufbau](#technik-und-aufbau)
-10. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
-11. [Offen](#offen)
+1. [Installieren und starten](#installieren-und-starten)
+2. [Auf einen Blick](#auf-einen-blick)
+3. [Schnellstart](#schnellstart)
+4. [Die Reiter im Einzelnen](#die-reiter-im-einzelnen)
+5. [Export und Sammel-Export](#export)
+6. [Datei-Import und Projekt merken](#datei-import-und-projekt-merken)
+7. [Oberfläche und Logo](#oberfläche-und-logo)
+8. [Datenquellen und Lizenzen](#datenquellen-und-lizenzen)
+9. [Genauigkeit und Grenzen](#genauigkeit-und-grenzen)
+10. [Technik und Aufbau](#technik-und-aufbau)
+11. [Hinweis zur Nutzung von KI](#hinweis-zur-nutzung-von-ki)
+12. [Offen](#offen)
 
 ---
 
@@ -71,33 +137,7 @@ als DXF für Allplan 2024 und ArchiCAD 29** exportieren, einzeln oder **viele au
 
 ## Schnellstart
 
-**Variante A: Live-Demo im Browser (nichts installieren)**
-
-**https://jade-hs-vibecoding-wpk.github.io/SiteKick/**
-
-Die Seite läuft über GitHub Pages direkt aus diesem Repository, es ist kein eigener Server nötig. Die Datendienste sind bei den ersten Aufrufen manchmal überlastet
-(Overpass meldet gelegentlich Fehler 502); das Tool probiert dann andere Server. Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB, bei schwacher Leitung das
-Häkchen „LoD2-Dachformen laden“ abschalten.
-
-**Variante B: lokal auf dem eigenen Rechner (Windows)**
-
-1. [Python](https://www.python.org/downloads/) installieren (einmalig). Beim Installieren „Add python.exe to PATH“ anhaken.
-2. Dieses Repository herunterladen (grüner Knopf „Code“ → „Download ZIP“) und entpacken.
-3. Im Ordner auf **`Start.bat`** doppelklicken. Es öffnet sich der Browser mit dem Tool
-   (Adresse: `http://localhost:8765/index.html`). Das schwarze Fenster offen lassen, zum Beenden schließen.
-
-Ohne Windows reicht im Ordner dieser Befehl, danach `http://localhost:8765/index.html` im Browser öffnen:
-
-```bash
-python server.py 8765
-```
-
-**Variante C: als Windows-Programm (SiteKick-Setup.exe)**
-
-Ein Installer legt SiteKick wie jede andere App an (Fenster, Symbol auf dem Desktop und im Startmenü). Gebaut wird er im Ordner `desktop/`
-(Electron, [Anleitung](desktop/LIESMICH.txt)): `cd desktop`, `npm install`, `npm run bauen`; fertig ist `desktop/dist/SiteKick-Setup-1.0.0.exe` (ca. 80 MB).
-Das Programm zeigt dieselbe Website, braucht aber ebenso Internet für Karten und amtliche Daten. Windows meldet beim ersten Start „Unbekannter Herausgeber“
-(nicht signiert): „Weitere Informationen“, dann „Trotzdem ausführen“. Der fertige Installer liegt zum Herunterladen im Repository: [`desktop/installer/SiteKick-Setup-1.0.0.exe`](desktop/installer/SiteKick-Setup-1.0.0.exe) (79 MB, Windows 64 Bit).
+Wie SiteKick installiert oder geöffnet wird, steht oben unter [Installieren und starten](#installieren-und-starten). Hier die Benutzung im Einzelnen.
 
 **Benutzung in fünf Schritten**
 
@@ -109,6 +149,7 @@ Das Programm zeigt dieselbe Website, braucht aber ebenso Internet für Karten un
 4. **Einstellen:** zum Beispiel Datum und Uhrzeit der Sonne, Einfärbung der Flurstücke, Orte der Umgebung, eine Schnittlinie.
 5. **Exportieren:** Entweder unten rechts auf „Exportieren …“ klicken (ein Plan, Blatt und Maßstab wählen, als PDF, PNG, SVG oder DXF speichern) oder im letzten Reiter **„Sammel-Export“** viele Pläne auf einmal als ZIP laden (siehe [Export](#export)).
 
+Die Dachformen (LoD2) sind ein Download von 60 bis 230 MB; bei schwacher Leitung das Häkchen „LoD2-Dachformen laden“ abschalten.
 Die Dachformen (LoD2), das Gelände, Luftbilder, Flurstücke und Bodenrichtwerte gibt es nur in Niedersachsen. Außerhalb arbeitet das Tool mit OpenStreetMap-Daten.
 
 ---

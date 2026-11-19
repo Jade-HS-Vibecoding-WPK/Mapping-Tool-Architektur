@@ -22,7 +22,7 @@ Bekannte Stolpersteine
   Zip aus %LOCALAPPDATA%\electron\Cache nach node_modules\electron\dist entpacken und die Datei node_modules\electron\path.txt
   mit dem Inhalt  electron.exe  anlegen. (Mit Node 20 oder 22 geht es ohne diesen Schritt.)
 - Der fertige Installer liegt als Release auf GitHub: https://github.com/Jade-HS-Vibecoding-WPK/SiteKick/releases (nicht im Repository, zu groß).
-  Neue Version: bauen, dann auf GitHub unter Releases ein neues Release (z. B. v1.1.0) mit der Datei aus dist anlegen.
+  Neue Version: bauen, dann auf GitHub unter Releases ein neues Release (z. B. v1.2.0) mit der Datei aus dist anlegen.
 
 Dateien
   main.js        Fenster, lokaler Server, Downloads, Menü
